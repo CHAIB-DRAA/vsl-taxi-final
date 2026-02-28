@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "vsl-mobile",
+    "slug": "taxiapp",
+    "owner": "chaibdraa",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FF6B00"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.mostafa27001.vslmobile"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#ffffff"
+      },
+      "edgeToEdgeEnabled": true,
+      "package": "com.mostafa27001.vslmobile",
+      "permissions": [
+        "READ_CALENDAR",
+        "WRITE_CALENDAR"
+      ]
+    },
+    "web": {
+      "favicon": "./assets/favicon.png"
+    },
+    "extra": {
+      "eas": {
+        "projectId": "9f89c996-4932-4444-b59c-cc71cc54366d"
+      }
+    },
+    "plugins": [
+      "expo-secure-store",
+      
+      [
+        "expo-calendar",
+        {
+          "calendarPermission": "L'application a besoin d'accéder à votre calendrier pour y ajouter vos courses automatiquement."
+        }
+      ], 
+      
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "L'application a besoin d'accéder à vos photos pour scanner les documents.",
+          "cameraPermission": "L'application a besoin d'accéder à la caméra pour scanner les bons de transport."
+        }
+      ]
+    ]
+  }
+}
