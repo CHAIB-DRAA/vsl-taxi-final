@@ -135,7 +135,32 @@ export default function AgendaScreen({ navigation }) {
     setFinishModal(false); loadData(true); 
   };
 
-  // --- LOGIQUE SMS (Nouveau) ---
+  const handleCreateReturnRide = async () => {
+    if (!returnData.time) return Alert.alert("Erreur", "Heure manquante pour le retour.");
+    try {
+      const [h, m] = returnData.time.split(':');
+      const payload = {
+        ...activeRide,
+        _id: undefined, 
+        type: 'Retour',
+        startLocation: returnData.startLocation,
+        endLocation: returnData.endLocation,
+        date: moment(returnData.date).hour(h).minute(m).toISOString(),
+        startTime: null,
+        endTime: null,
+        status: 'À venir',
+        realDistance: 0,
+        tolls: 0
+      };
+
+      await api.post('/rides', payload);
+      setReturnModal(false);
+      loadData(true);
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible de valider le retour.");
+    }
+  };
+
   const handleSendSMS = () => {
     if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Pas de numéro de téléphone.");
     const date = moment(activeRide.date).format('DD/MM à HH:mm');
@@ -145,7 +170,6 @@ export default function AgendaScreen({ navigation }) {
     setModals({ ...modals, options: false });
   };
 
-  // --- DOCS LOGIC ---
   const fetchDocs = async (ride) => {
     if (!ride) return;
     setLoadingDocs(true);
@@ -168,7 +192,6 @@ export default function AgendaScreen({ navigation }) {
   };
   const validateBT = () => { setBtValidationModal(false); if(tempScanUri) uploadDoc(tempScanUri, 'PMT'); };
 
-  // --- SHARE LOGIC ---
   const shareInternal = async (c) => {
     try { await shareRide(activeRide._id, c.contactId._id, shareNote); setModals({...modals, share:false}); setShareNote(''); loadData(true); Alert.alert("Envoyé", `À ${c.contactId.fullName}`); }
     catch(e){ Alert.alert("Erreur envoi"); }
@@ -178,7 +201,6 @@ export default function AgendaScreen({ navigation }) {
     Linking.openURL(`whatsapp://send?text=${encodeURIComponent(msg)}`);
   };
 
-  // --- GROUPS LOGIC ---
   const saveGroup = async (g) => {
      const p = { name: g.name, members: g.members.map(m => m.contactId?._id || m._id) };
      if(g._id) { const res = await api.put(`/groups/${g._id}`, p); setMyGroups(prev=>prev.map(x=>x._id===g._id?res.data:x)); }
@@ -194,7 +216,6 @@ export default function AgendaScreen({ navigation }) {
     <ScreenWrapper style={{backgroundColor: THEME_BG}}>
       <StatusBar barStyle="dark-content" backgroundColor={THEME_BG} />
       
-      {/* 1. HEADER (Avec les points calculés) */}
       <AgendaHeader 
         selectedDate={selectedDate} 
         onDateSelect={setSelectedDate} 
@@ -203,7 +224,6 @@ export default function AgendaScreen({ navigation }) {
         markedDates={markedDates}
       />
       
-      {/* 2. TOOLBAR */}
       <AgendaToolbar 
         onImport={handleImport} 
         analyzing={analyzing} 
@@ -211,7 +231,6 @@ export default function AgendaScreen({ navigation }) {
         onSettings={() => navigation.navigate('Settings')} 
       />
 
-      {/* 3. LISTE DES COURSES */}
       <AgendaList 
         rides={dailyRides} 
         loading={loading} 
@@ -224,16 +243,15 @@ export default function AgendaScreen({ navigation }) {
         getPMTStatus={getPMTStatus}
       />
 
-      {/* --- MODAL PRINCIPAL D'OPTIONS --- */}
       <RideOptionsModal 
         visible={modals.options} ride={activeRide} onClose={() => setModals({ ...modals, options: false })}
-        onEdit={() => { setModals({ ...modals, options: false }); setTimeout(() => navigation.navigate('AddRide', { importedData: activeRide }), 100); }}
+        // 👈 LE FIX EST ICI : On envoie "rideToEdit" au lieu de "importedData"
+        onEdit={() => { setModals({ ...modals, options: false }); setTimeout(() => navigation.navigate('AddRide', { rideToEdit: activeRide }), 100); }}
         onCreateReturn={() => { setModals({ ...modals, options: false }); setTimeout(() => { if(activeRide) { setReturnData(p => ({...p, startLocation: activeRide.endLocation, endLocation: activeRide.startLocation, date: moment(activeRide.date).format('YYYY-MM-DD')})); setReturnModal(true); }}, 100); }}
         onAddToCalendar={() => { addRideToCalendar(activeRide); setModals({ ...modals, options: false }); }}
-        // Actions séparées et SMS ajouté
         onShare={() => setModals({ options: false, share: true, docs: false })} 
         onOpenDocs={() => fetchDocs(activeRide)} 
-        onSendSMS={handleSendSMS} // 👈 FONCTION SMS CONNECTÉE
+        onSendSMS={handleSendSMS} 
         onDelete={async () => { await deleteRide(activeRide._id); setModals({...modals, options:false}); loadData(true); }}
         onDispatch={() => { setModals({ ...modals, options: false }); setTimeout(() => setShowDispatchModal(true), 100); }}
       />
@@ -241,14 +259,11 @@ export default function AgendaScreen({ navigation }) {
       <DispatchModal visible={showDispatchModal} onClose={() => setShowDispatchModal(false)} ride={activeRide} contacts={contacts} groups={myGroups} onCreateGroup={() => { setShowDispatchModal(false); setTimeout(() => { setEditingGroup(null); setShowGroupCreator(true); }, 200); }} onSuccess={() => loadData(true)} />
       <GroupListModal visible={showGroupList} onClose={() => setShowGroupList(false)} groups={myGroups} onCreateNew={() => { setEditingGroup(null); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onEdit={(group) => { setEditingGroup(group); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onDelete={deleteGroup} />
       <GroupCreatorModal visible={showGroupCreator} groupToEdit={editingGroup} onClose={() => { setShowGroupCreator(false); setTimeout(() => setShowGroupList(true), 200); }} contacts={contacts} onSaveGroup={saveGroup} />
-      
-      {/* --- NOUVEAUX MODALS MODULAIRES --- */}
       <FinishRideModal visible={finishModal} onClose={() => setFinishModal(false)} data={billingData} setData={setBillingData} onConfirm={confirmFinishRide} />
-      <ReturnRideModal visible={returnModal} onClose={() => setReturnModal(false)} data={returnData} setData={setReturnData} tempDate={tempReturnDate} setTempDate={setTempReturnDate} showPicker={showTimePicker} setShowPicker={setShowTimePicker} onConfirm={async () => { const [h, m] = returnData.time.split(':'); await api.post('/rides', { ...activeRide, _id: undefined, type: 'Retour', startLocation: returnData.startLocation, endLocation: returnData.endLocation, date: moment(returnData.date).hour(h).minute(m).toISOString() }); setReturnModal(false); loadData(true); }} />
+      <ReturnRideModal visible={returnModal} onClose={() => setReturnModal(false)} data={returnData} setData={setReturnData} tempDate={tempReturnDate} setTempDate={setTempReturnDate} showPicker={showTimePicker} setShowPicker={setShowTimePicker} onConfirm={handleCreateReturnRide} />
       <ShareModal visible={modals.share} onClose={() => setModals({...modals, share: false})} note={shareNote} setNote={setShareNote} onWhatsApp={shareWhatsApp} contacts={contacts} onShareInternal={shareInternal} />
       <DocsModal visible={modals.docs} onClose={() => setModals({...modals, docs: false})} docs={patientDocs} loading={loadingDocs} onScan={onScanDoc} uploading={uploading} onGallery={onGallery} />
       <CpamCheckModal visible={btValidationModal} onClose={() => setBtValidationModal(false)} prescriptionDate={prescriptionDate} setPrescriptionDate={setPrescriptionDate} showPicker={showPrescriptionPicker} setShowPicker={setShowPrescriptionPicker} rideDate={activeRide?.date} onValidate={validateBT} />
-      
       <IncomingOfferToast onRideAccepted={() => loadData(true)} />
     </ScreenWrapper>
   );

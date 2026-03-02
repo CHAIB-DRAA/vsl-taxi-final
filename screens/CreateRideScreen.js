@@ -10,7 +10,8 @@ import 'moment/locale/fr';
 
 // Composants & Services
 import AddressAutocomplete from '../components/AddressAutocomplete'; 
-import { createRide, getPatients, createPatient } from '../services/api';
+// 👈 AJOUT DE updateRide ICI
+import { createRide, updateRide, getPatients, createPatient } from '../services/api';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useData } from '../contexts/DataContext'; 
 
@@ -26,6 +27,8 @@ export default function CreateRideScreen({ navigation, route }) {
   const { allRides } = useData();
 
   // --- STATES ---
+  const [editingRideId, setEditingRideId] = useState(null); // 👈 NOUVEAU : Mémorise l'ID si on modifie
+  
   const [patientName, setPatientName] = useState('');
   const [patientPhone, setPatientPhone] = useState(''); 
   const [patientAddressMem, setPatientAddressMem] = useState(''); 
@@ -45,9 +48,9 @@ export default function CreateRideScreen({ navigation, route }) {
   const [type, setType] = useState('Aller');
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   
-  const [loading, setLoading] = useState(false); // Chargement global (sauvegarde)
-  const [patientsLoading, setPatientsLoading] = useState(false); // Chargement liste patients
-  const [errorLoading, setErrorLoading] = useState(false); // Erreur chargement patients
+  const [loading, setLoading] = useState(false); 
+  const [patientsLoading, setPatientsLoading] = useState(false); 
+  const [errorLoading, setErrorLoading] = useState(false); 
 
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -59,11 +62,15 @@ export default function CreateRideScreen({ navigation, route }) {
   // --- 1. CHARGEMENT INITIAL ---
   useEffect(() => { loadPatients(); }, []);
   
-  // --- 2. RÉCEPTION DONNÉES IA (MAGIC PASTE) ---
+  // --- 2. RÉCEPTION DONNÉES (MAGIC PASTE OU MODIFICATION) ---
   useEffect(() => {
-    if (route.params?.importedData) {
-        const data = route.params.importedData;
-        console.log("📥 Données reçues du Magic Paste :", data);
+    // 👈 MODIFICATION : On vérifie si c'est une édition OU une importation
+    const data = route.params?.rideToEdit || route.params?.importedData;
+    
+    if (data) {
+        if (route.params?.rideToEdit) {
+            setEditingRideId(data._id); // On enregistre l'ID pour la modification
+        }
 
         if (data.patientName) setPatientName(data.patientName);
         if (data.patientPhone) setPatientPhone(data.patientPhone);
@@ -75,13 +82,13 @@ export default function CreateRideScreen({ navigation, route }) {
         if (data.date) setDate(new Date(data.date));
         else if (data.startTime) setDate(new Date(data.startTime));
 
-        navigation.setParams({ importedData: null });
+        // Nettoyage des paramètres pour éviter de recharger en boucle
+        navigation.setParams({ importedData: null, rideToEdit: null });
     }
   }, [route.params]);
 
   // --- 3. FONCTIONS LOGIQUES ---
 
-  // Chargement robuste des patients avec gestion d'erreur
   const loadPatients = async () => {
     setPatientsLoading(true);
     setErrorLoading(false);
@@ -89,7 +96,6 @@ export default function CreateRideScreen({ navigation, route }) {
       const data = await getPatients();
       setAllPatients(data || []);
     } catch (err) { 
-      console.log("Erreur chargement patients:", err);
       setErrorLoading(true);
     } finally {
       setPatientsLoading(false);
@@ -185,7 +191,8 @@ export default function CreateRideScreen({ navigation, route }) {
     } catch (err) { Alert.alert("Erreur", "Impossible de créer le patient"); }
   };
 
-  const handleCreate = async () => {
+  // 👈 MODIFICATION : Prise en charge de l'Update vs Create
+  const handleSave = async () => {
     if (!patientName || !startLocation || !endLocation) return Alert.alert('Attention', 'Veuillez remplir le patient et les adresses.');
     try {
       setLoading(true);
@@ -194,15 +201,22 @@ export default function CreateRideScreen({ navigation, route }) {
         date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null, 
         type, isRoundTrip, notes
       };
-      await createRide(rideData);
-      Alert.alert('Succès', 'Course ajoutée au planning.');
+      
+      if (editingRideId) {
+         await updateRide(editingRideId, rideData);
+         Alert.alert('Succès', 'Course mise à jour avec succès.');
+      } else {
+         await createRide(rideData);
+         Alert.alert('Succès', 'Course ajoutée au planning.');
+      }
       
       // Reset form
       setPatientName(''); setPatientPhone(''); setPatientAddressMem(''); 
       setStartLocation(''); setEndLocation(''); setIsRoundTrip(false); setNotes('');
+      setEditingRideId(null);
       
-      navigation.navigate('Agenda'); 
-    } catch (error) { Alert.alert('Erreur', "Echec de l'enregistrement."); } 
+      navigation.goBack();
+        } catch (error) { Alert.alert('Erreur', "Echec de l'enregistrement."); } 
     finally { setLoading(false); }
   };
 
@@ -216,7 +230,8 @@ export default function CreateRideScreen({ navigation, route }) {
           showsVerticalScrollIndicator={false}
         >
           
-          <Text style={styles.pageTitle}>Nouvelle Course</Text>
+          {/* Titre dynamique */}
+          <Text style={styles.pageTitle}>{editingRideId ? 'Modifier la Course' : 'Nouvelle Course'}</Text>
 
           {/* === 1. PATIENT === */}
           <View style={[styles.sectionContainer, { zIndex: 2000, elevation: 2000 }]}>
@@ -237,7 +252,6 @@ export default function CreateRideScreen({ navigation, route }) {
                 onChangeText={handleNameChange}
               />
               
-              {/* Loader discret à droite */}
               {patientsLoading && <ActivityIndicator size="small" color="#FF6B00" />}
 
               {!patientsLoading && patientName.length > 0 && (
@@ -247,7 +261,6 @@ export default function CreateRideScreen({ navigation, route }) {
               )}
             </View>
             
-            {/* BOUTON REESSAYER EN CAS D'ERREUR RÉSEAU */}
             {errorLoading && (
                 <TouchableOpacity onPress={loadPatients} style={styles.retryButton}>
                     <Ionicons name="refresh" size={16} color="#D32F2F" />
@@ -257,7 +270,6 @@ export default function CreateRideScreen({ navigation, route }) {
 
             {patientPhone ? <Text style={styles.helperText}>📞 {patientPhone}</Text> : null}
 
-            {/* LISTE DÉROULANTE (CORRIGÉE AVEC SCROLLVIEW + MAP) */}
             {showSuggestions && (
               <View style={styles.suggestionsDropdown}>
                 <ScrollView 
@@ -422,8 +434,8 @@ export default function CreateRideScreen({ navigation, route }) {
 
           {/* FOOTER */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.mainButton} onPress={handleCreate} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.mainButtonText}>VALIDER LA COURSE</Text>}
+            <TouchableOpacity style={styles.mainButton} onPress={handleSave} disabled={loading}>
+              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.mainButtonText}>{editingRideId ? 'METTRE À JOUR LA COURSE' : 'VALIDER LA COURSE'}</Text>}
             </TouchableOpacity>
           </View>
 
@@ -480,7 +492,6 @@ const styles = StyleSheet.create({
   inputField: { flex: 1, fontSize: 16, color: '#000', fontWeight: '600' },
   helperText: { marginTop: 8, color: '#2E7D32', fontSize: 12, fontWeight: '700' },
 
-  // Bouton Réessayer
   retryButton: {
     flexDirection: 'row', alignItems: 'center', marginTop: 10, padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8
   },
