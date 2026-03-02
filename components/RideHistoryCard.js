@@ -7,6 +7,10 @@ import { calculatePrice } from '../utils/pricing';
 const RideHistoryCard = ({ item, hasConflict, onPress }) => {
   const isBilled = item.statuFacturation === 'Facturé';
   const displayPrice = calculatePrice(item);
+  
+  // 👈 NOUVEAU : On récupère et on formate la date complète
+  const rideDate = dayjs(item.date || item.startTime).format('DD/MM/YYYY');
+  const rideTime = item.startTime ? dayjs(item.startTime).format('HH:mm') : '--:--';
 
   return (
     <TouchableOpacity 
@@ -15,11 +19,15 @@ const RideHistoryCard = ({ item, hasConflict, onPress }) => {
       activeOpacity={0.7}
     >
       <View style={styles.cardContent}>
+        
+        {/* COLONNE GAUCHE : L'heure en grand, la Date complète en dessous */}
         <View style={[styles.dateCol, hasConflict && { borderRightColor: '#FFCDD2' }]}>
           <Text style={[styles.dayText, hasConflict && { color: '#D32F2F' }]}>
-              {item.startTime ? dayjs(item.startTime).format('HH:mm') : '--:--'}
+              {rideTime}
           </Text>
-          <Text style={styles.monthText}>DÉPART</Text>
+          <Text style={[styles.monthText, hasConflict && { color: '#D32F2F' }]}>
+              {rideDate}
+          </Text>
         </View>
         
         <View style={styles.detailsCol}>
@@ -65,16 +73,20 @@ const RideHistoryCard = ({ item, hasConflict, onPress }) => {
   );
 };
 
-// React.memo bloque les re-rendus inutiles
 export default memo(RideHistoryCard);
 
 const styles = StyleSheet.create({
   card: { backgroundColor: '#FFF', borderRadius: 16, marginBottom: 12, elevation: 2, padding: 15, borderLeftWidth: 4, borderLeftColor: 'transparent' },
   cardConflicting: { borderLeftColor: '#D32F2F', backgroundColor: '#FFF0F0' }, 
   cardContent: { flexDirection: 'row', alignItems: 'center' },
-  dateCol: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#F0F0F0', width: 75 }, 
+  
+  // 👈 MODIFIÉ : J'ai élargi un peu la colonne pour que "JJ/MM/AAAA" rentre parfaitement
+  dateCol: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#F0F0F0', width: 85 }, 
+  
   dayText: { fontSize: 18, fontWeight: 'bold', color: '#333' }, 
-  monthText: { fontSize: 10, color: '#999', textTransform: 'uppercase', marginTop: 2 },
+  // 👈 MODIFIÉ : J'ai mis la date en orange pour bien la faire ressortir
+  monthText: { fontSize: 11, color: '#FF6B00', fontWeight: 'bold', marginTop: 4 }, 
+  
   detailsCol: { flex: 1, paddingLeft: 15 },
   patientName: { fontSize: 16, fontWeight: 'bold', color: '#333', flex:1 },
   infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 10 },
