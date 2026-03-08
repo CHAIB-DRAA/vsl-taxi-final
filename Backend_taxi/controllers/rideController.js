@@ -36,8 +36,12 @@ exports.getRides = async (req, res) => {
 
     // A. Récupérer MES courses (créées par moi)
     // Attention : On utilise 'chauffeurId' ici aussi
-    const myRides = await Ride.find({ chauffeurId: myId }).lean();
-
+const myRides = await Ride.find({ 
+      $or: [
+        { chauffeurId: myId }, 
+        { source: 'Web', status: 'En attente' } // 👈 Aspire les demandes du site !
+      ] 
+    }).lean();
     // B. Récupérer les courses PARTAGÉES avec moi
     let formattedSharedRides = [];
     try {
@@ -222,5 +226,40 @@ exports.updateRideFacturation = async (req, res) => {
     res.json(ride);
   } catch (err) {
     res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 8. RÉSERVATION WEB (Sans chauffeur attribué) ---
+exports.createWebBooking = async (req, res) => {
+  try {
+    const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes } = req.body;
+
+    if (!patientName || !startLocation || !endLocation || !date || !time) {
+      return res.status(400).json({ error: "Veuillez remplir tous les champs obligatoires." });
+    }
+
+    const combinedDateTime = new Date(`${date}T${time}:00`).toISOString();
+
+    const newRide = new Ride({
+      patientName,
+      patientPhone,
+      startLocation,
+      endLocation,
+      date: combinedDateTime,
+      type: type || 'Aller',
+      notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
+      status: 'En attente', 
+      source: 'Web',        
+      statuFacturation: 'Non facturé',
+      isRoundTrip: false
+      // On NE MET PAS de chauffeurId ici, c'est une demande libre !
+    });
+
+    await newRide.save();
+    res.status(201).json({ success: true, message: "Votre demande a bien été envoyée. Le chauffeur vous confirmera l'horaire par SMS." });
+
+  } catch (error) {
+    console.error("Erreur Web Booking:", error);
+    res.status(500).json({ error: "Erreur serveur, veuillez réessayer plus tard." });
   }
 };
