@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const path = require('path'); // Ajout pour gérer les chemins de fichiers proprement
 
 // 1. Configuration des variables d'environnement
 dotenv.config();
@@ -12,6 +13,10 @@ const app = express();
 // 3. Middlewares (Les réglages)
 app.use(cors());
 app.use(express.json());
+
+// 🌟 LE DOSSIER PUBLIC (Pour ta page Web de réservation)
+// Express va servir automatiquement tous les fichiers placés dans le dossier "public"
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Import des routes
 const rideRoutes = require('./routes/rideRoutes');
@@ -33,12 +38,7 @@ mongoose.connect(process.env.MONGO_URI)
 // 5. DÉFINITION DES ROUTES
 // ==========================================
 
-// La fameuse route d'accueil (Maintenant elle fonctionnera car "app" existe !)
-app.get('/', (req, res) => {
-  res.status(200).send('Serveur VSL API opérationnel 🚀');
-});
-
-// Route de test (Ping)
+// Route de test API (Ping) - Toujours utile pour vérifier que le moteur tourne
 app.get('/ping', (req, res) => {
     res.status(200).send('Pong! Server is alive 🤖');
 });
