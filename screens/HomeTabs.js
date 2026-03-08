@@ -1,4 +1,4 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { 
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, 
   ActivityIndicator, Alert, StatusBar, Platform, Dimensions 
@@ -24,51 +24,30 @@ export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   
+  // NOUVEAU : On stocke toutes les courses en mémoire pour des calculs ultra-rapides
+  const [allRides, setAllRides] = useState([]);
+  
+  // NOUVEAU : État pour le mois sélectionné par l'utilisateur (Par défaut: ce mois-ci)
+  const [selectedMonth, setSelectedMonth] = useState(moment());
+
   const [stats, setStats] = useState({
     todayCount: 0,
     monthEarnings: 0,
+    monthBilledEarnings: 0,
     nextRide: null
   });
 
-  // Salutation dynamique (Bonjour / Bonsoir)
   const getGreeting = () => {
     const hour = moment().hour();
     return hour >= 18 ? "Bonsoir," : "Bonjour,";
   };
 
-  const loadDashboard = useCallback(async () => {
+  // 1. On télécharge les données depuis l'API (Seulement au chargement ou "Pull-to-refresh")
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const data = await getRides();
-      
-      const todayStr = moment().format('YYYY-MM-DD');
-      const currentMonthStr = moment().format('MM-YYYY');
-      const now = moment();
-
-      // 1. Courses du jour
-      const todayRides = data.filter(r => moment(r.date).format('YYYY-MM-DD') === todayStr);
-      
-      // 2. Prochaine course (Future)
-      const upcoming = todayRides
-        .filter(r => moment(r.date || r.startTime).isAfter(now))
-        .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
-
-      // 3. CA Mois (Basé sur Convention 2025)
-      const finishedRidesThisMonth = data.filter(r => 
-        r.status === 'Terminée' && 
-        moment(r.date).format('MM-YYYY') === currentMonthStr
-      );
-
-      const totalEarnings = finishedRidesThisMonth.reduce((acc, ride) => {
-        return acc + parseFloat(calculatePrice(ride)); 
-      }, 0);
-
-      setStats({
-        todayCount: todayRides.length,
-        monthEarnings: totalEarnings.toFixed(2),
-        nextRide: upcoming
-      });
-
+      setAllRides(data);
     } catch (error) {
       console.error("Erreur Dashboard:", error);
     } finally {
@@ -78,9 +57,51 @@ export default function HomeScreen({ navigation }) {
 
   useFocusEffect(
     useCallback(() => {
-      loadDashboard();
-    }, [loadDashboard])
+      fetchDashboardData();
+    }, [fetchDashboardData])
   );
+
+  // 2. On calcule les statistiques localement à chaque fois que tu changes de mois ou que les données arrivent
+  useEffect(() => {
+    if (!allRides || allRides.length === 0) return;
+
+    const todayStr = moment().format('YYYY-MM-DD');
+    const targetMonthStr = selectedMonth.format('MM-YYYY'); // On utilise le mois choisi !
+    const now = moment();
+
+    // Courses du jour (Reste toujours sur la date d'aujourd'hui)
+    const todayRides = allRides.filter(r => moment(r.date).format('YYYY-MM-DD') === todayStr);
+    
+    // Prochaine course (Future)
+    const upcoming = todayRides
+      .filter(r => moment(r.date || r.startTime).isAfter(now))
+      .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
+
+    // CA Mois (Basé sur le mois sélectionné avec les flèches)
+    const finishedRidesTargetMonth = allRides.filter(r => 
+      r.status === 'Terminée' && 
+      moment(r.date).format('MM-YYYY') === targetMonthStr
+    );
+
+    const totalEarnings = finishedRidesTargetMonth.reduce((acc, ride) => {
+      return acc + parseFloat(calculatePrice(ride)); 
+    }, 0);
+
+    const billedEarnings = finishedRidesTargetMonth.reduce((acc, ride) => {
+      if (ride.statuFacturation === 'Facturé') {
+        return acc + parseFloat(calculatePrice(ride));
+      }
+      return acc;
+    }, 0);
+
+    setStats({
+      todayCount: todayRides.length,
+      monthEarnings: totalEarnings.toFixed(2),
+      monthBilledEarnings: billedEarnings.toFixed(2),
+      nextRide: upcoming
+    });
+
+  }, [allRides, selectedMonth]); // Le calcul se refait instantanément si selectedMonth change
 
   // --- SCANNER ANTI-FRAUDE ---
   const handleAntiFraudScan = async () => {
@@ -138,13 +159,17 @@ export default function HomeScreen({ navigation }) {
     );
   };
 
+  // Fonctions pour changer le mois
+  const goToPreviousMonth = () => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'));
+  const goToNextMonth = () => setSelectedMonth(moment(selectedMonth).add(1, 'month'));
+
   return (
     <View style={styles.container}>
       <StatusBar barStyle="light-content" backgroundColor="#E65100" />
       
       <ScrollView 
         contentContainerStyle={styles.scrollContent} 
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={loadDashboard} tintColor="#FFF"/>}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor="#FFF"/>}
         showsVerticalScrollIndicator={false}
       >
         {/* === HEADER PREMIUM === */}
@@ -160,32 +185,57 @@ export default function HomeScreen({ navigation }) {
           </View>
 
           {/* STATS CARDS */}
-          <View style={styles.statsRow}>
-            <View style={styles.statCard}>
+          <View style={styles.statsContainer}>
+            
+            {/* Carte 1 : Courses du jour */}
+            <View style={[styles.statCard, { marginBottom: 15 }]}>
               <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Ionicons name="speedometer-outline" size={20} color="#FFF" />
+                <Ionicons name="car-sport-outline" size={20} color="#FFF" />
               </View>
-              <View>
-                <Text style={styles.statValue}>{stats.todayCount}</Text>
-                <Text style={styles.statLabel}>Courses du jour</Text>
+              <View style={{flexDirection: 'row', justifyContent: 'space-between', flex: 1, alignItems: 'center'}}>
+                  <Text style={styles.statLabelMain}>Courses aujourd'hui</Text>
+                  <Text style={styles.statValue}>{stats.todayCount}</Text>
               </View>
+            </View>
+
+            {/* SÉLECTEUR DE MOIS POUR LA FACTURATION */}
+            <View style={styles.monthSelectorRow}>
+              <TouchableOpacity onPress={goToPreviousMonth} style={styles.monthArrow}>
+                <Ionicons name="chevron-back" size={20} color="#FFF" />
+              </TouchableOpacity>
+              
+              <Text style={styles.monthSelectorText}>{selectedMonth.format('MMMM YYYY')}</Text>
+              
+              <TouchableOpacity onPress={goToNextMonth} style={styles.monthArrow}>
+                <Ionicons name="chevron-forward" size={20} color="#FFF" />
+              </TouchableOpacity>
             </View>
             
-            <View style={styles.statCard}>
-              <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Ionicons name="cash-outline" size={20} color="#FFF" />
-              </View>
-              <View>
-                <Text style={styles.statValue}>{stats.monthEarnings} €</Text>
-                <Text style={styles.statLabel}>CA Estimé</Text>
-              </View>
+            {/* Ligne 2 : Les deux CA côte à côte */}
+            <View style={{flexDirection: 'row', justifyContent: 'space-between', gap: 10}}>
+                <View style={[styles.statCard, {flex: 1, paddingVertical: 12, flexDirection: 'column', alignItems: 'flex-start'}]}>
+                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
+                      <Ionicons name="calculator-outline" size={14} color="rgba(255,255,255,0.8)" style={{marginRight: 5}}/>
+                      <Text style={styles.statLabelSmall}>CA Estimé</Text>
+                  </View>
+                  <Text style={styles.statValueLarge}>{stats.monthEarnings} €</Text>
+                </View>
+
+                <View style={[styles.statCard, {flex: 1, paddingVertical: 12, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: 'rgba(76, 175, 80, 0.3)', borderColor: 'rgba(76, 175, 80, 0.5)'}]}>
+                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
+                      <Ionicons name="checkmark-done-circle" size={14} color="#A5D6A7" style={{marginRight: 5}}/>
+                      <Text style={[styles.statLabelSmall, {color: '#E8F5E9'}]}>Déjà Facturé</Text>
+                  </View>
+                  <Text style={[styles.statValueLarge, {color: '#FFF'}]}>{stats.monthBilledEarnings} €</Text>
+                </View>
             </View>
+            
           </View>
         </View>
 
         <View style={styles.bodyContainer}>
             
-            {/* === PROCHAIN DÉPART (HERO SECTION) === */}
+            {/* === PROCHAIN DÉPART === */}
             <Text style={styles.sectionTitle}>Prochain Départ</Text>
             {stats.nextRide ? (
                 <TouchableOpacity 
@@ -286,14 +336,12 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6F8' }, // Fond très légèrement gris pour le contraste
+  container: { flex: 1, backgroundColor: '#F4F6F8' },
   
-  // SCROLL CONTENT : LE FIX EST ICI 👇
   scrollContent: {
     paddingBottom: 100, 
   },
 
-  // HEADER AVANCÉ
   header: { 
     backgroundColor: '#FF6B00', 
     paddingHorizontal: 20, 
@@ -309,9 +357,8 @@ const styles = StyleSheet.create({
   date: { color: '#FFF', fontSize: 24, fontWeight: '800', textTransform: 'capitalize' },
   avatarBtn: { width: 44, height: 44, backgroundColor: '#FFF', borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 4 },
   
-  statsRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 15 },
+  statsContainer: { flexDirection: 'column' },
   statCard: { 
-    flex: 1, 
     backgroundColor: 'rgba(255,255,255,0.15)', 
     borderRadius: 20, 
     padding: 15, 
@@ -322,12 +369,19 @@ const styles = StyleSheet.create({
   },
   iconContainer: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
   statValue: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
-  statLabel: { color: 'rgba(255,255,255,0.9)', fontSize: 11, fontWeight: '500' },
+  statLabelMain: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600' },
+  
+  // Styles du sélecteur de mois
+  monthSelectorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 15 },
+  monthSelectorText: { color: '#FFF', fontSize: 16, fontWeight: '800', textTransform: 'capitalize' },
+  monthArrow: { padding: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 15 },
+
+  statLabelSmall: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statValueLarge: { color: '#FFF', fontSize: 22, fontWeight: '900' },
 
   bodyContainer: { padding: 20, marginTop: -10 },
   sectionTitle: { fontSize: 17, fontWeight: '800', color: '#333', marginBottom: 15, marginLeft: 5, marginTop: 10 },
 
-  // NEXT RIDE CARD STYLE BILLET
   nextRideCard: { 
     flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, elevation: 4, marginBottom: 20,
     shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, height: 110
@@ -354,7 +408,6 @@ const styles = StyleSheet.create({
   emptyText: { color: '#555', marginTop: 10, fontWeight: 'bold', fontSize: 16 },
   emptySubText: { color: '#999', marginTop: 5, fontSize: 13 },
 
-  // SCANNER CARD PRO
   scannerCard: { 
     flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F8E9', 
     padding: 12, borderRadius: 16, marginBottom: 25, borderWidth: 1, borderColor: '#C8E6C9'
@@ -364,7 +417,6 @@ const styles = StyleSheet.create({
   scannerSub: { fontSize: 12, color: '#388E3C', marginTop: 2 },
   arrowContainer: { backgroundColor: '#FFF', borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
 
-  // GRID MENU RECTANGLES
   gridMenu: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
   menuItem: { 
     width: '48%', backgroundColor: '#FFF', borderRadius: 20, padding: 15, alignItems: 'center', marginBottom: 15, 
