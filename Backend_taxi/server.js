@@ -13,7 +13,9 @@ const shareRoutes = require('./routes/shareRoutes');
 const dispatchRoutes = require('./routes/dispatch'); 
 const groupRoutes = require('./routes/groups');      
 const aiRoutes = require('./routes/ai'); // 👈 Import OK
-
+app.get('/', (req, res) => {
+  res.status(200).send('Serveur VSL API opérationnel 🚀');
+});
 dotenv.config();
 const app = express();
 
