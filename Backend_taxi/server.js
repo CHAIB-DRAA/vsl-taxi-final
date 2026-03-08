@@ -2,23 +2,63 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
-const path = require('path'); // Ajout pour gérer les chemins de fichiers proprement
+const path = require('path');
+const fs = require('fs'); // 👈 NOUVEAU : Pour lire les dossiers
 
-// 1. Configuration des variables d'environnement
 dotenv.config();
-
-// 2. CRÉATION DE L'APPLICATION EXPRESS (Toujours en premier !)
 const app = express();
 
-// 3. Middlewares (Les réglages)
 app.use(cors());
 app.use(express.json());
 
-// 🌟 LE DOSSIER PUBLIC (Pour ta page Web de réservation)
-// Express va servir automatiquement tous les fichiers placés dans le dossier "public"
-app.use(express.static(path.join(__dirname, 'public')));
+// ==========================================
+// 🕵️‍♂️ ZONE DE DEBUGGING AVANCÉE
+// ==========================================
+const publicPath = path.join(__dirname, 'public');
+console.log('🔍 [DEBUG] Chemin absolu attendu pour public :', publicPath);
+console.log('🔍 [DEBUG] Le dossier public existe-t-il physiquement ? :', fs.existsSync(publicPath));
 
-// Import des routes
+if (fs.existsSync(publicPath)) {
+    console.log('🔍 [DEBUG] Contenu du dossier public :', fs.readdirSync(publicPath));
+} else {
+    console.log('❌ [ALERTE] Le dossier public est INTROUVABLE à cet emplacement !');
+}
+
+// Dire à Express d'utiliser ce dossier
+app.use(express.static(publicPath));
+
+// ==========================================
+// 🔗 ROUTES
+// ==========================================
+
+// 1. La route secrète pour diagnostiquer en ligne
+app.get('/debug', (req, res) => {
+    const indexPath = path.join(publicPath, 'index.html');
+    res.status(200).json({
+        message: "Analyse des dossiers du serveur",
+        repertoireCourant_CWD: process.cwd(),
+        repertoireScript_DIRNAME: __dirname,
+        cheminDossierPublic: publicPath,
+        dossierPublicExiste: fs.existsSync(publicPath),
+        fichierIndexExiste: fs.existsSync(indexPath),
+        fichiersTrouves: fs.existsSync(publicPath) ? fs.readdirSync(publicPath) : "Aucun dossier public"
+    });
+});
+
+// 2. Route pour forcer l'affichage de l'accueil (Au cas où static échoue)
+app.get('/', (req, res) => {
+    const indexPath = path.join(publicPath, 'index.html');
+    if (fs.existsSync(indexPath)) {
+        res.sendFile(indexPath);
+    } else {
+        res.status(404).send("❌ ERREUR 404 : Le fichier index.html est introuvable sur le serveur.");
+    }
+});
+
+// 3. Ping API
+app.get('/ping', (req, res) => res.status(200).send('Pong! Server is alive 🤖'));
+
+// Import de tes routes API habituelles
 const rideRoutes = require('./routes/rideRoutes');
 const userRoutes = require('./routes/userRoutes');
 const contactRoutes = require('./routes/contactRoutes');
@@ -29,24 +69,6 @@ const dispatchRoutes = require('./routes/dispatch');
 const groupRoutes = require('./routes/groups');      
 const aiRoutes = require('./routes/ai'); 
 
-// 4. Connexion à la Base de données
-mongoose.connect(process.env.MONGO_URI)
-.then(() => console.log('✅ Connecté à MongoDB'))
-.catch((err) => console.error('❌ Erreur de connexion à MongoDB :', err));
-
-// ==========================================
-// 5. DÉFINITION DES ROUTES
-// ==========================================
-
-// Route de test API (Ping) - Toujours utile pour vérifier que le moteur tourne
-app.get('/ping', (req, res) => {
-    res.status(200).send('Pong! Server is alive 🤖');
-});
-// La route absolue pour forcer l'affichage de la page web
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
-// Tes routes API
 app.use('/api/rides', rideRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/documents', docRoutes);
@@ -58,8 +80,12 @@ app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes); 
 
 // ==========================================
-// 6. DÉMARRAGE DU SERVEUR
+// 🚀 DÉMARRAGE
 // ==========================================
+mongoose.connect(process.env.MONGO_URI)
+.then(() => console.log('✅ Connecté à MongoDB'))
+.catch((err) => console.error('❌ Erreur de connexion MongoDB :', err));
+
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
