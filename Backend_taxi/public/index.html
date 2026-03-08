@@ -101,8 +101,8 @@
             };
 
             try {
-                // ⚠️ REMPLACE CETTE URL PAR TON URL BACKEND RÉELLE
-                const response = await fetch('https://ton-backend-api.com/api/rides/web-booking', {
+                // 👈 MODIFICATION ICI : Utilisation du chemin relatif
+                const response = await fetch('/api/rides/web-booking', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
