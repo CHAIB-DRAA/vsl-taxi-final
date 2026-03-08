@@ -111,19 +111,32 @@ export default function AgendaScreen({ navigation }) {
   // ============================================================
   // 3. LOGIQUE MÉTIER & ACTIONS
   // ============================================================
+  
+  // Magic Paste Robuste (Vérification Presse-papier + Routage corrigé)
   const handleImport = async () => {
-    const text = await Clipboard.getStringAsync();
-    if (!text) return Alert.alert("Vide", "Presse-papier vide.");
-    setAnalyzing(true); 
     try {
-        const response = await api.post('/ai/parse-ride', { text });
-        let rides = Array.isArray(response.data.rides) ? response.data.rides : [response.data];
-        if (rides.length > 0) {
-            Vibration.vibrate(50);
-            navigation.navigate('AddRide', { importedData: rides[0] }); 
-        } else Alert.alert("Erreur", "Aucune course trouvée.");
-    } catch (e) { Alert.alert("Erreur IA", "Analyse échouée."); } 
-    finally { setAnalyzing(false); }
+      const text = await Clipboard.getStringAsync();
+      if (!text) {
+        return Alert.alert("Presse-papier vide", "Copiez d'abord un texte (SMS, WhatsApp) avant de lancer l'analyse.");
+      }
+
+      setAnalyzing(true); 
+      const response = await api.post('/ai/parse-ride', { text });
+      let rides = Array.isArray(response.data.rides) ? response.data.rides : [response.data];
+      
+      if (rides.length > 0 && rides[0].patientName) {
+          Vibration.vibrate(50);
+          // 👈 FIX : Routage vers 'CreateRide' au lieu de 'AddRide'
+          navigation.navigate('CreateRide', { importedData: rides[0] }); 
+      } else {
+          Alert.alert("Erreur de lecture", "L'IA n'a pas pu extraire de course valide depuis ce texte.");
+      }
+    } catch (e) { 
+      console.error("Erreur Magic Paste:", e);
+      Alert.alert("Erreur IA", "Problème de connexion au serveur d'analyse."); 
+    } finally { 
+      setAnalyzing(false); 
+    }
   };
 
   const handleStatusChange = async (r, a) => { 
@@ -132,7 +145,7 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const confirmFinishRide = async () => { 
-    if (!billingData.kmReel) return Alert.alert("Oubli", "KM requis pour terminer la course."); 
+    if (!billingData.kmReel) return Alert.alert("Donnée manquante", "Le kilométrage réel est requis pour clôturer la course."); 
     try {
       await updateRide(activeRide._id, { endTime: new Date().toISOString(), realDistance: parseFloat(billingData.kmReel), tolls: parseFloat(billingData.peage)||0, status: 'Terminée' }); 
       setFinishModal(false); loadData(true); 
@@ -140,17 +153,17 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const handleCreateReturnRide = async () => {
-    if (!returnData.time) return Alert.alert("Erreur", "Heure manquante pour le retour.");
+    if (!returnData.time) return Alert.alert("Erreur", "Veuillez définir une heure pour le retour.");
     try {
       const [h, m] = returnData.time.split(':');
       const payload = {
         ...activeRide,
-        _id: undefined, // Sécurité stricte : on enlève l'ID de l'aller
+        _id: undefined, 
         type: 'Retour',
         startLocation: returnData.startLocation,
         endLocation: returnData.endLocation,
         date: moment(returnData.date).hour(h).minute(m).toISOString(),
-        startTime: null, // Purge de l'historique
+        startTime: null, 
         endTime: null,
         status: 'À venir',
         realDistance: 0,
@@ -160,53 +173,48 @@ export default function AgendaScreen({ navigation }) {
       await api.post('/rides', payload);
       setReturnModal(false);
       loadData(true);
-      Alert.alert("Succès", "Course retour planifiée !");
+      Alert.alert("Succès", "Le trajet retour a été planifié.");
     } catch (error) {
-      Alert.alert("Erreur", "Impossible de valider le retour.");
+      Alert.alert("Erreur", "Impossible d'enregistrer le retour.");
     }
   };
 
-  // --- SYNCHRONISATION CALENDRIER (Avec gestion d'erreurs pragmatique) ---
   const handleSyncCalendar = async () => {
-    if (!dailyRides || dailyRides.length === 0) {
-      return Alert.alert("Info", "Aucune course à synchroniser pour cette journée.");
-    }
+    if (!dailyRides || dailyRides.length === 0) return Alert.alert("Info", "Aucune course à synchroniser pour cette journée.");
     try {
       await syncBatchRides(dailyRides);
-      Alert.alert("Succès", "Le planning du jour a été synchronisé avec le calendrier de votre téléphone !");
+      Alert.alert("Succès", "Planning synchronisé avec le calendrier de votre téléphone.");
     } catch (error) {
-      console.error("Erreur de synchro globale:", error);
-      Alert.alert("Erreur", "La synchronisation a échoué. Vérifiez que l'application a l'autorisation d'accéder au calendrier.");
+      Alert.alert("Erreur", "Synchronisation échouée. Vérifiez les permissions de l'application.");
     }
   };
 
   const handleSingleSync = async () => {
     try {
       await addRideToCalendar(activeRide);
-      Alert.alert("Succès", "Course ajoutée à votre calendrier !");
+      Alert.alert("Succès", "Course ajoutée à votre calendrier.");
     } catch (error) {
-      console.error("Erreur de synchro unitaire:", error);
-      Alert.alert("Erreur", "Impossible d'ajouter la course. Vérifiez les permissions de votre calendrier.");
+      Alert.alert("Erreur", "Ajout impossible. Vérifiez les permissions du calendrier.");
     } finally {
       setModals({ ...modals, options: false });
     }
   };
 
   const handleSendSMS = () => {
-    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Pas de numéro de téléphone renseigné pour ce patient.");
+    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Aucun numéro de téléphone renseigné pour ce patient.");
     const date = moment(activeRide.date).format('DD/MM à HH:mm');
-    const msg = `Bonjour ${activeRide.patientName}, voici un rappel pour votre transport VSL du ${date}. Cordialement.`;
+    const msg = `Bonjour ${activeRide.patientName}, voici un rappel pour votre transport médicalisé du ${date}. Cordialement.`;
     const separator = Platform.OS === 'ios' ? '&' : '?';
     Linking.openURL(`sms:${activeRide.patientPhone}${separator}body=${encodeURIComponent(msg)}`);
     setModals({ ...modals, options: false });
   };
 
-  // --- DOCUMENTS (PMT, MUTUELLE, ETC) ---
+  // --- GESTION DES DOCUMENTS ---
   const fetchDocs = async (ride) => {
     if (!ride) return;
     setLoadingDocs(true);
     try { const res = await api.get(`/documents/by-ride/${ride._id}`); setPatientDocs(res.data); setModals({ options:false, share:false, docs:true }); } 
-    catch (e) { Alert.alert("Erreur", "Impossible de charger les documents."); } finally { setLoadingDocs(false); }
+    catch (e) { Alert.alert("Erreur", "Impossible de charger le dossier médical."); } finally { setLoadingDocs(false); }
   };
   
   const onScanDoc = (uri, type) => {
@@ -223,10 +231,10 @@ export default function AgendaScreen({ navigation }) {
        f.append('docType', type); 
        f.append('rideId', activeRide._id);
        await api.post('/documents/upload', f, { headers: { 'Content-Type': 'multipart/form-data' }, transformRequest: d => d }); 
-       Alert.alert("Succès", "Document numérisé et envoyé."); 
+       Alert.alert("Succès", "Document intégré au dossier."); 
        fetchDocs(activeRide); 
      }
-     catch(e){ Alert.alert("Erreur upload", "Vérifiez votre connexion internet."); } 
+     catch(e){ Alert.alert("Erreur", "L'envoi du document a échoué. Vérifiez votre réseau."); } 
      finally { setUploading(false); }
   };
   
@@ -237,10 +245,10 @@ export default function AgendaScreen({ navigation }) {
   
   const validateBT = () => { setBtValidationModal(false); if(tempScanUri) uploadDoc(tempScanUri, 'PMT'); };
 
-  // --- PARTAGE (DISPATCH & WHATSAPP) ---
+  // --- DISPATCH & PARTAGE ---
   const shareInternal = async (c) => {
-    try { await shareRide(activeRide._id, c.contactId._id, shareNote); setModals({...modals, share:false}); setShareNote(''); loadData(true); Alert.alert("Envoyé", `Course transmise à ${c.contactId.fullName}`); }
-    catch(e){ Alert.alert("Erreur", "L'envoi a échoué."); }
+    try { await shareRide(activeRide._id, c.contactId._id, shareNote); setModals({...modals, share:false}); setShareNote(''); loadData(true); Alert.alert("Dispatch", `Course transmise à ${c.contactId.fullName}`); }
+    catch(e){ Alert.alert("Erreur", "L'envoi au collègue a échoué."); }
   };
   
   const shareWhatsApp = () => {
@@ -254,12 +262,12 @@ export default function AgendaScreen({ navigation }) {
        if(g._id) { const res = await api.put(`/groups/${g._id}`, p); setMyGroups(prev=>prev.map(x=>x._id===g._id?res.data:x)); }
        else { const res = await api.post('/groups', p); setMyGroups(prev=>[...prev, res.data]); }
        setShowGroupCreator(false); setTimeout(()=>setShowGroupList(true),300);
-     } catch(e) { Alert.alert("Erreur", "Sauvegarde du groupe impossible."); }
+     } catch(e) { Alert.alert("Erreur", "Échec de l'enregistrement du groupe."); }
   };
   
   const deleteGroup = async (id) => { 
     try { await api.delete(`/groups/${id}`); setMyGroups(prev=>prev.filter(g=>g._id!==id)); }
-    catch(e) { Alert.alert("Erreur", "Suppression impossible."); }
+    catch(e) { Alert.alert("Erreur", "Suppression du groupe impossible."); }
   };
 
   // ============================================================
@@ -290,7 +298,7 @@ export default function AgendaScreen({ navigation }) {
         onRefresh={() => loadData(false)} 
         onCardPress={(r) => { setActiveRide(r); setModals({ ...modals, options: true }); }} 
         onStatusChange={handleStatusChange}
-        onSync={handleSyncCalendar} // Synchronisation globale avec alertes
+        onSync={handleSyncCalendar} 
         onImport={handleImport}
         onRespond={handleGlobalRespond}
         getPMTStatus={getPMTStatus}
@@ -302,13 +310,12 @@ export default function AgendaScreen({ navigation }) {
         ride={activeRide} 
         onClose={() => setModals({ ...modals, options: false })}
         
-        // Routage précis pour la modification d'une course
+        // 👈 FIX : Routage vers 'CreateRide'
         onEdit={() => { 
           setModals({ ...modals, options: false }); 
-          setTimeout(() => navigation.navigate('AddRide', { rideToEdit: activeRide }), 100); 
+          setTimeout(() => navigation.navigate('CreateRide', { rideToEdit: activeRide }), 150); 
         }}
         
-        // Préparation et ouverture du modal de Retour
         onCreateReturn={() => { 
           setModals({ ...modals, options: false }); 
           setTimeout(() => { 
@@ -321,22 +328,22 @@ export default function AgendaScreen({ navigation }) {
               })); 
               setReturnModal(true); 
             }
-          }, 100); 
+          }, 150); 
         }}
         
-        onAddToCalendar={handleSingleSync} // Synchronisation unitaire avec alertes
+        onAddToCalendar={handleSingleSync} 
         onShare={() => setModals({ options: false, share: true, docs: false })} 
         onOpenDocs={() => fetchDocs(activeRide)} 
         onSendSMS={handleSendSMS} 
         onDelete={async () => { 
-          Alert.alert("Supprimer", "Êtes-vous sûr de vouloir supprimer cette course ?", [
+          Alert.alert("Suppression", "Confirmez-vous la suppression de cette course ?", [
             { text: "Annuler", style: "cancel" },
             { text: "Supprimer", style: "destructive", onPress: async () => {
                 await deleteRide(activeRide._id); setModals({...modals, options:false}); loadData(true);
             }}
           ]);
         }}
-        onDispatch={() => { setModals({ ...modals, options: false }); setTimeout(() => setShowDispatchModal(true), 100); }}
+        onDispatch={() => { setModals({ ...modals, options: false }); setTimeout(() => setShowDispatchModal(true), 150); }}
       />
 
       {/* --- SOUS-MODALS & COMPOSANTS ANNEXES --- */}
