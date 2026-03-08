@@ -42,7 +42,10 @@ mongoose.connect(process.env.MONGO_URI)
 app.get('/ping', (req, res) => {
     res.status(200).send('Pong! Server is alive 🤖');
 });
-
+// La route absolue pour forcer l'affichage de la page web
+app.get('/', (req, res) => {
+    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+});
 // Tes routes API
 app.use('/api/rides', rideRoutes);
 app.use('/api/user', userRoutes);
