@@ -7,6 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
+import * as Notifications from 'expo-notifications'; // 👈 NOUVEAU : Import des notifications
 
 // --- CONTEXTE & API ---
 import { useData } from '../contexts/DataContext'; 
@@ -36,6 +37,16 @@ import GroupCreatorModal from '../components/GroupCreatorModal';
 import GroupListModal from '../components/GroupListModal'; 
 
 const THEME_BG = '#F8F9FA';
+
+// 🚀 CONFIGURATION DES NOTIFICATIONS (Premier plan)
+// Dit au téléphone de sonner et d'afficher l'alerte même si l'appli est ouverte
+Notifications.setNotificationHandler({
+  handleNotification: async () => ({
+    shouldShowAlert: true,
+    shouldPlaySound: true,
+    shouldSetBadge: true,
+  }),
+});
 
 export default function AgendaScreen({ navigation }) {
   // ============================================================
@@ -123,6 +134,27 @@ export default function AgendaScreen({ navigation }) {
       Vibration.vibrate([500, 500, 500]); 
     }
   }, [pendingWebRides.length]);
+
+  // ============================================================
+  // 🚀 SURVEILLANCE ACTIVE (TEMPS RÉEL)
+  // ============================================================
+  useEffect(() => {
+    // 1. Écouteur de notifications : Recharge les données si le serveur envoie un Push
+    const subscription = Notifications.addNotificationReceivedListener(notification => {
+      loadData(false); 
+    });
+
+    // 2. Le Radar (Polling) : Recharge en silence toutes les 15 secondes pour garantir la synchro
+    const intervalId = setInterval(() => {
+      loadData(false); 
+    }, 15000); 
+
+    // Nettoyage de la mémoire quand on quitte l'écran
+    return () => {
+      subscription.remove();
+      clearInterval(intervalId);
+    };
+  }, []);
 
   // ============================================================
   // 3. LOGIQUE MÉTIER & ACTIONS

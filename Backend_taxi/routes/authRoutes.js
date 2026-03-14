@@ -7,11 +7,11 @@ const User = require('../models/User');
 const sendEmail = require('../utils/emailService'); // Import du service mail
 
 // Si tu utilises ces fichiers, décommente les lignes :
-// const authMiddleware = require('../middleware/auth');
-// const authController = require('../controllers/authController');
+const authMiddleware = require('../middleware/auth');
+const authController = require('../controllers/authController');
 
 // router.put('/push-token', authMiddleware, authController.updatePushToken);
-
+router.put('/push-token', authMiddleware, userController.updatePushToken);
 // ==========================================
 // 1. INSCRIPTION (Register)
 // ==========================================
