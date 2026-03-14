@@ -49,8 +49,7 @@
                 </p>
             </div>
 
-            <form id="bookingForm" class="p-8 space-y-6">
-                
+            <form id="bookingForm" class="p-8 space-y-8">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
                         <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nom du Patient</label>
@@ -70,46 +69,54 @@
                     </div>
                 </div>
 
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
-                    <div class="relative">
-                        <i data-lucide="home" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                        <input type="text" id="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
-                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
-                    </div>
-                </div>
-
-                <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
-                    <div class="relative">
-                        <i data-lucide="hospital" class="absolute left-4 top-3.5 text-blue-500 w-5 h-5"></i>
-                        <input type="text" id="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
-                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white">
-                    </div>
-                </div>
-
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div class="space-y-4">
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Date du Trajet</label>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
                         <div class="relative">
-                            <i data-lucide="calendar" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                            <input type="date" id="date" required 
+                            <i data-lucide="home" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="text" id="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
                                 class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
+
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Heure du RDV</label>
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
                         <div class="relative">
-                            <i data-lucide="clock" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <i data-lucide="hospital" class="absolute left-4 top-3.5 text-blue-500 w-5 h-5"></i>
+                            <input type="text" id="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="bg-slate-900/50 p-6 rounded-3xl border border-slate-700 space-y-6">
+                    <h3 class="text-lg font-bold text-white flex items-center gap-3">
+                        <div class="bg-yellow-500/20 p-2 rounded-lg">
+                            <i data-lucide="calendar-clock" class="w-6 h-6 text-yellow-500"></i>
+                        </div>
+                        Quand avez-vous besoin du taxi ?
+                    </h3>
+    
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold text-slate-300">Date du rendez-vous</label>
+                            <input type="date" id="date" required 
+                                onclick="this.showPicker()"
+                                class="w-full bg-slate-800 border-2 border-slate-600 rounded-2xl p-4 text-xl outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/20 transition-all text-white min-h-[64px] cursor-pointer shadow-inner">
+                        </div>
+                        
+                        <div class="space-y-3">
+                            <label class="text-sm font-bold text-slate-300">Heure de départ</label>
                             <input type="time" id="time" required 
-                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                                onclick="this.showPicker()"
+                                class="w-full bg-slate-800 border-2 border-slate-600 rounded-2xl p-4 text-xl outline-none focus:border-yellow-500 focus:ring-4 focus:ring-yellow-500/20 transition-all text-white min-h-[64px] cursor-pointer shadow-inner">
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-2">
                     <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Type de demande médicalisée</label>
-                    <select id="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none">
+                    <select id="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 text-lg outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none cursor-pointer shadow-inner min-h-[60px]">
                         <option value="Aller">Aller simple</option>
                         <option value="Retour">Retour simple</option>
                         <option value="Consultation">Aller-Retour (Consultation)</option>
@@ -126,7 +133,7 @@
 
                 <div id="statusMessage" class="hidden p-4 rounded-2xl text-center font-bold text-sm"></div>
 
-                <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-5 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
+                <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-6 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
                     CONFIRMER MA RÉSERVATION
                 </button>
 
@@ -138,8 +145,13 @@
     </div>
 
     <script>
-        // Initialisation des icônes Lucide
         lucide.createIcons();
+
+        // Bloquer les dates dans le passé
+        const dateInput = document.getElementById('date');
+        const today = new Date().toISOString().split('T')[0];
+        dateInput.setAttribute('min', today);
+        dateInput.value = today;
 
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -151,6 +163,7 @@
             btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
             statusMsg.classList.add('hidden');
 
+            // Le payload ne contient plus de chauffeurId, sécurité maximale !
             const payload = {
                 patientName: document.getElementById('patientName').value,
                 patientPhone: document.getElementById('patientPhone').value,
@@ -160,7 +173,7 @@
                 time: document.getElementById('time').value,
                 type: document.getElementById('type').value,
                 notes: document.getElementById('notes').value,
-                source: "Web VSL Form"
+                source: "Web" // Important pour le filtrage backend
             };
 
             try {
@@ -174,15 +187,16 @@
 
                 if (response.ok) {
                     statusMsg.innerText = "✅ Demande reçue ! Votre chauffeur vous confirmera le trajet par SMS.";
-                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block";
+                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block mt-4";
                     document.getElementById('bookingForm').reset();
+                    dateInput.value = today;
                     btn.innerText = "DEMANDE ENVOYÉE";
                 } else {
                     throw new Error(data.error || "Erreur serveur");
                 }
             } catch (error) {
                 statusMsg.innerText = "❌ Une erreur est survenue. Merci de nous appeler au 07 72 33 98 92.";
-                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block";
+                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block mt-4";
                 btn.disabled = false;
                 btn.innerText = "RÉESSAYER";
             }

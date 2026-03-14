@@ -5,7 +5,7 @@ const { Expo } = require('expo-server-sdk');
 
 const expo = new Expo();
 
-// --- 1. CRÉATION ---
+// --- 1. CRÉATION MANUELLE ---
 exports.createRide = async (req, res) => {
   try {
     const chauffeurId = req.user.id;
@@ -18,7 +18,8 @@ exports.createRide = async (req, res) => {
       date: new Date(date),
       chauffeurId,
       patientPhone: patientPhone || '', 
-      status: 'En attente'
+      status: 'À venir',
+      source: 'App'
     });
 
     await ride.save();
@@ -29,16 +30,16 @@ exports.createRide = async (req, res) => {
   }
 };
 
-// --- 2. RÉCUPÉRATION (GET) - FUSIONNÉE ---
+// --- 2. RÉCUPÉRATION (GET) ---
 exports.getRides = async (req, res) => {
   try {
     const myId = req.user.id;
 
-    // A. Récupérer MES courses OU les demandes WEB en attente
+    // A. Récupérer MES courses OU les demandes WEB en attente qui me sont destinées
     const myRides = await Ride.find({ 
       $or: [
         { chauffeurId: myId }, 
-        { source: 'Web', status: 'En attente' }
+        { source: 'Web', status: 'En attente', chauffeurId: myId }
       ] 
     }).lean();
 
@@ -142,7 +143,7 @@ exports.shareRide = async (req, res) => {
   }
 };
 
-// --- 6. RÉPONSE (ACCEPTER / REFUSER) ---
+// --- 6. RÉPONSE (ACCEPTER / REFUSER UN PARTAGE) ---
 exports.respondRideShare = async (req, res) => {
   try {
     const { rideId, action } = req.body;
@@ -197,7 +198,7 @@ exports.updateRideFacturation = async (req, res) => {
   }
 };
 
-// --- 8. RÉSERVATION WEB ---
+// --- 8. RÉSERVATION WEB (SÉCURISÉE VIA ENV) ---
 exports.createWebBooking = async (req, res) => {
   try {
     const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes } = req.body;
@@ -207,6 +208,9 @@ exports.createWebBooking = async (req, res) => {
     }
 
     const combinedDateTime = new Date(`${date}T${time}:00`).toISOString();
+
+    // 🚀 SÉCURITÉ : Récupération de l'ID via les variables d'environnement
+    const targetDriverId = process.env.DEFAULT_CHAUFFEUR_ID;
 
     const newRide = new Ride({
       patientName,
@@ -219,45 +223,40 @@ exports.createWebBooking = async (req, res) => {
       status: 'En attente', 
       source: 'Web',        
       statuFacturation: 'Non facturé',
-      isRoundTrip: false
+      isRoundTrip: false,
+      chauffeurId: targetDriverId || null // Attribué automatiquement
     });
 
     await newRide.save();
 
-    // 🚨 NOUVEAU : ENVOI DE LA NOTIFICATION PUSH AUX CHAUFFEURS
-    // On cherche tous les utilisateurs qui ont activé les notifications
-    const allDrivers = await User.find({ pushToken: { $exists: true, $ne: null } });
-    
-    let messages = [];
-    for (let driver of allDrivers) {
-      if (Expo.isExpoPushToken(driver.pushToken)) {
-        messages.push({
+    // 🚨 NOTIFICATION AU CHAUFFEUR CIBLÉ
+    if (targetDriverId) {
+      const driver = await User.findById(targetDriverId);
+      
+      if (driver && driver.pushToken) {
+        await expo.sendPushNotificationsAsync([{
           to: driver.pushToken,
-          sound: 'default', // Fait sonner le téléphone !
+          sound: 'default',
           title: '🚨 NOUVELLE DEMANDE WEB !',
-          body: `${patientName} demande un transport le ${date} à ${time}. Ouvrez l'appli !`,
+          body: `${patientName} vous a envoyé une demande directe.`,
           data: { type: 'new_web_booking' },
-        });
+        }]);
       }
     }
-    
-    // Si on a trouvé des chauffeurs, on tire la sonnette
-    if (messages.length > 0) {
-      await expo.sendPushNotificationsAsync(messages);
-    }
 
-    res.status(201).json({ success: true, message: "Votre demande a bien été envoyée. Le chauffeur vous confirmera l'horaire par SMS." });
+    res.status(201).json({ success: true, message: "Votre demande a bien été envoyée au chauffeur." });
   } catch (error) {
     console.error("Erreur Web Booking:", error);
     res.status(500).json({ error: "Erreur serveur, veuillez réessayer plus tard." });
   }
 };
-// --- 9. ACCEPTER / REFUSER UNE DEMANDE WEB ---
+
+// --- 9. ACCEPTER / REFUSER UNE DEMANDE WEB DEPUIS L'APP ---
 exports.acceptWebBooking = async (req, res) => {
   try {
     const ride = await Ride.findOneAndUpdate(
-      { _id: req.params.id, source: 'Web', status: 'En attente' },
-      { $set: { chauffeurId: req.user.id, status: 'À venir' } },
+      { _id: req.params.id, source: 'Web', status: 'En attente', chauffeurId: req.user.id },
+      { $set: { status: 'À venir' } },
       { new: true }
     );
 
@@ -270,67 +269,10 @@ exports.acceptWebBooking = async (req, res) => {
 
 exports.rejectWebBooking = async (req, res) => {
   try {
-    const ride = await Ride.findOneAndDelete({ _id: req.params.id, source: 'Web', status: 'En attente' });
+    const ride = await Ride.findOneAndDelete({ _id: req.params.id, source: 'Web', status: 'En attente', chauffeurId: req.user.id });
     if (!ride) return res.status(404).json({ message: "Réservation introuvable." });
     res.json({ message: "Réservation refusée et supprimée." });
   } catch (err) {
     res.status(500).json({ message: err.message });
-  }
-};
-
-
-const Patient = require('../models/Patient'); // Assure-toi d'importer ton modèle Patient/Contact en haut du fichier
-
-// --- 10. IMPORTATION MASSIVE & CRÉATION AUTO DES CONTACTS ---
-exports.importMassRides = async (req, res) => {
-  try {
-    const { rides } = req.body;
-    const chauffeurId = req.user.id;
-    let addedRidesCount = 0;
-    let newContactsCount = 0;
-
-    if (!rides || !Array.isArray(rides)) {
-      return res.status(400).json({ message: "Aucune course fournie." });
-    }
-
-    for (const rideData of rides) {
-      // 1. Vérifier si le patient existe déjà dans ton répertoire
-      // (On cherche par nom, en ignorant les majuscules/minuscules)
-      let patient = await Patient.findOne({ 
-        name: { $regex: new RegExp('^' + rideData.patientName + '$', "i") },
-        chauffeurId: chauffeurId
-      });
-
-      // 2. S'il n'existe pas, ON LE CRÉE AUTOMATIQUEMENT !
-      if (!patient && rideData.patientName) {
-        patient = new Patient({
-          name: rideData.patientName,
-          phone: rideData.patientPhone || '',
-          chauffeurId: chauffeurId
-        });
-        await patient.save();
-        newContactsCount++;
-      }
-
-      // 3. On crée la course
-      const newRide = new Ride({
-        ...rideData,
-        chauffeurId: chauffeurId,
-        status: 'À venir',
-        source: 'App'
-      });
-      await newRide.save();
-      addedRidesCount++;
-    }
-
-    res.status(200).json({ 
-      message: "Importation réussie", 
-      addedRidesCount, 
-      newContactsCount 
-    });
-
-  } catch (error) {
-    console.error("Erreur Import Massif:", error);
-    res.status(500).json({ message: "Erreur lors de l'importation." });
   }
 };
