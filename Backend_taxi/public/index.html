@@ -3,90 +3,152 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Réservation VSL</title>
+    
+    <title>Réserver un Taxi Conventionné VSL à Toulouse | Taxi 31 Toulouse</title>
+    <meta name="description" content="Réservez votre transport médical assis (VSL) à Toulouse. Taxi agréé CPAM, tiers-payant intégral (100% ALD). Chauffeur professionnel et ponctuel.">
+    <meta name="keywords" content="réserver vsl toulouse, taxi conventionné cpam, transport médical toulouse, vsl purpan, vsl oncopole">
+    
+    <meta property="og:title" content="Réservation Taxi Conventionné VSL - Taxi 31 Toulouse">
+    <meta property="og:description" content="Votre trajet médicalisé sans avance de frais. Agréé CPAM 31.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://vsl-taxi.onrender.com/">
+
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
     <style>
-        /* Couleurs inspirées de ton application mobile */
-        .bg-primary { background-color: #FF6B00; }
-        .text-primary { color: #FF6B00; }
-        .btn-primary:hover { background-color: #E65100; }
+        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
+        body { font-family: 'Plus Jakarta Sans', sans-serif; }
+        
+        .bg-dark-900 { background-color: #0f172a; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .accent-yellow { color: #eab308; }
+        .btn-taxi { background-color: #eab308; color: #0f172a; }
+        .btn-taxi:hover { background-color: #facc15; }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center p-4">
+<body class="bg-dark-900 text-slate-200 min-h-screen flex items-center justify-center p-4">
 
-    <div class="bg-white rounded-2xl shadow-xl w-full max-w-lg overflow-hidden">
-        <div class="bg-primary p-6 text-white text-center">
-            <h1 class="text-2xl font-bold">Réserver un transport médical</h1>
-            <p class="text-sm opacity-90 mt-2">Votre demande sera confirmée par le chauffeur.</p>
+    <div class="w-full max-w-2xl">
+        <div class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 mb-4">
+                <div class="bg-yellow-500 p-2 rounded-lg text-slate-900">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
+                </div>
+                <span class="text-2xl font-extrabold text-white tracking-tight">Taxi<span class="text-yellow-500">31</span>Toulouse</span>
+            </div>
+            <h1 class="text-3xl font-bold text-white">Réservation de Transport Médical</h1>
+            <p class="text-slate-400 mt-2 italic">Agréé CPAM - Prise en charge à 100% (ALD)</p>
         </div>
 
-        <form id="bookingForm" class="p-6 space-y-4">
-            
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Nom & Prénom</label>
-                    <input type="text" id="patientName" required class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
+        <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+            <div class="bg-blue-600/10 p-4 text-center border-b border-blue-500/20">
+                <p class="text-blue-400 text-sm font-semibold flex items-center justify-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    Tiers-Payant appliqué : Zéro avance de frais
+                </p>
+            </div>
+
+            <form id="bookingForm" class="p-8 space-y-6">
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nom du Patient</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="text" id="patientName" required placeholder="Nom complet" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Téléphone</label>
+                        <div class="relative">
+                            <i data-lucide="phone" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="tel" id="patientPhone" required placeholder="06 00 00 00 00" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Téléphone</label>
-                    <input type="tel" id="patientPhone" required class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
+
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
+                    <div class="relative">
+                        <i data-lucide="home" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                        <input type="text" id="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                    </div>
                 </div>
-            </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">De (Adresse exacte)</label>
-                <input type="text" id="startLocation" required placeholder="Ex: 12 Rue des Lilas, Toulouse" class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
-            </div>
-
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">À (Hôpital, Clinique...)</label>
-                <input type="text" id="endLocation" required placeholder="Ex: Clinique Pasteur" class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
-            </div>
-
-            <div class="grid grid-cols-2 gap-4">
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date</label>
-                    <input type="date" id="date" required class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
+                    <div class="relative">
+                        <i data-lucide="hospital" class="absolute left-4 top-3.5 text-blue-500 w-5 h-5"></i>
+                        <input type="text" id="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white">
+                    </div>
                 </div>
-                <div>
-                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Heure de RDV</label>
-                    <input type="time" id="time" required class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Date du Trajet</label>
+                        <div class="relative">
+                            <i data-lucide="calendar" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="date" id="date" required 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Heure du RDV</label>
+                        <div class="relative">
+                            <i data-lucide="clock" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="time" id="time" required 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
                 </div>
-            </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Type de transport</label>
-                <select id="type" class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400">
-                    <option value="Aller">Aller simple</option>
-                    <option value="Retour">Retour simple</option>
-                    <option value="Consultation">Aller-Retour (Consultation)</option>
-                    <option value="Hospit">Entrée / Sortie d'hospitalisation</option>
-                </select>
-            </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Type de demande médicalisée</label>
+                    <select id="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none">
+                        <option value="Aller">Aller simple</option>
+                        <option value="Retour">Retour simple</option>
+                        <option value="Consultation">Aller-Retour (Consultation)</option>
+                        <option value="Hospit">Entrée / Sortie d'hospitalisation</option>
+                        <option value="Dialyse">Série de soins (Dialyse/Chimio)</option>
+                    </select>
+                </div>
 
-            <div>
-                <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Notes (Optionnel)</label>
-                <textarea id="notes" rows="2" placeholder="Code porte, étage, besoin d'aide..." class="w-full bg-gray-100 rounded-xl p-3 outline-none focus:ring-2 focus:ring-orange-400"></textarea>
-            </div>
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Notes ou Besoins Spécifiques</label>
+                    <textarea id="notes" rows="2" placeholder="Code porte, fauteuil roulant, étage..." 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white"></textarea>
+                </div>
 
-            <div id="statusMessage" class="hidden p-3 rounded-xl text-center font-bold text-sm"></div>
+                <div id="statusMessage" class="hidden p-4 rounded-2xl text-center font-bold text-sm"></div>
 
-            <button type="submit" id="submitBtn" class="w-full bg-primary btn-primary text-white font-bold text-lg rounded-xl p-4 mt-4 transition-colors">
-                ENVOYER LA DEMANDE
-            </button>
-        </form>
+                <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-5 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
+                    CONFIRMER MA RÉSERVATION
+                </button>
+
+                <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    Taxi conventionné Haute-Garonne - 24h/7j - 07 72 33 98 92
+                </p>
+            </form>
+        </div>
     </div>
 
     <script>
+        // Initialisation des icônes Lucide
+        lucide.createIcons();
+
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             
             const btn = document.getElementById('submitBtn');
             const statusMsg = document.getElementById('statusMessage');
             
-            // État de chargement
             btn.disabled = true;
-            btn.innerText = "Envoi en cours...";
+            btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
             statusMsg.classList.add('hidden');
 
             const payload = {
@@ -97,11 +159,11 @@
                 date: document.getElementById('date').value,
                 time: document.getElementById('time').value,
                 type: document.getElementById('type').value,
-                notes: document.getElementById('notes').value
+                notes: document.getElementById('notes').value,
+                source: "Web VSL Form"
             };
 
             try {
-                // 👈 MODIFICATION ICI : Utilisation du chemin relatif
                 const response = await fetch('/api/rides/web-booking', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
@@ -111,19 +173,18 @@
                 const data = await response.json();
 
                 if (response.ok) {
-                    statusMsg.innerText = "✅ " + data.message;
-                    statusMsg.className = "p-3 rounded-xl text-center font-bold text-sm bg-green-100 text-green-700 block";
+                    statusMsg.innerText = "✅ Demande reçue ! Votre chauffeur vous confirmera le trajet par SMS.";
+                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block";
                     document.getElementById('bookingForm').reset();
+                    btn.innerText = "DEMANDE ENVOYÉE";
                 } else {
-                    statusMsg.innerText = "❌ " + (data.error || "Une erreur est survenue.");
-                    statusMsg.className = "p-3 rounded-xl text-center font-bold text-sm bg-red-100 text-red-700 block";
+                    throw new Error(data.error || "Erreur serveur");
                 }
             } catch (error) {
-                statusMsg.innerText = "❌ Impossible de contacter le serveur.";
-                statusMsg.className = "p-3 rounded-xl text-center font-bold text-sm bg-red-100 text-red-700 block";
-            } finally {
+                statusMsg.innerText = "❌ Une erreur est survenue. Merci de nous appeler au 07 72 33 98 92.";
+                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block";
                 btn.disabled = false;
-                btn.innerText = "ENVOYER LA DEMANDE";
+                btn.innerText = "RÉESSAYER";
             }
         });
     </script>
