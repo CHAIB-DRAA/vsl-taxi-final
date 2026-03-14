@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { StyleSheet, Alert, Vibration, StatusBar, Linking, Platform } from 'react-native';
+import { StyleSheet, Alert, Vibration, StatusBar, Linking, Platform, View, Text, TouchableOpacity } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import * as Clipboard from 'expo-clipboard';
 import * as ImagePicker from 'expo-image-picker';
@@ -34,9 +35,6 @@ import GroupListModal from '../components/GroupListModal';
 const THEME_BG = '#F8F9FA';
 
 export default function AgendaScreen({ navigation }) {
-  // ============================================================
-  // 1. DATA DU CONTEXTE & ÉTATS UI
-  // ============================================================
   const { allRides, contacts, loading, loadData, handleGlobalRespond } = useData();
 
   const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -44,7 +42,6 @@ export default function AgendaScreen({ navigation }) {
   const [activeRide, setActiveRide] = useState(null);
   const [analyzing, setAnalyzing] = useState(false); 
   
-  // ÉTATS DES MODALS
   const [modals, setModals] = useState({ options: false, share: false, docs: false });
   const [finishModal, setFinishModal] = useState(false); 
   const [returnModal, setReturnModal] = useState(false); 
@@ -54,7 +51,6 @@ export default function AgendaScreen({ navigation }) {
   const [editingGroup, setEditingGroup] = useState(null); 
   const [btValidationModal, setBtValidationModal] = useState(false);
 
-  // DATA LOCALES & FORM STATES
   const [myGroups, setMyGroups] = useState([]); 
   const [patientDocs, setPatientDocs] = useState([]); 
   const [allPMTs, setAllPMTs] = useState([]); 
@@ -70,9 +66,6 @@ export default function AgendaScreen({ navigation }) {
   const [shareNote, setShareNote] = useState(''); 
   const [billingData, setBillingData] = useState({ kmReel: '', peage: '' });
 
-  // ============================================================
-  // 2. CHARGEMENT & CALCULS (UseMemo / UseEffect)
-  // ============================================================
   useEffect(() => { 
       fetchGlobalPMTs(); 
       fetchGroups(); 
@@ -108,17 +101,40 @@ export default function AgendaScreen({ navigation }) {
       .sort((a, b) => new Date(a.date) - new Date(b.date)), 
   [allRides, selectedDate]);
 
-  // ============================================================
-  // 3. LOGIQUE MÉTIER & ACTIONS
-  // ============================================================
-  
-  // Magic Paste Robuste (Vérification Presse-papier + Routage corrigé)
+  // 👈 NOUVEAU : Isolement des demandes web en attente
+  const pendingWebRides = useMemo(() => {
+    return allRides.filter(r => r.source === 'Web' && r.status === 'En attente');
+  }, [allRides]);
+
+  // --- ACTIONS WEB BOOKING ---
+  const handleAcceptWeb = async (rideId) => {
+    try {
+      await api.post(`/rides/${rideId}/accept-web`);
+      Alert.alert("Succès", "Course ajoutée à votre planning !");
+      loadData(true);
+    } catch (error) {
+      Alert.alert("Erreur", "Impossible d'accepter cette course.");
+    }
+  };
+
+  const handleRejectWeb = async (rideId) => {
+    Alert.alert("Refuser", "Voulez-vous vraiment supprimer cette demande ?", [
+      { text: "Annuler", style: "cancel" },
+      { text: "Refuser", style: "destructive", onPress: async () => {
+          try {
+            await api.delete(`/rides/${rideId}/reject-web`);
+            loadData(true);
+          } catch (error) {
+            Alert.alert("Erreur", "Impossible de refuser cette course.");
+          }
+      }}
+    ]);
+  };
+
   const handleImport = async () => {
     try {
       const text = await Clipboard.getStringAsync();
-      if (!text) {
-        return Alert.alert("Presse-papier vide", "Copiez d'abord un texte (SMS, WhatsApp) avant de lancer l'analyse.");
-      }
+      if (!text) return Alert.alert("Presse-papier vide", "Copiez d'abord un texte avant de lancer l'analyse.");
 
       setAnalyzing(true); 
       const response = await api.post('/ai/parse-ride', { text });
@@ -126,13 +142,11 @@ export default function AgendaScreen({ navigation }) {
       
       if (rides.length > 0 && rides[0].patientName) {
           Vibration.vibrate(50);
-          // 👈 FIX : Routage vers 'CreateRide' au lieu de 'AddRide'
           navigation.navigate('CreateRide', { importedData: rides[0] }); 
       } else {
-          Alert.alert("Erreur de lecture", "L'IA n'a pas pu extraire de course valide depuis ce texte.");
+          Alert.alert("Erreur de lecture", "L'IA n'a pas pu extraire de course valide.");
       }
     } catch (e) { 
-      console.error("Erreur Magic Paste:", e);
       Alert.alert("Erreur IA", "Problème de connexion au serveur d'analyse."); 
     } finally { 
       setAnalyzing(false); 
@@ -145,7 +159,7 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const confirmFinishRide = async () => { 
-    if (!billingData.kmReel) return Alert.alert("Donnée manquante", "Le kilométrage réel est requis pour clôturer la course."); 
+    if (!billingData.kmReel) return Alert.alert("Donnée manquante", "Le kilométrage réel est requis."); 
     try {
       await updateRide(activeRide._id, { endTime: new Date().toISOString(), realDistance: parseFloat(billingData.kmReel), tolls: parseFloat(billingData.peage)||0, status: 'Terminée' }); 
       setFinishModal(false); loadData(true); 
@@ -169,7 +183,6 @@ export default function AgendaScreen({ navigation }) {
         realDistance: 0,
         tolls: 0
       };
-
       await api.post('/rides', payload);
       setReturnModal(false);
       loadData(true);
@@ -180,12 +193,12 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const handleSyncCalendar = async () => {
-    if (!dailyRides || dailyRides.length === 0) return Alert.alert("Info", "Aucune course à synchroniser pour cette journée.");
+    if (!dailyRides || dailyRides.length === 0) return Alert.alert("Info", "Aucune course à synchroniser.");
     try {
       await syncBatchRides(dailyRides);
       Alert.alert("Succès", "Planning synchronisé avec le calendrier de votre téléphone.");
     } catch (error) {
-      Alert.alert("Erreur", "Synchronisation échouée. Vérifiez les permissions de l'application.");
+      Alert.alert("Erreur", "Synchronisation échouée.");
     }
   };
 
@@ -194,14 +207,14 @@ export default function AgendaScreen({ navigation }) {
       await addRideToCalendar(activeRide);
       Alert.alert("Succès", "Course ajoutée à votre calendrier.");
     } catch (error) {
-      Alert.alert("Erreur", "Ajout impossible. Vérifiez les permissions du calendrier.");
+      Alert.alert("Erreur", "Ajout impossible.");
     } finally {
       setModals({ ...modals, options: false });
     }
   };
 
   const handleSendSMS = () => {
-    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Aucun numéro de téléphone renseigné pour ce patient.");
+    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Aucun numéro de téléphone renseigné.");
     const date = moment(activeRide.date).format('DD/MM à HH:mm');
     const msg = `Bonjour ${activeRide.patientName}, voici un rappel pour votre transport médicalisé du ${date}. Cordialement.`;
     const separator = Platform.OS === 'ios' ? '&' : '?';
@@ -209,7 +222,6 @@ export default function AgendaScreen({ navigation }) {
     setModals({ ...modals, options: false });
   };
 
-  // --- GESTION DES DOCUMENTS ---
   const fetchDocs = async (ride) => {
     if (!ride) return;
     setLoadingDocs(true);
@@ -234,7 +246,7 @@ export default function AgendaScreen({ navigation }) {
        Alert.alert("Succès", "Document intégré au dossier."); 
        fetchDocs(activeRide); 
      }
-     catch(e){ Alert.alert("Erreur", "L'envoi du document a échoué. Vérifiez votre réseau."); } 
+     catch(e){ Alert.alert("Erreur", "L'envoi du document a échoué."); } 
      finally { setUploading(false); }
   };
   
@@ -245,10 +257,9 @@ export default function AgendaScreen({ navigation }) {
   
   const validateBT = () => { setBtValidationModal(false); if(tempScanUri) uploadDoc(tempScanUri, 'PMT'); };
 
-  // --- DISPATCH & PARTAGE ---
   const shareInternal = async (c) => {
     try { await shareRide(activeRide._id, c.contactId._id, shareNote); setModals({...modals, share:false}); setShareNote(''); loadData(true); Alert.alert("Dispatch", `Course transmise à ${c.contactId.fullName}`); }
-    catch(e){ Alert.alert("Erreur", "L'envoi au collègue a échoué."); }
+    catch(e){ Alert.alert("Erreur", "L'envoi a échoué."); }
   };
   
   const shareWhatsApp = () => {
@@ -262,17 +273,14 @@ export default function AgendaScreen({ navigation }) {
        if(g._id) { const res = await api.put(`/groups/${g._id}`, p); setMyGroups(prev=>prev.map(x=>x._id===g._id?res.data:x)); }
        else { const res = await api.post('/groups', p); setMyGroups(prev=>[...prev, res.data]); }
        setShowGroupCreator(false); setTimeout(()=>setShowGroupList(true),300);
-     } catch(e) { Alert.alert("Erreur", "Échec de l'enregistrement du groupe."); }
+     } catch(e) { Alert.alert("Erreur", "Échec de l'enregistrement."); }
   };
   
   const deleteGroup = async (id) => { 
     try { await api.delete(`/groups/${id}`); setMyGroups(prev=>prev.filter(g=>g._id!==id)); }
-    catch(e) { Alert.alert("Erreur", "Suppression du groupe impossible."); }
+    catch(e) { Alert.alert("Erreur", "Suppression impossible."); }
   };
 
-  // ============================================================
-  // 4. RENDU DE L'INTERFACE
-  // ============================================================
   return (
     <ScreenWrapper style={{backgroundColor: THEME_BG}}>
       <StatusBar barStyle="dark-content" backgroundColor={THEME_BG} />
@@ -292,6 +300,38 @@ export default function AgendaScreen({ navigation }) {
         onSettings={() => navigation.navigate('Settings')} 
       />
 
+      {/* 👈 NOUVEAU : BANNIÈRE DEMANDES WEB */}
+      {pendingWebRides.length > 0 && (
+        <View style={{ backgroundColor: '#FFF3E0', marginHorizontal: 20, marginBottom: 15, borderRadius: 15, padding: 15, elevation: 3, borderWidth: 1, borderColor: '#FFB74D' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
+            <Ionicons name="globe-outline" size={24} color="#E65100" />
+            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#E65100', marginLeft: 10 }}>
+              {pendingWebRides.length} Demande(s) Web en attente
+            </Text>
+          </View>
+          
+          {pendingWebRides.map(ride => (
+            <View key={ride._id} style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 10, marginBottom: 8 }}>
+              <Text style={{ fontWeight: 'bold', fontSize: 15 }}>{ride.patientName}</Text>
+              <Text style={{ color: '#666', fontSize: 13, marginBottom: 8 }}>
+                📅 {moment(ride.date).format('DD/MM à HH:mm')}
+              </Text>
+              <Text style={{ fontSize: 13 }} numberOfLines={1}>📍 {ride.startLocation}</Text>
+              <Text style={{ fontSize: 13 }} numberOfLines={1}>🏁 {ride.endLocation}</Text>
+              
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
+                <TouchableOpacity onPress={() => handleRejectWeb(ride._id)} style={{ padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8, flex: 1, marginRight: 5, alignItems: 'center' }}>
+                  <Text style={{ color: '#D32F2F', fontWeight: 'bold' }}>Refuser</Text>
+                </TouchableOpacity>
+                <TouchableOpacity onPress={() => handleAcceptWeb(ride._id)} style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 8, flex: 1, marginLeft: 5, alignItems: 'center' }}>
+                  <Text style={{ color: '#2E7D32', fontWeight: 'bold' }}>Accepter</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+        </View>
+      )}
+
       <AgendaList 
         rides={dailyRides} 
         loading={loading} 
@@ -304,18 +344,14 @@ export default function AgendaScreen({ navigation }) {
         getPMTStatus={getPMTStatus}
       />
 
-      {/* --- MODAL PRINCIPALE D'OPTIONS DE COURSE --- */}
       <RideOptionsModal 
         visible={modals.options} 
         ride={activeRide} 
         onClose={() => setModals({ ...modals, options: false })}
-        
-        // 👈 FIX : Routage vers 'CreateRide'
         onEdit={() => { 
           setModals({ ...modals, options: false }); 
           setTimeout(() => navigation.navigate('CreateRide', { rideToEdit: activeRide }), 150); 
         }}
-        
         onCreateReturn={() => { 
           setModals({ ...modals, options: false }); 
           setTimeout(() => { 
@@ -330,13 +366,12 @@ export default function AgendaScreen({ navigation }) {
             }
           }, 150); 
         }}
-        
         onAddToCalendar={handleSingleSync} 
         onShare={() => setModals({ options: false, share: true, docs: false })} 
         onOpenDocs={() => fetchDocs(activeRide)} 
         onSendSMS={handleSendSMS} 
         onDelete={async () => { 
-          Alert.alert("Suppression", "Confirmez-vous la suppression de cette course ?", [
+          Alert.alert("Suppression", "Confirmez-vous la suppression ?", [
             { text: "Annuler", style: "cancel" },
             { text: "Supprimer", style: "destructive", onPress: async () => {
                 await deleteRide(activeRide._id); setModals({...modals, options:false}); loadData(true);
@@ -346,23 +381,14 @@ export default function AgendaScreen({ navigation }) {
         onDispatch={() => { setModals({ ...modals, options: false }); setTimeout(() => setShowDispatchModal(true), 150); }}
       />
 
-      {/* --- SOUS-MODALS & COMPOSANTS ANNEXES --- */}
       <DispatchModal visible={showDispatchModal} onClose={() => setShowDispatchModal(false)} ride={activeRide} contacts={contacts} groups={myGroups} onCreateGroup={() => { setShowDispatchModal(false); setTimeout(() => { setEditingGroup(null); setShowGroupCreator(true); }, 200); }} onSuccess={() => loadData(true)} />
-      
       <GroupListModal visible={showGroupList} onClose={() => setShowGroupList(false)} groups={myGroups} onCreateNew={() => { setEditingGroup(null); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onEdit={(group) => { setEditingGroup(group); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onDelete={deleteGroup} />
-      
       <GroupCreatorModal visible={showGroupCreator} groupToEdit={editingGroup} onClose={() => { setShowGroupCreator(false); setTimeout(() => setShowGroupList(true), 200); }} contacts={contacts} onSaveGroup={saveGroup} />
-      
       <FinishRideModal visible={finishModal} onClose={() => setFinishModal(false)} data={billingData} setData={setBillingData} onConfirm={confirmFinishRide} />
-      
       <ReturnRideModal visible={returnModal} onClose={() => setReturnModal(false)} data={returnData} setData={setReturnData} tempDate={tempReturnDate} setTempDate={setTempReturnDate} showPicker={showTimePicker} setShowPicker={setShowTimePicker} onConfirm={handleCreateReturnRide} />
-      
       <ShareModal visible={modals.share} onClose={() => setModals({...modals, share: false})} note={shareNote} setNote={setShareNote} onWhatsApp={shareWhatsApp} contacts={contacts} onShareInternal={shareInternal} />
-      
       <DocsModal visible={modals.docs} onClose={() => setModals({...modals, docs: false})} docs={patientDocs} loading={loadingDocs} onScan={onScanDoc} uploading={uploading} onGallery={onGallery} />
-      
       <CpamCheckModal visible={btValidationModal} onClose={() => setBtValidationModal(false)} prescriptionDate={prescriptionDate} setPrescriptionDate={setPrescriptionDate} showPicker={showPrescriptionPicker} setShowPicker={setShowPrescriptionPicker} rideDate={activeRide?.date} onValidate={validateBT} />
-      
       <IncomingOfferToast onRideAccepted={() => loadData(true)} />
     </ScreenWrapper>
   );

@@ -13,8 +13,11 @@ router.post('/:rideId/share', authMiddleware, rideController.shareRide);
 router.post('/respond-share', authMiddleware, rideController.respondRideShare);
 router.put('/:id/facturation', authMiddleware, rideController.updateRideFacturation);
 
+// NOUVEAU : Routes pour gérer les réservations Web depuis l'app
+router.post('/:id/accept-web', authMiddleware, rideController.acceptWebBooking);
+router.delete('/:id/reject-web', authMiddleware, rideController.rejectWebBooking);
+
 // --- ROUTE PUBLIQUE (Site Web Patient) ---
-// ⚠️ Pas de authMiddleware ici, car le patient n'a pas de compte !
 router.post('/web-booking', rideController.createWebBooking);
 
 module.exports = router;
