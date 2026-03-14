@@ -1,5 +1,8 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { StyleSheet, Alert, Vibration, StatusBar, Linking, Platform, View, Text, TouchableOpacity } from 'react-native';
+import { 
+  StyleSheet, Alert, Vibration, StatusBar, Linking, Platform, 
+  View, Text, TouchableOpacity, Modal 
+} from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import * as Clipboard from 'expo-clipboard';
@@ -35,6 +38,9 @@ import GroupListModal from '../components/GroupListModal';
 const THEME_BG = '#F8F9FA';
 
 export default function AgendaScreen({ navigation }) {
+  // ============================================================
+  // 1. DATA DU CONTEXTE & ÉTATS UI
+  // ============================================================
   const { allRides, contacts, loading, loadData, handleGlobalRespond } = useData();
 
   const [selectedDate, setSelectedDate] = useState(moment().format('YYYY-MM-DD'));
@@ -42,6 +48,7 @@ export default function AgendaScreen({ navigation }) {
   const [activeRide, setActiveRide] = useState(null);
   const [analyzing, setAnalyzing] = useState(false); 
   
+  // ÉTATS DES MODALS
   const [modals, setModals] = useState({ options: false, share: false, docs: false });
   const [finishModal, setFinishModal] = useState(false); 
   const [returnModal, setReturnModal] = useState(false); 
@@ -51,6 +58,7 @@ export default function AgendaScreen({ navigation }) {
   const [editingGroup, setEditingGroup] = useState(null); 
   const [btValidationModal, setBtValidationModal] = useState(false);
 
+  // DATA LOCALES & FORM STATES
   const [myGroups, setMyGroups] = useState([]); 
   const [patientDocs, setPatientDocs] = useState([]); 
   const [allPMTs, setAllPMTs] = useState([]); 
@@ -66,6 +74,9 @@ export default function AgendaScreen({ navigation }) {
   const [shareNote, setShareNote] = useState(''); 
   const [billingData, setBillingData] = useState({ kmReel: '', peage: '' });
 
+  // ============================================================
+  // 2. CHARGEMENT & CALCULS (UseMemo / UseEffect)
+  // ============================================================
   useEffect(() => { 
       fetchGlobalPMTs(); 
       fetchGroups(); 
@@ -101,40 +112,68 @@ export default function AgendaScreen({ navigation }) {
       .sort((a, b) => new Date(a.date) - new Date(b.date)), 
   [allRides, selectedDate]);
 
-  // 👈 NOUVEAU : Isolement des demandes web en attente
+  // --- FILTRE DEMANDES WEB EN ATTENTE ---
   const pendingWebRides = useMemo(() => {
     return allRides.filter(r => r.source === 'Web' && r.status === 'En attente');
   }, [allRides]);
 
-  // --- ACTIONS WEB BOOKING ---
-  const handleAcceptWeb = async (rideId) => {
+  // 🔔 VIBRATION AUTOMATIQUE SUR NOUVELLE DEMANDE
+  useEffect(() => {
+    if (pendingWebRides.length > 0) {
+      Vibration.vibrate([500, 500, 500]); 
+    }
+  }, [pendingWebRides.length]);
+
+  // ============================================================
+  // 3. LOGIQUE MÉTIER & ACTIONS
+  // ============================================================
+
+  // --- ACTIONS WEB BOOKING & SMS AUTO ---
+  const handleAcceptWeb = async (ride) => {
     try {
-      await api.post(`/rides/${rideId}/accept-web`);
-      Alert.alert("Succès", "Course ajoutée à votre planning !");
+      await api.post(`/rides/${ride._id}/accept-web`);
       loadData(true);
+      
+      if (ride.patientPhone) {
+          const dateStr = moment(ride.date).format('DD/MM à HH:mm');
+          const msg = `Bonjour ${ride.patientName}. Votre demande de transport VSL du ${dateStr} est CONFIRMÉE ✅. À très vite !`;
+          const separator = Platform.OS === 'ios' ? '&' : '?';
+          Linking.openURL(`sms:${ride.patientPhone}${separator}body=${encodeURIComponent(msg)}`);
+      } else {
+          Alert.alert("Succès", "Course acceptée (Pas de numéro de téléphone pour le SMS).");
+      }
     } catch (error) {
       Alert.alert("Erreur", "Impossible d'accepter cette course.");
     }
   };
 
-  const handleRejectWeb = async (rideId) => {
-    Alert.alert("Refuser", "Voulez-vous vraiment supprimer cette demande ?", [
-      { text: "Annuler", style: "cancel" },
-      { text: "Refuser", style: "destructive", onPress: async () => {
+  const handleRejectWeb = async (ride) => {
+    Alert.alert("Refuser", "Voulez-vous vraiment annuler cette demande ?", [
+      { text: "Non, garder", style: "cancel" },
+      { text: "Oui, Refuser", style: "destructive", onPress: async () => {
           try {
-            await api.delete(`/rides/${rideId}/reject-web`);
+            await api.delete(`/rides/${ride._id}/reject-web`);
             loadData(true);
+
+            if (ride.patientPhone) {
+                const dateStr = moment(ride.date).format('DD/MM à HH:mm');
+                const msg = `Bonjour ${ride.patientName}. Nous ne pouvons malheureusement pas assurer votre transport VSL du ${dateStr} (Planning complet ❌). Merci de votre compréhension.`;
+                const separator = Platform.OS === 'ios' ? '&' : '?';
+                Linking.openURL(`sms:${ride.patientPhone}${separator}body=${encodeURIComponent(msg)}`);
+            }
           } catch (error) {
             Alert.alert("Erreur", "Impossible de refuser cette course.");
           }
       }}
     ]);
   };
-
+  
   const handleImport = async () => {
     try {
       const text = await Clipboard.getStringAsync();
-      if (!text) return Alert.alert("Presse-papier vide", "Copiez d'abord un texte avant de lancer l'analyse.");
+      if (!text) {
+        return Alert.alert("Presse-papier vide", "Copiez d'abord un texte (SMS, WhatsApp) avant de lancer l'analyse.");
+      }
 
       setAnalyzing(true); 
       const response = await api.post('/ai/parse-ride', { text });
@@ -144,7 +183,7 @@ export default function AgendaScreen({ navigation }) {
           Vibration.vibrate(50);
           navigation.navigate('CreateRide', { importedData: rides[0] }); 
       } else {
-          Alert.alert("Erreur de lecture", "L'IA n'a pas pu extraire de course valide.");
+          Alert.alert("Erreur de lecture", "L'IA n'a pas pu extraire de course valide depuis ce texte.");
       }
     } catch (e) { 
       Alert.alert("Erreur IA", "Problème de connexion au serveur d'analyse."); 
@@ -159,7 +198,7 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const confirmFinishRide = async () => { 
-    if (!billingData.kmReel) return Alert.alert("Donnée manquante", "Le kilométrage réel est requis."); 
+    if (!billingData.kmReel) return Alert.alert("Donnée manquante", "Le kilométrage réel est requis pour clôturer la course."); 
     try {
       await updateRide(activeRide._id, { endTime: new Date().toISOString(), realDistance: parseFloat(billingData.kmReel), tolls: parseFloat(billingData.peage)||0, status: 'Terminée' }); 
       setFinishModal(false); loadData(true); 
@@ -183,6 +222,7 @@ export default function AgendaScreen({ navigation }) {
         realDistance: 0,
         tolls: 0
       };
+
       await api.post('/rides', payload);
       setReturnModal(false);
       loadData(true);
@@ -193,12 +233,12 @@ export default function AgendaScreen({ navigation }) {
   };
 
   const handleSyncCalendar = async () => {
-    if (!dailyRides || dailyRides.length === 0) return Alert.alert("Info", "Aucune course à synchroniser.");
+    if (!dailyRides || dailyRides.length === 0) return Alert.alert("Info", "Aucune course à synchroniser pour cette journée.");
     try {
       await syncBatchRides(dailyRides);
       Alert.alert("Succès", "Planning synchronisé avec le calendrier de votre téléphone.");
     } catch (error) {
-      Alert.alert("Erreur", "Synchronisation échouée.");
+      Alert.alert("Erreur", "Synchronisation échouée. Vérifiez les permissions de l'application.");
     }
   };
 
@@ -207,14 +247,14 @@ export default function AgendaScreen({ navigation }) {
       await addRideToCalendar(activeRide);
       Alert.alert("Succès", "Course ajoutée à votre calendrier.");
     } catch (error) {
-      Alert.alert("Erreur", "Ajout impossible.");
+      Alert.alert("Erreur", "Ajout impossible. Vérifiez les permissions du calendrier.");
     } finally {
       setModals({ ...modals, options: false });
     }
   };
 
   const handleSendSMS = () => {
-    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Aucun numéro de téléphone renseigné.");
+    if (!activeRide || !activeRide.patientPhone) return Alert.alert("Erreur", "Aucun numéro de téléphone renseigné pour ce patient.");
     const date = moment(activeRide.date).format('DD/MM à HH:mm');
     const msg = `Bonjour ${activeRide.patientName}, voici un rappel pour votre transport médicalisé du ${date}. Cordialement.`;
     const separator = Platform.OS === 'ios' ? '&' : '?';
@@ -222,6 +262,7 @@ export default function AgendaScreen({ navigation }) {
     setModals({ ...modals, options: false });
   };
 
+  // --- GESTION DES DOCUMENTS ---
   const fetchDocs = async (ride) => {
     if (!ride) return;
     setLoadingDocs(true);
@@ -246,7 +287,7 @@ export default function AgendaScreen({ navigation }) {
        Alert.alert("Succès", "Document intégré au dossier."); 
        fetchDocs(activeRide); 
      }
-     catch(e){ Alert.alert("Erreur", "L'envoi du document a échoué."); } 
+     catch(e){ Alert.alert("Erreur", "L'envoi du document a échoué. Vérifiez votre réseau."); } 
      finally { setUploading(false); }
   };
   
@@ -257,9 +298,10 @@ export default function AgendaScreen({ navigation }) {
   
   const validateBT = () => { setBtValidationModal(false); if(tempScanUri) uploadDoc(tempScanUri, 'PMT'); };
 
+  // --- DISPATCH & PARTAGE ---
   const shareInternal = async (c) => {
     try { await shareRide(activeRide._id, c.contactId._id, shareNote); setModals({...modals, share:false}); setShareNote(''); loadData(true); Alert.alert("Dispatch", `Course transmise à ${c.contactId.fullName}`); }
-    catch(e){ Alert.alert("Erreur", "L'envoi a échoué."); }
+    catch(e){ Alert.alert("Erreur", "L'envoi au collègue a échoué."); }
   };
   
   const shareWhatsApp = () => {
@@ -273,14 +315,17 @@ export default function AgendaScreen({ navigation }) {
        if(g._id) { const res = await api.put(`/groups/${g._id}`, p); setMyGroups(prev=>prev.map(x=>x._id===g._id?res.data:x)); }
        else { const res = await api.post('/groups', p); setMyGroups(prev=>[...prev, res.data]); }
        setShowGroupCreator(false); setTimeout(()=>setShowGroupList(true),300);
-     } catch(e) { Alert.alert("Erreur", "Échec de l'enregistrement."); }
+     } catch(e) { Alert.alert("Erreur", "Échec de l'enregistrement du groupe."); }
   };
   
   const deleteGroup = async (id) => { 
     try { await api.delete(`/groups/${id}`); setMyGroups(prev=>prev.filter(g=>g._id!==id)); }
-    catch(e) { Alert.alert("Erreur", "Suppression impossible."); }
+    catch(e) { Alert.alert("Erreur", "Suppression du groupe impossible."); }
   };
 
+  // ============================================================
+  // 4. RENDU DE L'INTERFACE
+  // ============================================================
   return (
     <ScreenWrapper style={{backgroundColor: THEME_BG}}>
       <StatusBar barStyle="dark-content" backgroundColor={THEME_BG} />
@@ -300,37 +345,60 @@ export default function AgendaScreen({ navigation }) {
         onSettings={() => navigation.navigate('Settings')} 
       />
 
-      {/* 👈 NOUVEAU : BANNIÈRE DEMANDES WEB */}
-      {pendingWebRides.length > 0 && (
-        <View style={{ backgroundColor: '#FFF3E0', marginHorizontal: 20, marginBottom: 15, borderRadius: 15, padding: 15, elevation: 3, borderWidth: 1, borderColor: '#FFB74D' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 10 }}>
-            <Ionicons name="globe-outline" size={24} color="#E65100" />
-            <Text style={{ fontWeight: 'bold', fontSize: 16, color: '#E65100', marginLeft: 10 }}>
-              {pendingWebRides.length} Demande(s) Web en attente
-            </Text>
-          </View>
-          
-          {pendingWebRides.map(ride => (
-            <View key={ride._id} style={{ backgroundColor: '#FFF', padding: 12, borderRadius: 10, marginBottom: 8 }}>
-              <Text style={{ fontWeight: 'bold', fontSize: 15 }}>{ride.patientName}</Text>
-              <Text style={{ color: '#666', fontSize: 13, marginBottom: 8 }}>
-                📅 {moment(ride.date).format('DD/MM à HH:mm')}
+      {/* 🚨 POP-UP D'ALERTE PREMIER PLAN (DEMANDES WEB) */}
+      <Modal
+        visible={pendingWebRides.length > 0}
+        transparent={true}
+        animationType="slide"
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', padding: 20 }}>
+          <View style={{ backgroundColor: '#FFF', borderRadius: 25, overflow: 'hidden', elevation: 10 }}>
+            
+            <View style={{ backgroundColor: '#E65100', padding: 20, alignItems: 'center' }}>
+              <Ionicons name="notifications-circle" size={50} color="#FFF" />
+              <Text style={{ color: '#FFF', fontSize: 20, fontWeight: '900', marginTop: 10, textAlign: 'center' }}>
+                {pendingWebRides.length} NOUVELLE(S) DEMANDE(S) !
               </Text>
-              <Text style={{ fontSize: 13 }} numberOfLines={1}>📍 {ride.startLocation}</Text>
-              <Text style={{ fontSize: 13 }} numberOfLines={1}>🏁 {ride.endLocation}</Text>
-              
-              <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 }}>
-                <TouchableOpacity onPress={() => handleRejectWeb(ride._id)} style={{ padding: 8, backgroundColor: '#FFEBEE', borderRadius: 8, flex: 1, marginRight: 5, alignItems: 'center' }}>
-                  <Text style={{ color: '#D32F2F', fontWeight: 'bold' }}>Refuser</Text>
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => handleAcceptWeb(ride._id)} style={{ padding: 8, backgroundColor: '#E8F5E9', borderRadius: 8, flex: 1, marginLeft: 5, alignItems: 'center' }}>
-                  <Text style={{ color: '#2E7D32', fontWeight: 'bold' }}>Accepter</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={{ color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 5 }}>Depuis votre site internet</Text>
             </View>
-          ))}
+
+            <View style={{ padding: 20, maxHeight: 400 }}>
+              {pendingWebRides.map(ride => (
+                <View key={ride._id} style={{ backgroundColor: '#F8F9FA', padding: 15, borderRadius: 15, marginBottom: 15, borderWidth: 1, borderColor: '#EEE' }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+                    <Text style={{ fontWeight: 'bold', fontSize: 18, color: '#333' }}>{ride.patientName}</Text>
+                    <View style={{ backgroundColor: '#FFE0B2', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ color: '#E65100', fontWeight: 'bold', fontSize: 12 }}>{ride.type}</Text>
+                    </View>
+                  </View>
+                  
+                  <Text style={{ color: '#E65100', fontSize: 15, fontWeight: 'bold', marginBottom: 10 }}>
+                    📅 {moment(ride.date).format('dddd DD MMM à HH:mm')}
+                  </Text>
+                  
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 5 }} numberOfLines={2}>📍 De : {ride.startLocation}</Text>
+                  <Text style={{ fontSize: 14, color: '#555', marginBottom: 10 }} numberOfLines={2}>🏁 À : {ride.endLocation}</Text>
+
+                  {ride.notes ? (
+                    <Text style={{ fontSize: 13, color: '#757575', fontStyle: 'italic', marginBottom: 10 }}>📝 Note: {ride.notes}</Text>
+                  ) : null}
+                  
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 5, gap: 10 }}>
+                    <TouchableOpacity onPress={() => handleRejectWeb(ride)} style={{ paddingVertical: 12, backgroundColor: '#FFEBEE', borderRadius: 12, flex: 1, alignItems: 'center' }}>
+                      <Text style={{ color: '#D32F2F', fontWeight: 'bold', fontSize: 15 }}>Refuser (SMS)</Text>
+                    </TouchableOpacity>
+                    
+                    <TouchableOpacity onPress={() => handleAcceptWeb(ride)} style={{ paddingVertical: 12, backgroundColor: '#4CAF50', borderRadius: 12, flex: 1, alignItems: 'center', elevation: 2 }}>
+                      <Text style={{ color: '#FFF', fontWeight: 'bold', fontSize: 15 }}>Accepter (SMS)</Text>
+                    </TouchableOpacity>
+                  </View>
+                </View>
+              ))}
+            </View>
+
+          </View>
         </View>
-      )}
+      </Modal>
 
       <AgendaList 
         rides={dailyRides} 
@@ -344,6 +412,7 @@ export default function AgendaScreen({ navigation }) {
         getPMTStatus={getPMTStatus}
       />
 
+      {/* --- MODAL PRINCIPALE D'OPTIONS DE COURSE --- */}
       <RideOptionsModal 
         visible={modals.options} 
         ride={activeRide} 
@@ -371,7 +440,7 @@ export default function AgendaScreen({ navigation }) {
         onOpenDocs={() => fetchDocs(activeRide)} 
         onSendSMS={handleSendSMS} 
         onDelete={async () => { 
-          Alert.alert("Suppression", "Confirmez-vous la suppression ?", [
+          Alert.alert("Suppression", "Confirmez-vous la suppression de cette course ?", [
             { text: "Annuler", style: "cancel" },
             { text: "Supprimer", style: "destructive", onPress: async () => {
                 await deleteRide(activeRide._id); setModals({...modals, options:false}); loadData(true);
@@ -381,14 +450,23 @@ export default function AgendaScreen({ navigation }) {
         onDispatch={() => { setModals({ ...modals, options: false }); setTimeout(() => setShowDispatchModal(true), 150); }}
       />
 
+      {/* --- SOUS-MODALS & COMPOSANTS ANNEXES --- */}
       <DispatchModal visible={showDispatchModal} onClose={() => setShowDispatchModal(false)} ride={activeRide} contacts={contacts} groups={myGroups} onCreateGroup={() => { setShowDispatchModal(false); setTimeout(() => { setEditingGroup(null); setShowGroupCreator(true); }, 200); }} onSuccess={() => loadData(true)} />
+      
       <GroupListModal visible={showGroupList} onClose={() => setShowGroupList(false)} groups={myGroups} onCreateNew={() => { setEditingGroup(null); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onEdit={(group) => { setEditingGroup(group); setShowGroupList(false); setTimeout(() => setShowGroupCreator(true), 200); }} onDelete={deleteGroup} />
+      
       <GroupCreatorModal visible={showGroupCreator} groupToEdit={editingGroup} onClose={() => { setShowGroupCreator(false); setTimeout(() => setShowGroupList(true), 200); }} contacts={contacts} onSaveGroup={saveGroup} />
+      
       <FinishRideModal visible={finishModal} onClose={() => setFinishModal(false)} data={billingData} setData={setBillingData} onConfirm={confirmFinishRide} />
+      
       <ReturnRideModal visible={returnModal} onClose={() => setReturnModal(false)} data={returnData} setData={setReturnData} tempDate={tempReturnDate} setTempDate={setTempReturnDate} showPicker={showTimePicker} setShowPicker={setShowTimePicker} onConfirm={handleCreateReturnRide} />
+      
       <ShareModal visible={modals.share} onClose={() => setModals({...modals, share: false})} note={shareNote} setNote={setShareNote} onWhatsApp={shareWhatsApp} contacts={contacts} onShareInternal={shareInternal} />
+      
       <DocsModal visible={modals.docs} onClose={() => setModals({...modals, docs: false})} docs={patientDocs} loading={loadingDocs} onScan={onScanDoc} uploading={uploading} onGallery={onGallery} />
+      
       <CpamCheckModal visible={btValidationModal} onClose={() => setBtValidationModal(false)} prescriptionDate={prescriptionDate} setPrescriptionDate={setPrescriptionDate} showPicker={showPrescriptionPicker} setShowPicker={setShowPrescriptionPicker} rideDate={activeRide?.date} onValidate={validateBT} />
+      
       <IncomingOfferToast onRideAccepted={() => loadData(true)} />
     </ScreenWrapper>
   );

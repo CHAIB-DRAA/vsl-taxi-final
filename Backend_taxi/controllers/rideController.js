@@ -223,13 +223,35 @@ exports.createWebBooking = async (req, res) => {
     });
 
     await newRide.save();
+
+    // 🚨 NOUVEAU : ENVOI DE LA NOTIFICATION PUSH AUX CHAUFFEURS
+    // On cherche tous les utilisateurs qui ont activé les notifications
+    const allDrivers = await User.find({ pushToken: { $exists: true, $ne: null } });
+    
+    let messages = [];
+    for (let driver of allDrivers) {
+      if (Expo.isExpoPushToken(driver.pushToken)) {
+        messages.push({
+          to: driver.pushToken,
+          sound: 'default', // Fait sonner le téléphone !
+          title: '🚨 NOUVELLE DEMANDE WEB !',
+          body: `${patientName} demande un transport le ${date} à ${time}. Ouvrez l'appli !`,
+          data: { type: 'new_web_booking' },
+        });
+      }
+    }
+    
+    // Si on a trouvé des chauffeurs, on tire la sonnette
+    if (messages.length > 0) {
+      await expo.sendPushNotificationsAsync(messages);
+    }
+
     res.status(201).json({ success: true, message: "Votre demande a bien été envoyée. Le chauffeur vous confirmera l'horaire par SMS." });
   } catch (error) {
     console.error("Erreur Web Booking:", error);
     res.status(500).json({ error: "Erreur serveur, veuillez réessayer plus tard." });
   }
 };
-
 // --- 9. ACCEPTER / REFUSER UNE DEMANDE WEB ---
 exports.acceptWebBooking = async (req, res) => {
   try {
