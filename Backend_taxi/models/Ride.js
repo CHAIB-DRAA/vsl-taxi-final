@@ -1,43 +1,47 @@
 const mongoose = require('mongoose');
 
 const rideSchema = mongoose.Schema({
-  // L'utilisateur (Chauffeur) à qui appartient la course
-  chauffeurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
+  // 1. Le chauffeur n'est plus "required" pour autoriser les demandes web sans chauffeur attribué
+  chauffeurId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: false },
 
   // --- INFOS PATIENT & TRAJET ---
   patientName: { type: String, required: true },
-  patientPhone: { type: String, default: '' }, // <--- AJOUTE CE CHAMP
+  patientPhone: { type: String, default: '' }, 
   startLocation: { type: String, required: true },
   endLocation: { type: String, required: true },
   date: { type: Date, required: true },
   returnDate: { type: Date },
-  // J'ai ajouté 'Ambulance' et 'VSL' pour que ça colle avec tes badges Frontend
   type: { 
     type: String, 
-    enum: ['Aller', 'Retour', 'Consultation', 'Hospit','HDJ'], 
+    // J'ajoute 'VSL' et 'Ambulance' si jamais tu les utilises depuis le web ou l'app
+    enum: ['Aller', 'Retour', 'Consultation', 'Hospit', 'HDJ', 'VSL', 'Ambulance'], 
     default: 'Aller' 
   },
   isRoundTrip: { type: Boolean, default: false },
   
-  // --- CYCLE DE VIE (Horodatage Réel) ---
-  startTime: { type: Date }, // Clic sur "Démarrer"
-  endTime: { type: Date },   // Clic sur "Terminer"
-  status: { type: String, default: 'En attente' }, // 'En attente', 'En cours', 'Terminée'
+  // --- CYCLE DE VIE ---
+  startTime: { type: Date }, 
+  endTime: { type: Date },   
+  // 'À venir' pour les courses normales, 'En attente' pour le web ou les partages non validés
+  status: { type: String, default: 'En attente' }, 
+
+  // --- NOUVEAU : ORIGINE DE LA COURSE ---
+  // Permet de savoir si ça vient de l'application ou du site internet (Formulaire patient)
+  source: { type: String, enum: ['App', 'Web'], default: 'App' },
+  
+  // NOUVEAU : Notes additionnelles (pratique pour les infos du formulaire Web)
+  notes: { type: String, default: '' },
 
   // --- DONNÉES CPAM (Facturation) ---
-  realDistance: { type: Number }, // KM compteur
-  tolls: { type: Number, default: 0 }, // Péages
+  realDistance: { type: Number }, 
+  tolls: { type: Number, default: 0 }, 
   statuFacturation: { type: String, enum: ['Non facturé', 'Facturé'], default: 'Non facturé' },
 
-  // --- GESTION DU PARTAGE (Les Nouveautés) ---
-  isShared: { type: Boolean, default: false }, // Est-ce une course qu'on m'a envoyée ?
-  
-  // Qui me l'a envoyée ? (Ex: "Jean Dupont")
+  // --- GESTION DU PARTAGE ---
+  isShared: { type: Boolean, default: false }, 
   sharedByName: { type: String }, 
-  
-  // La fameuse note (Ex: "Attention 4ème étage sans ascenseur")
   shareNote: { type: String, default: '' } 
 
-}, { timestamps: true }); // Ajoute automatiquement createdAt et updatedAt
+}, { timestamps: true });
 
 module.exports = mongoose.model('Ride', rideSchema);
