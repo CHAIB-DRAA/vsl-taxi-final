@@ -19,5 +19,5 @@ router.delete('/:id/reject-web', authMiddleware, rideController.rejectWebBooking
 
 // --- ROUTE PUBLIQUE (Site Web Patient) ---
 router.post('/web-booking', rideController.createWebBooking);
-
+router.post('/mass-import', authMiddleware, rideController.importMassRides);
 module.exports = router;

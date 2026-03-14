@@ -277,3 +277,60 @@ exports.rejectWebBooking = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+
+const Patient = require('../models/Patient'); // Assure-toi d'importer ton modèle Patient/Contact en haut du fichier
+
+// --- 10. IMPORTATION MASSIVE & CRÉATION AUTO DES CONTACTS ---
+exports.importMassRides = async (req, res) => {
+  try {
+    const { rides } = req.body;
+    const chauffeurId = req.user.id;
+    let addedRidesCount = 0;
+    let newContactsCount = 0;
+
+    if (!rides || !Array.isArray(rides)) {
+      return res.status(400).json({ message: "Aucune course fournie." });
+    }
+
+    for (const rideData of rides) {
+      // 1. Vérifier si le patient existe déjà dans ton répertoire
+      // (On cherche par nom, en ignorant les majuscules/minuscules)
+      let patient = await Patient.findOne({ 
+        name: { $regex: new RegExp('^' + rideData.patientName + '$', "i") },
+        chauffeurId: chauffeurId
+      });
+
+      // 2. S'il n'existe pas, ON LE CRÉE AUTOMATIQUEMENT !
+      if (!patient && rideData.patientName) {
+        patient = new Patient({
+          name: rideData.patientName,
+          phone: rideData.patientPhone || '',
+          chauffeurId: chauffeurId
+        });
+        await patient.save();
+        newContactsCount++;
+      }
+
+      // 3. On crée la course
+      const newRide = new Ride({
+        ...rideData,
+        chauffeurId: chauffeurId,
+        status: 'À venir',
+        source: 'App'
+      });
+      await newRide.save();
+      addedRidesCount++;
+    }
+
+    res.status(200).json({ 
+      message: "Importation réussie", 
+      addedRidesCount, 
+      newContactsCount 
+    });
+
+  } catch (error) {
+    console.error("Erreur Import Massif:", error);
+    res.status(500).json({ message: "Erreur lors de l'importation." });
+  }
+};
