@@ -140,7 +140,6 @@
     </div>
 
     <script>
-        // Initialisation des icônes Lucide
         lucide.createIcons();
 
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
@@ -153,14 +152,15 @@
             btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
             statusMsg.classList.add('hidden');
 
-            // 🚀 CORRECTION FUSEAU HORAIRE ICI
-            // 1. On récupère la date et l'heure saisies par le patient
-            const dateInput = document.getElementById('date').value;
-            const timeInput = document.getElementById('time').value;
+            // --- CORRECTION ANTI-ERREUR 500 ET DÉCALAGE HORAIRE ---
+            const dateInput = document.getElementById('date').value; // Format attendu par le serveur : YYYY-MM-DD
+            const timeInput = document.getElementById('time').value; // Format saisi par le client : HH:mm
             
-            // 2. On demande au navigateur du patient de fusionner les deux
-            // Le navigateur va nativement appliquer l'heure d'été/hiver française
-            const localDateTime = new Date(`${dateInput}T${timeInput}`);
+            // On récupère l'heure UTC exacte pour anticiper le décalage du serveur Render
+            const localDate = new Date(`${dateInput}T${timeInput}`);
+            const utcHours = String(localDate.getUTCHours()).padStart(2, '0');
+            const utcMinutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+            const utcTime = `${utcHours}:${utcMinutes}`; // Ex: 07:00 au lieu de 09:00
 
             const payload = {
                 patientName: document.getElementById('patientName').value,
@@ -168,10 +168,10 @@
                 startLocation: document.getElementById('startLocation').value,
                 endLocation: document.getElementById('endLocation').value,
                 
-                // 3. On envoie au serveur la date au format Universel Absolu (ISOString)
-                // Ex: S'il tape 09:00, ça envoie 07:00Z. Mongoose la sauvegardera parfaitement !
-                date: localDateTime.toISOString(), 
-                time: timeInput, // On le garde au cas où ton backend l'utilise pour autre chose
+                // 1. On remet la date brute pour éviter que ton backend ne plante (Erreur 500)
+                date: dateInput, 
+                // 2. On envoie l'heure compensée pour contrer le fuseau horaire de Render
+                time: utcTime, 
                 
                 type: document.getElementById('type').value,
                 notes: document.getElementById('notes').value,
