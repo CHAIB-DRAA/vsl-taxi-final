@@ -68,7 +68,7 @@ const shareRoutes = require('./routes/shareRoutes');
 const dispatchRoutes = require('./routes/dispatch'); 
 const groupRoutes = require('./routes/groups');      
 const aiRoutes = require('./routes/ai'); 
-
+const adminRoutes = require('./routes/adminRoutes');
 app.use('/api/rides', rideRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/documents', docRoutes);
@@ -78,14 +78,16 @@ app.use('/api/share', shareRoutes);
 app.use('/api/dispatch', dispatchRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes); 
-
+app.use('/api/admin', adminRoutes);
 // ==========================================
 // 🚀 DÉMARRAGE
 // ==========================================
 mongoose.connect(process.env.MONGO_URI)
 .then(() => console.log('✅ Connecté à MongoDB'))
 .catch((err) => console.error('❌ Erreur de connexion MongoDB :', err));
-
+app.get('/admin', (req, res) => {
+    res.sendFile(__dirname + '/public/admin.html');
+});
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);

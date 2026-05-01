@@ -7,22 +7,17 @@ const authMiddleware = require('../middleware/auth');
 router.get('/', authMiddleware, rideController.getRides);
 router.post('/', authMiddleware, rideController.createRide);
 router.patch('/:id', authMiddleware, rideController.updateRide);
-router.put('/:id', authMiddleware, rideController.updateRide); 
+router.put('/:id', authMiddleware, rideController.updateRide); // Compatibilité
 router.delete('/:id', authMiddleware, rideController.deleteRide);
-
-// --- PARTAGE ---
 router.post('/:rideId/share', authMiddleware, rideController.shareRide);
 router.post('/respond-share', authMiddleware, rideController.respondRideShare);
-
-// --- FACTURATION ---
 router.put('/:id/facturation', authMiddleware, rideController.updateRideFacturation);
 
-// --- GESTION DES RÉSERVATIONS WEB (Depuis l'App) ---
+// NOUVEAU : Routes pour gérer les réservations Web depuis l'app
 router.post('/:id/accept-web', authMiddleware, rideController.acceptWebBooking);
 router.delete('/:id/reject-web', authMiddleware, rideController.rejectWebBooking);
 
 // --- ROUTE PUBLIQUE (Site Web Patient) ---
-// Pas d'authMiddleware ici, car le patient n'a pas de compte
 router.post('/web-booking', rideController.createWebBooking);
-
+router.post('/mass-import', authMiddleware, rideController.importMassRides);
 module.exports = router;
