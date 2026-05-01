@@ -93,7 +93,7 @@
 
                 <div class="p-8 flex-1 flex flex-col">
                     
-                    <!-- NOUVEAU WIDGET : ALERTE DE CLÔTURE -->
+                    <!-- WIDGET : ALERTE DE CLÔTURE -->
                     <div id="billing-alert-widget" class="hidden mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-sm flex justify-between items-center">
                         <div class="flex items-center gap-4">
                             <div class="bg-yellow-100 p-3 rounded-full text-yellow-600">
@@ -131,7 +131,6 @@
                             <option value="month">Ce mois-ci</option>
                             <option value="all">Toutes les dates</option>
                         </select>
-                        <!-- Le statut par défaut est "Terminée" pour l'édition de fin de journée -->
                         <select id="filter-status" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
                             <option value="all">Tous statuts</option>
                             <option value="En attente">En attente (Web)</option>
@@ -168,7 +167,6 @@
 
             <!-- ONGLET 2 : CRM PATIENTS -->
             <div id="view-patients" class="hidden flex flex-col h-full">
-                <!-- Identique à la version précédente -->
                 <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
                     <h1 class="text-2xl font-bold">Base de données Patients</h1>
                     <div class="bg-purple-50 text-purple-700 border border-purple-100 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
@@ -182,7 +180,6 @@
 
             <!-- ONGLET 3 : COMPTABILITÉ & ANALYSE -->
             <div id="view-compta" class="hidden flex flex-col h-full">
-                <!-- Identique à la version précédente -->
                 <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
                     <h1 class="text-2xl font-bold">Analyse Financière</h1>
                 </header>
@@ -287,7 +284,7 @@
         </div>
     </div>
 
-    <!-- MODAL AUDIT (Identique à la logique précédente) -->
+    <!-- MODAL AUDIT -->
     <div id="audit-modal" class="hidden absolute inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
          <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
@@ -355,6 +352,9 @@
         }
 
         function applyFilters() {
+            // Sécurité : si les données ne sont pas encore chargées, on ne fait rien
+            if (!allMyRides || !Array.isArray(allMyRides)) return;
+
             const searchTerm = document.getElementById('filter-search').value.toLowerCase();
             const statusTerm = document.getElementById('filter-status').value;
             const factuTerm = document.getElementById('filter-factu').value;
@@ -378,13 +378,16 @@
             renderTable(filteredRidesGlobal);
             calculateCompta(filteredRidesGlobal);
             updateBillingAlerts();
-            if(!document.getElementById('view-compta').classList.contains('hidden')) renderChart();
+            
+            const comptaView = document.getElementById('view-compta');
+            if(comptaView && !comptaView.classList.contains('hidden')) {
+                renderChart();
+            }
         }
 
         // Met à jour le bloc d'alerte en haut du tableau
         function updateBillingAlerts() {
             let pendingCount = 0;
-            // On vérifie combien de courses filtrées ne sont pas facturées ou n'ont pas de KM
             filteredRidesGlobal.forEach(r => {
                 if(r.statuFacturation !== 'Facturé' || !r.realDistance || r.realDistance == 0) {
                     pendingCount++;
@@ -402,7 +405,6 @@
                 alertWidget.classList.add('hidden');
                 successWidget.classList.remove('hidden');
             } else {
-                // Aucun résultat
                 alertWidget.classList.add('hidden');
                 successWidget.classList.add('hidden');
             }
@@ -422,7 +424,6 @@
                 const prevu = ride.date ? dayjs(ride.date).format('DD/MM • HH:mm') : '--';
                 const reel = (ride.startTime && ride.endTime) ? `${dayjs(ride.startTime).format('HH:mm')} ➔ ${dayjs(ride.endTime).format('HH:mm')}` : '--';
                 
-                // Alertes visuelles dans le tableau
                 const isMissingKm = !ride.realDistance || ride.realDistance == 0;
                 const isNotBilled = ride.statuFacturation !== 'Facturé';
                 const rowBorder = isNotBilled ? 'border-l-4 border-yellow-400' : 'border-l-4 border-transparent';
@@ -476,7 +477,6 @@
             
             let html = '';
             arr.forEach(p => {
-                const msg = encodeURIComponent(`Bonjour ${p.name}, c'est Taxi 31.`);
                 html += `
                     <div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col relative overflow-hidden">
                         <div class="absolute top-0 right-0 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-400 rounded-bl-xl border-b border-l border-slate-100">${p.totalRides} courses</div>
@@ -489,7 +489,6 @@
                         </div>
                         <div class="mt-auto pt-4 border-t border-slate-100 flex justify-between items-center">
                             <span class="text-sm font-semibold text-slate-600">${p.phone || 'Pas de numéro'}</span>
-                            ${p.phone ? `<a href="sms:${p.phone}?body=${msg}" class="bg-yellow-500 text-slate-900 px-4 py-2 rounded-lg font-bold text-xs flex items-center gap-2 hover:bg-yellow-400"><i data-lucide="message-square" class="w-4 h-4"></i> Contacter</a>` : ''}
                         </div>
                     </div>
                 `;
@@ -558,21 +557,33 @@
             } catch (err) { alert("Erreur serveur"); }
         });
 
+        // 🚀 FONCTION CORRIGÉE POUR GÉRER LE CACHE (CODE 304) ET AMORCER LE FILTRE 
         async function loadData() {
             const token = localStorage.getItem('driverToken');
             try {
                 const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
+                
                 if (res.status === 401 || res.status === 403) { logout(); return; }
-                allMyRides = await res.json(); 
+                
+                const rawData = await res.json(); 
+                
+                // Vérification de sécurité pour s'assurer qu'on manipule bien un tableau
+                allMyRides = Array.isArray(rawData) ? rawData : [];
+                
+                // Tri de la plus récente à la plus ancienne
                 allMyRides.sort((a,b) => new Date(b.date) - new Date(a.date));
                 
-                // Filtre par défaut : "Aujourd'hui" pour la clôture
+                // Paramétrage par défaut pour faciliter la fin de journée
                 document.getElementById('filter-time').value = 'today';
-                // (Optionnel) Si tu veux que le statut par défaut soit "Terminée", décommente :
-                // document.getElementById('filter-status').value = 'Terminée';
+                document.getElementById('filter-status').value = 'all'; 
 
+                // Amorce obligatoire du moteur de filtre pour remplir le tableau
                 applyFilters();
-            } catch (err) {}
+                
+            } catch (err) { 
+                console.error("Erreur de chargement:", err);
+                renderTable([]); 
+            }
         }
 
         // --- GESTION MODAL CLÔTURE ---
@@ -584,7 +595,6 @@
             document.getElementById('view-start').innerText = r.startLocation || '--';
             document.getElementById('view-end').innerText = r.endLocation || '--';
             
-            // On force le statut à Terminée et Facturé pour gagner du temps à la clôture
             document.getElementById('edit-status').value = 'Terminée';
             document.getElementById('edit-facturation').value = r.statuFacturation === 'Facturé' ? 'Facturé' : 'Facturé'; 
             
@@ -623,7 +633,7 @@
             finally { btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer et Clôturer`; btn.disabled = false; lucide.createIcons(); }
         });
 
-        // --- ALGORITHME DE LISSAGE (Raccourci pour concision mais totalement fonctionnel) ---
+        // --- ALGORITHME DE LISSAGE ---
         async function getCoords(address) {
             try {
                 const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(address + ", France")}&limit=1`);
@@ -633,7 +643,6 @@
         }
 
         async function runSmartAudit() {
-            // L'audit s'applique sur les courses de la vue actuelle qui ont des heures
             const finishedRides = filteredRidesGlobal.filter(r => r.startTime && r.endTime);
             if (finishedRides.length === 0) return alert("Aucune course avec horaires n'est affichée actuellement.");
             
