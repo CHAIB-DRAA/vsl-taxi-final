@@ -91,4 +91,7 @@ app.get('/admin', (req, res) => {
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
     console.log(`🚀 Serveur démarré sur le port ${PORT}`);
+});// Affiche le portail chauffeur
+app.get('/portail', (req, res) => {
+    res.sendFile(__dirname + '/public/portail.html');
 });
