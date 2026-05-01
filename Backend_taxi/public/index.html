@@ -153,17 +153,29 @@
             btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
             statusMsg.classList.add('hidden');
 
+            // 🚀 CORRECTION FUSEAU HORAIRE ICI
+            // 1. On récupère la date et l'heure saisies par le patient
+            const dateInput = document.getElementById('date').value;
+            const timeInput = document.getElementById('time').value;
+            
+            // 2. On demande au navigateur du patient de fusionner les deux
+            // Le navigateur va nativement appliquer l'heure d'été/hiver française
+            const localDateTime = new Date(`${dateInput}T${timeInput}`);
+
             const payload = {
                 patientName: document.getElementById('patientName').value,
                 patientPhone: document.getElementById('patientPhone').value,
                 startLocation: document.getElementById('startLocation').value,
                 endLocation: document.getElementById('endLocation').value,
-                date: document.getElementById('date').value,
-                time: document.getElementById('time').value,
+                
+                // 3. On envoie au serveur la date au format Universel Absolu (ISOString)
+                // Ex: S'il tape 09:00, ça envoie 07:00Z. Mongoose la sauvegardera parfaitement !
+                date: localDateTime.toISOString(), 
+                time: timeInput, // On le garde au cas où ton backend l'utilise pour autre chose
+                
                 type: document.getElementById('type').value,
                 notes: document.getElementById('notes').value,
                 source: "Web VSL Form",
-                // 🚀 NOUVEAU : On envoie l'ID du chauffeur ciblé pour que lui seul reçoive la course
                 chauffeurId: document.getElementById('chauffeurId').value
             };
 
