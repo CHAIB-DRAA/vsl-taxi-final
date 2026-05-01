@@ -10,6 +10,7 @@
     <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
     <script src="https://unpkg.com/dayjs@1.11.10/locale/fr.js"></script>
     <script src="https://unpkg.com/dayjs@1.11.10/plugin/isSameOrAfter.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/plugin/isSameOrBefore.js"></script>
     <script src="https://unpkg.com/dayjs@1.11.10/plugin/isoWeek.js"></script>
     
     <!-- Bibliothèque de Graphiques (Chart.js) -->
@@ -125,18 +126,30 @@
                             <i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i>
                             <input type="text" id="filter-search" placeholder="Recherche globale..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-10 outline-none focus:border-yellow-500 transition-colors text-sm font-medium">
                         </div>
+                        
+                        <!-- SELECTEUR DE DATES PRINCIPAL -->
                         <select id="filter-time" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
                             <option value="today">Aujourd'hui</option>
                             <option value="week">Cette semaine</option>
                             <option value="month">Ce mois-ci</option>
                             <option value="all">Toutes les dates</option>
+                            <option value="custom">Période précise...</option>
                         </select>
+
+                        <!-- SÉLECTEUR DE DATES PERSONNALISÉES (Caché par défaut) -->
+                        <div id="custom-date-container" class="hidden items-center gap-2">
+                            <input type="date" id="filter-start" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
+                            <span class="text-slate-400 font-bold text-sm">➔</span>
+                            <input type="date" id="filter-end" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
+                        </div>
+
                         <select id="filter-status" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
                             <option value="all">Tous statuts</option>
                             <option value="En attente">En attente (Web)</option>
                             <option value="À venir">À venir</option>
                             <option value="Terminée">Terminée</option>
                         </select>
+                        
                         <select id="filter-factu" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
                             <option value="all">Toute la facturation</option>
                             <option value="Non facturé">À facturer</option>
@@ -238,7 +251,7 @@
                         <div><p class="text-xs text-slate-500 mb-1">Patient</p><p class="font-bold text-slate-800 text-lg" id="view-patient"></p></div>
                         <div class="pt-2"><p class="text-xs text-slate-500 mb-1">Trajet</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200 flex flex-col gap-1"><span id="view-start"></span> <i data-lucide="arrow-down" class="w-3 h-3 text-slate-300"></i> <span id="view-end" class="text-blue-600"></span></p></div>
                     </div>
-                    <!-- PARTIE FACTURATION (À VALIDER ABSOLUMENT) -->
+                    <!-- PARTIE FACTURATION -->
                     <div class="space-y-6">
                         <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
                             <h3 class="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2 border-b border-yellow-200 pb-2">Saisie Administrative Obligatoire</h3>
@@ -268,7 +281,6 @@
                             </div>
                             <div class="space-y-1">
                                 <label class="text-sm font-bold text-slate-700">Facturation</label>
-                                <!-- Par défaut, on encourage à passer en Facturé lors de la sauvegarde -->
                                 <select id="edit-facturation" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-emerald-500 bg-white shadow-sm font-semibold">
                                     <option value="Non facturé">Non facturé</option><option value="Facturé">Facturé (Terminé)</option>
                                 </select>
@@ -315,6 +327,7 @@
     <script>
         dayjs.locale('fr');
         dayjs.extend(window.dayjs_plugin_isSameOrAfter);
+        dayjs.extend(window.dayjs_plugin_isSameOrBefore);
         dayjs.extend(window.dayjs_plugin_isoWeek);
         lucide.createIcons();
 
@@ -339,26 +352,40 @@
             if(tab === 'compta') renderChart(); 
         }
 
+        // --- GESTION DU CHAMP PÉRIODE PRÉCISE ---
+        document.getElementById('filter-time').addEventListener('change', (e) => {
+            const customContainer = document.getElementById('custom-date-container');
+            if (e.target.value === 'custom') {
+                customContainer.classList.remove('hidden');
+                customContainer.classList.add('flex');
+            } else {
+                customContainer.classList.add('hidden');
+                customContainer.classList.remove('flex');
+            }
+            applyFilters();
+        });
+
         // --- FILTRES ET ALERTES DE CLÔTURE ---
         document.getElementById('filter-search').addEventListener('input', applyFilters);
         document.getElementById('filter-status').addEventListener('change', applyFilters);
         document.getElementById('filter-factu').addEventListener('change', applyFilters);
-        document.getElementById('filter-time').addEventListener('change', applyFilters);
+        document.getElementById('filter-start').addEventListener('change', applyFilters);
+        document.getElementById('filter-end').addEventListener('change', applyFilters);
 
-        // Bouton d'action rapide "Traiter maintenant"
         function filterOnlyPending() {
             document.getElementById('filter-factu').value = 'Non facturé';
             applyFilters();
         }
 
         function applyFilters() {
-            // Sécurité : si les données ne sont pas encore chargées, on ne fait rien
             if (!allMyRides || !Array.isArray(allMyRides)) return;
 
             const searchTerm = document.getElementById('filter-search').value.toLowerCase();
             const statusTerm = document.getElementById('filter-status').value;
             const factuTerm = document.getElementById('filter-factu').value;
             const timeTerm = document.getElementById('filter-time').value;
+            const startVal = document.getElementById('filter-start').value;
+            const endVal = document.getElementById('filter-end').value;
             const today = dayjs();
 
             filteredRidesGlobal = allMyRides.filter(ride => {
@@ -368,9 +395,14 @@
                 
                 let matchTime = true;
                 if(ride.date && timeTerm !== 'all') {
-                    if(timeTerm === 'today') matchTime = dayjs(ride.date).isSame(today, 'day');
-                    if(timeTerm === 'week') matchTime = dayjs(ride.date).isSame(today, 'isoWeek');
-                    if(timeTerm === 'month') matchTime = dayjs(ride.date).isSame(today, 'month');
+                    const rDate = dayjs(ride.date);
+                    if(timeTerm === 'today') matchTime = rDate.isSame(today, 'day');
+                    if(timeTerm === 'week') matchTime = rDate.isSame(today, 'isoWeek');
+                    if(timeTerm === 'month') matchTime = rDate.isSame(today, 'month');
+                    if(timeTerm === 'custom') {
+                        if(startVal) matchTime = matchTime && rDate.isSameOrAfter(dayjs(startVal), 'day');
+                        if(endVal) matchTime = matchTime && rDate.isSameOrBefore(dayjs(endVal), 'day');
+                    }
                 }
                 return matchSearch && matchStatus && matchFactu && matchTime;
             });
@@ -385,13 +417,10 @@
             }
         }
 
-        // Met à jour le bloc d'alerte en haut du tableau
         function updateBillingAlerts() {
             let pendingCount = 0;
             filteredRidesGlobal.forEach(r => {
-                if(r.statuFacturation !== 'Facturé' || !r.realDistance || r.realDistance == 0) {
-                    pendingCount++;
-                }
+                if(r.statuFacturation !== 'Facturé' || !r.realDistance || r.realDistance == 0) pendingCount++;
             });
 
             const alertWidget = document.getElementById('billing-alert-widget');
@@ -557,29 +586,20 @@
             } catch (err) { alert("Erreur serveur"); }
         });
 
-        // 🚀 FONCTION CORRIGÉE POUR GÉRER LE CACHE (CODE 304) ET AMORCER LE FILTRE 
         async function loadData() {
             const token = localStorage.getItem('driverToken');
             try {
                 const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
-                
                 if (res.status === 401 || res.status === 403) { logout(); return; }
                 
                 const rawData = await res.json(); 
-                
-                // Vérification de sécurité pour s'assurer qu'on manipule bien un tableau
                 allMyRides = Array.isArray(rawData) ? rawData : [];
-                
-                // Tri de la plus récente à la plus ancienne
                 allMyRides.sort((a,b) => new Date(b.date) - new Date(a.date));
                 
-                // Paramétrage par défaut pour faciliter la fin de journée
                 document.getElementById('filter-time').value = 'today';
                 document.getElementById('filter-status').value = 'all'; 
 
-                // Amorce obligatoire du moteur de filtre pour remplir le tableau
                 applyFilters();
-                
             } catch (err) { 
                 console.error("Erreur de chargement:", err);
                 renderTable([]); 
