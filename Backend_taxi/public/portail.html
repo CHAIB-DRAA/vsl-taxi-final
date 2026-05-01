@@ -586,7 +586,8 @@
             } catch (err) { alert("Erreur serveur"); }
         });
 
-        async function loadData() {
+        // 🚀 FONCTION MODIFIÉE : Accepte le paramètre isInit pour préserver les filtres
+        async function loadData(isInit = false) {
             const token = localStorage.getItem('driverToken');
             try {
                 const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
@@ -596,8 +597,11 @@
                 allMyRides = Array.isArray(rawData) ? rawData : [];
                 allMyRides.sort((a,b) => new Date(b.date) - new Date(a.date));
                 
-                document.getElementById('filter-time').value = 'today';
-                document.getElementById('filter-status').value = 'all'; 
+                // On n'écrase les filtres QUE lors du tout premier chargement
+                if (isInit) {
+                    document.getElementById('filter-time').value = 'today';
+                    document.getElementById('filter-status').value = 'all'; 
+                }
 
                 applyFilters();
             } catch (err) { 
@@ -615,7 +619,7 @@
             document.getElementById('view-start').innerText = r.startLocation || '--';
             document.getElementById('view-end').innerText = r.endLocation || '--';
             
-            document.getElementById('edit-status').value = 'Terminée';
+            document.getElementById('edit-status').value = r.status || 'Terminée'; // Par défaut sur terminée si vide
             document.getElementById('edit-facturation').value = r.statuFacturation === 'Facturé' ? 'Facturé' : 'Facturé'; 
             
             document.getElementById('edit-km').value = r.realDistance || '';
@@ -648,7 +652,9 @@
 
             try {
                 await fetch(`${RIDES_API_URL}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` }, body: JSON.stringify(p) });
-                closeModal(); loadData();
+                closeModal(); 
+                // 🚀 NOUVEAU : On passe "false" pour recharger les données SANS écraser les filtres
+                loadData(false);
             } catch (err) { alert("Erreur réseau"); } 
             finally { btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer et Clôturer`; btn.disabled = false; lucide.createIcons(); }
         });
@@ -730,17 +736,21 @@
                         await fetch(`${RIDES_API_URL}/${prop._id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` }, body: JSON.stringify({ startTime: prop.proposedStartTime, endTime: prop.proposedEndTime }) });
                     }
                 }
-                closeAuditModal(); loadData();
+                closeAuditModal(); 
+                // 🚀 Préserve les filtres après l'audit
+                loadData(false);
             } catch (e) { alert("Erreur de sauvegarde."); } finally { btn.innerHTML = `Appliquer`; btn.disabled = false; }
         }
 
         function closeAuditModal() { document.getElementById('audit-modal').classList.add('hidden'); }
         function logout() { localStorage.removeItem('driverToken'); window.location.reload(); }
 
+        // Initialisation de la page
         if (localStorage.getItem('driverToken')) {
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('dashboard-screen').classList.remove('hidden');
-            loadData();
+            // 🚀 Premier chargement = On force les filtres par défaut
+            loadData(true);
         }
     </script>
 </body>
