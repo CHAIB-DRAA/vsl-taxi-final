@@ -5,6 +5,10 @@
     <title>Portail Chauffeur | Taxi 31</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Importation de Day.js pour manipuler les dates comme sur React Native -->
+    <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
+    <script src="https://unpkg.com/dayjs@1.11.10/locale/fr.js"></script>
+    
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
@@ -45,7 +49,6 @@
                 <div class="bg-yellow-500 p-2 rounded-lg text-slate-900"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
                 <span class="text-xl font-extrabold tracking-tight">Taxi<span class="text-yellow-500">31</span></span>
             </div>
-            
             <nav class="flex-1 p-4 space-y-2">
                 <button onclick="switchTab('planning')" id="nav-planning" class="w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all">
                     <i data-lucide="calendar" class="w-5 h-5"></i> Mon Planning
@@ -54,7 +57,6 @@
                     <i data-lucide="calculator" class="w-5 h-5"></i> Comptabilité
                 </button>
             </nav>
-
             <div class="p-4 border-t border-slate-800">
                 <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors font-semibold">
                     <i data-lucide="log-out" class="w-5 h-5"></i> Déconnexion
@@ -64,18 +66,22 @@
 
         <!-- MAIN CONTENT -->
         <main class="flex-1 flex flex-col h-full overflow-y-auto bg-slate-50">
-            
             <!-- ONGLET 1 : PLANNING & COURSES -->
             <div id="view-planning" class="flex flex-col h-full">
                 <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
                     <h1 class="text-2xl font-bold">Gestion des Courses</h1>
-                    <div class="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
-                        <span id="ride-count">0</span> course(s) affichée(s)
+                    <div class="flex items-center gap-4">
+                        <div class="bg-blue-50 text-blue-700 border border-blue-100 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
+                            <span id="ride-count">0</span> course(s) affichée(s)
+                        </div>
+                        <!-- BOUTON LISSAGE -->
+                        <button onclick="runSmartAudit()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors shadow-sm">
+                            <i data-lucide="wand-2" class="w-4 h-4 text-yellow-500"></i> Lissage CPAM
+                        </button>
                     </div>
                 </header>
 
                 <div class="p-8 flex-1 flex flex-col">
-                    
                     <!-- BARRE DE FILTRES -->
                     <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center">
                         <div class="flex-1 min-w-[200px] relative">
@@ -84,7 +90,7 @@
                         </div>
                         <select id="filter-status" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700 min-w-[150px]">
                             <option value="all">Tous les statuts</option>
-                            <option value="En attente">En attente (Web)</option>
+                            <option value="En attente">En attente</option>
                             <option value="À venir">À venir</option>
                             <option value="Terminée">Terminée</option>
                         </select>
@@ -102,7 +108,6 @@
                                 <thead class="sticky top-0 bg-slate-50 z-10 shadow-sm">
                                     <tr class="text-xs uppercase text-slate-500 border-b border-slate-200">
                                         <th class="px-6 py-4">Heure Prévue</th>
-                                        <!-- NOUVELLE COLONNE HORAIRES RÉELS -->
                                         <th class="px-6 py-4 text-blue-600 bg-blue-50/50">Horaires Réels</th> 
                                         <th class="px-6 py-4">Patient</th>
                                         <th class="px-6 py-4">Trajet</th>
@@ -125,34 +130,32 @@
                 <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
                     <h1 class="text-2xl font-bold">Tableau de bord Comptable</h1>
                 </header>
-
                 <div class="p-8">
-                    <!-- KPI CARDS -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
                             <div>
-                                <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Km Totaux (Réels)</p>
+                                <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Km Totaux</p>
                                 <p class="text-3xl font-black text-slate-800" id="stat-km">0 <span class="text-lg text-slate-400">km</span></p>
                             </div>
                             <div class="bg-blue-50 p-4 rounded-xl text-blue-500"><i data-lucide="map" class="w-8 h-8"></i></div>
                         </div>
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
                             <div>
-                                <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Frais Annexes (Péages)</p>
+                                <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Péages</p>
                                 <p class="text-3xl font-black text-slate-800" id="stat-peage">0 <span class="text-lg text-slate-400">€</span></p>
                             </div>
                             <div class="bg-yellow-50 p-4 rounded-xl text-yellow-600"><i data-lucide="coins" class="w-8 h-8"></i></div>
                         </div>
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-emerald-500">
                             <div>
-                                <p class="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-1">Courses Facturées</p>
+                                <p class="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-1">Facturées</p>
                                 <p class="text-3xl font-black text-slate-800" id="stat-facturees">0</p>
                             </div>
                             <div class="bg-emerald-50 p-4 rounded-xl text-emerald-500"><i data-lucide="check-circle" class="w-8 h-8"></i></div>
                         </div>
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-red-500">
                             <div>
-                                <p class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">En attente facturation</p>
+                                <p class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">À facturer</p>
                                 <p class="text-3xl font-black text-slate-800" id="stat-non-facturees">0</p>
                             </div>
                             <div class="bg-red-50 p-4 rounded-xl text-red-500"><i data-lucide="alert-circle" class="w-8 h-8"></i></div>
@@ -163,8 +166,8 @@
         </main>
     </div>
 
-    <!-- 🚀 MODAL COMPLET (Détails + Édition) -->
-    <div id="edit-modal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
+    <!-- MODAL D'ÉDITION CLASSIQUE -->
+    <div id="edit-modal" class="hidden absolute inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
                 <div class="flex items-center gap-3">
@@ -177,30 +180,24 @@
             <form id="editForm" class="p-6 overflow-y-auto">
                 <input type="hidden" id="edit-ride-id">
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- COLONNE LECTURE -->
+                    <!-- LECTURE -->
                     <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Informations Patient</h3>
-                        <div><p class="text-xs text-slate-500 mb-1">Nom complet</p><p class="font-bold text-slate-800 text-lg" id="view-patient"></p></div>
-                        <div><p class="text-xs text-slate-500 mb-1">Téléphone</p><p class="font-semibold text-slate-700 flex items-center gap-2"><i data-lucide="phone" class="w-4 h-4 text-blue-500"></i> <span id="view-phone"></span></p></div>
-                        <div class="pt-2"><p class="text-xs text-slate-500 mb-1">Prise en charge</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200" id="view-start"></p></div>
-                        <div><p class="text-xs text-slate-500 mb-1">Destination</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-red-500"></i> <span id="view-end"></span></p></div>
-                        <div class="grid grid-cols-2 gap-4">
-                            <div><p class="text-xs text-slate-500 mb-1">Type</p><p class="font-semibold text-slate-700" id="view-type"></p></div>
-                            <div><p class="text-xs text-slate-500 mb-1">Heure du RDV</p><p class="font-bold text-blue-600" id="view-rdv"></p></div>
-                        </div>
-                        <div><p class="text-xs text-slate-500 mb-1">Notes spécifiques</p><p class="text-sm text-slate-600 bg-yellow-50 p-3 rounded-xl border border-yellow-100 italic" id="view-notes"></p></div>
+                        <div><p class="text-xs text-slate-500 mb-1">Nom</p><p class="font-bold text-slate-800 text-lg" id="view-patient"></p></div>
+                        <div class="pt-2"><p class="text-xs text-slate-500 mb-1">Départ</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200" id="view-start"></p></div>
+                        <div><p class="text-xs text-slate-500 mb-1">Arrivée</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200 flex items-center gap-2"><i data-lucide="map-pin" class="w-4 h-4 text-red-500"></i> <span id="view-end"></span></p></div>
                     </div>
-
-                    <!-- COLONNE ÉDITION -->
+                    <!-- ÉDITION -->
                     <div class="space-y-6">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Suivi & Facturation</h3>
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Début (Réelle)</label><input type="time" id="edit-start-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Fin (Réelle)</label><input type="time" id="edit-end-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
+                            <!-- ATTENTION: Type datetime-local pour que ça corresponde au format ISO du serveur -->
+                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Début (Date & Heure)</label><input type="datetime-local" id="edit-start-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
+                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Fin (Date & Heure)</label><input type="datetime-local" id="edit-end-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1">
-                                <label class="text-sm font-bold text-slate-700">Statut course</label>
+                                <label class="text-sm font-bold text-slate-700">Statut</label>
                                 <select id="edit-status" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm font-semibold">
                                     <option value="En attente">En attente</option><option value="À venir">À venir</option><option value="Terminée">Terminée</option>
                                 </select>
@@ -218,7 +215,7 @@
                                 <div class="relative"><input type="number" step="0.1" id="edit-km" class="w-full border border-slate-200 rounded-xl p-3 pr-10 outline-none focus:border-yellow-500 shadow-sm"><span class="absolute right-4 top-3.5 text-slate-400 font-bold">km</span></div>
                             </div>
                             <div class="space-y-1">
-                                <label class="text-sm font-bold text-slate-700">Frais annexes (Péages)</label>
+                                <label class="text-sm font-bold text-slate-700">Péages</label>
                                 <div class="relative"><input type="number" step="0.1" id="edit-peage" class="w-full border border-slate-200 rounded-xl p-3 pr-10 outline-none focus:border-yellow-500 shadow-sm"><span class="absolute right-4 top-3.5 text-slate-400 font-bold">€</span></div>
                             </div>
                         </div>
@@ -231,13 +228,47 @@
         </div>
     </div>
 
+    <!-- 🚀 MODAL D'AUDIT LISSAGE -->
+    <div id="audit-modal" class="hidden absolute inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-lg"><i data-lucide="wand-2" class="w-6 h-6"></i></div>
+                    <h2 class="text-xl font-bold text-slate-800">Lissage Intelligent (CPAM)</h2>
+                </div>
+                <button type="button" onclick="closeAuditModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-full shadow-sm border border-slate-100"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            
+            <div class="p-6 overflow-y-auto bg-slate-50 flex-1">
+                <p class="text-slate-500 text-sm mb-6 text-center">Analyse du temps de trajet réel et correction des chevauchements pour la conformité CPAM.</p>
+                
+                <div id="audit-loading" class="hidden flex-col items-center justify-center py-12">
+                    <div class="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-yellow-600 font-bold">Calcul des trajectoires via OSRM...</p>
+                </div>
+
+                <div id="audit-results" class="space-y-4">
+                    <!-- Injecté par JS -->
+                </div>
+            </div>
+
+            <div class="p-6 bg-white border-t border-slate-100">
+                <button type="button" id="applyAuditBtn" onclick="applyAuditCorrections()" class="hidden w-full bg-yellow-500 text-slate-900 font-bold text-lg rounded-xl p-4 hover:bg-yellow-400 transition-colors flex justify-center items-center gap-3 shadow-lg">
+                    <i data-lucide="save" class="w-6 h-6"></i> Appliquer les corrections
+                </button>
+            </div>
+        </div>
+    </div>
+
     <script>
+        dayjs.locale('fr');
         lucide.createIcons();
 
         const LOGIN_API_URL = '/api/user/login'; 
         const RIDES_API_URL = '/api/rides';
 
         let allMyRides = []; 
+        let auditProposals = []; // Stocke les propositions du lissage
 
         function switchTab(tab) {
             const planningView = document.getElementById('view-planning');
@@ -246,13 +277,11 @@
             const navCompta = document.getElementById('nav-compta');
 
             if(tab === 'planning') {
-                planningView.classList.remove('hidden');
-                comptaView.classList.add('hidden');
+                planningView.classList.remove('hidden'); comptaView.classList.add('hidden');
                 navPlanning.className = "w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all";
                 navCompta.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all";
             } else {
-                planningView.classList.add('hidden');
-                comptaView.classList.remove('hidden');
+                planningView.classList.add('hidden'); comptaView.classList.remove('hidden');
                 navCompta.className = "w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all";
                 navPlanning.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all";
             }
@@ -309,13 +338,24 @@
             } catch (err) { console.error(err); }
         }
 
+        // Helper pour convertir les dates ISO en format lisible (HH:mm)
+        function formatTime(isoString) {
+            if (!isoString) return '--:--';
+            return dayjs(isoString).format('HH:mm');
+        }
+        
+        // Helper pour convertir une string ISO en format adapté aux inputs type="datetime-local" (YYYY-MM-DDTHH:mm)
+        function toDatetimeLocal(isoString) {
+            if (!isoString) return '';
+            return dayjs(isoString).format('YYYY-MM-DDTHH:mm');
+        }
+
         function renderTable(ridesToDisplay) {
             const tbody = document.getElementById('rides-table');
             document.getElementById('ride-count').innerText = ridesToDisplay.length;
 
             if (ridesToDisplay.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 font-medium bg-slate-50/50"><i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>Aucune course affichée.</td></tr>`;
-                lucide.createIcons();
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 font-medium bg-slate-50/50">Aucune course affichée.</td></tr>`;
                 return;
             }
 
@@ -323,18 +363,14 @@
             ridesToDisplay.forEach(ride => {
                 let dateStr = "--";
                 if(ride.date) {
-                    const dateObj = new Date(ride.date);
-                    dateStr = dateObj.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}) + ' • ' + dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
+                    dateStr = dayjs(ride.date).format('DD/MM/YYYY') + ' • ' + dayjs(ride.date).format('HH:mm');
                 }
                 
-                // --- LOGIQUE HORAIRES RÉELS ---
                 let realTimeStr = "--";
                 if (ride.startTime && ride.endTime) {
-                    // Si on a le début et la fin
-                    realTimeStr = `${ride.startTime} ➔ ${ride.endTime}`;
+                    realTimeStr = `${formatTime(ride.startTime)} ➔ ${formatTime(ride.endTime)}`;
                 } else if (ride.startTime) {
-                    // Si on n'a que le début
-                    realTimeStr = `${ride.startTime} ➔ --`;
+                    realTimeStr = `${formatTime(ride.startTime)} ➔ --`;
                 }
                 
                 let statusColor = 'bg-slate-100 text-slate-700';
@@ -347,21 +383,17 @@
                 htmlContent += `
                     <tr class="hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-50 last:border-0" onclick="openModal('${ride._id}')">
                         <td class="px-6 py-4 font-bold text-sm text-slate-900 whitespace-nowrap">${dateStr}</td>
-                        <!-- NOUVELLE CELLULE : HORAIRES RÉELS -->
                         <td class="px-6 py-4 font-semibold text-sm text-blue-600 bg-blue-50/20 whitespace-nowrap">${realTimeStr}</td>
                         <td class="px-6 py-4 font-bold text-sm text-slate-800">${ride.patientName || 'Inconnu'}</td>
                         <td class="px-6 py-4 text-sm text-slate-600 truncate max-w-[250px]">${ride.startLocation} ➔ ${ride.endLocation}</td>
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-bold rounded-full ${statusColor}">${ride.status || 'À venir'}</span></td>
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-bold rounded-full ${factuColor}">${ride.statuFacturation || 'Non facturé'}</span></td>
                         <td class="px-6 py-4 text-right">
-                            <button type="button" class="bg-white border border-slate-200 group-hover:border-yellow-500 group-hover:bg-yellow-50 text-slate-400 group-hover:text-yellow-600 p-2 rounded-lg transition-all shadow-sm">
-                                <i data-lucide="arrow-right" class="w-4 h-4"></i>
-                            </button>
+                            <button type="button" class="bg-white border border-slate-200 group-hover:border-yellow-500 group-hover:bg-yellow-50 text-slate-400 group-hover:text-yellow-600 p-2 rounded-lg transition-all shadow-sm"><i data-lucide="arrow-right" class="w-4 h-4"></i></button>
                         </td>
                     </tr>
                 `;
             });
-            
             tbody.innerHTML = htmlContent;
             lucide.createIcons(); 
         }
@@ -384,26 +416,18 @@
             if (!ride) return;
 
             document.getElementById('view-patient').innerText = ride.patientName || 'Non renseigné';
-            document.getElementById('view-phone').innerText = ride.patientPhone || 'Pas de numéro';
             document.getElementById('view-start').innerText = ride.startLocation || 'Inconnue';
             document.getElementById('view-end').innerText = ride.endLocation || 'Inconnue';
-            document.getElementById('view-type').innerText = ride.type || 'Standard';
-            document.getElementById('view-notes').innerText = ride.notes || 'Aucun besoin spécifique.';
             
-            if(ride.date) {
-                const dateObj = new Date(ride.date);
-                document.getElementById('view-rdv').innerText = dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
-            } else { document.getElementById('view-rdv').innerText = "--:--"; }
-
             document.getElementById('edit-ride-id').value = ride._id;
             document.getElementById('edit-status').value = ride.status || 'À venir';
             document.getElementById('edit-facturation').value = ride.statuFacturation || 'Non facturé';
             document.getElementById('edit-km').value = ride.realDistance || '';
             document.getElementById('edit-peage').value = ride.tolls || '';
             
-            // On charge les heures dans le formulaire
-            document.getElementById('edit-start-time').value = ride.startTime || '';
-            document.getElementById('edit-end-time').value = ride.endTime || '';
+            // Insertion des dates au format datetime-local
+            document.getElementById('edit-start-time').value = toDatetimeLocal(ride.startTime);
+            document.getElementById('edit-end-time').value = toDatetimeLocal(ride.endTime);
 
             document.getElementById('edit-modal').classList.remove('hidden');
         }
@@ -417,29 +441,28 @@
             btn.disabled = true;
 
             const id = document.getElementById('edit-ride-id').value;
+            const startVal = document.getElementById('edit-start-time').value;
+            const endVal = document.getElementById('edit-end-time').value;
+
             const payload = {
                 status: document.getElementById('edit-status').value,
                 statuFacturation: document.getElementById('edit-facturation').value,
                 realDistance: parseFloat(document.getElementById('edit-km').value) || 0,
                 tolls: parseFloat(document.getElementById('edit-peage').value) || 0,
-                // On récupère les heures depuis le formulaire
-                startTime: document.getElementById('edit-start-time').value,
-                endTime: document.getElementById('edit-end-time').value
+                // On reconvertit en ISO string complet pour la base de données
+                startTime: startVal ? dayjs(startVal).toISOString() : null,
+                endTime: endVal ? dayjs(endVal).toISOString() : null
             };
 
             const token = localStorage.getItem('driverToken');
-
             try {
                 const response = await fetch(`${RIDES_API_URL}/${id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                     body: JSON.stringify(payload)
                 });
-
-                if (response.ok) {
-                    closeModal();
-                    loadData(); 
-                } else { alert("Erreur lors de la sauvegarde."); }
+                if (response.ok) { closeModal(); loadData(); } 
+                else { alert("Erreur lors de la sauvegarde."); }
             } catch (err) { alert("Problème réseau."); } 
             finally {
                 btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer`;
@@ -447,6 +470,181 @@
                 lucide.createIcons();
             }
         });
+
+        // ==========================================
+        // 🚀 ALGORITHME DE LISSAGE (Traduit depuis React Native)
+        // ==========================================
+        async function getCoords(address) {
+            try {
+                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(address + ", France")}&limit=1`);
+                const data = await res.json();
+                if (data?.features?.length > 0) return { lon: data.features[0].geometry.coordinates[0], lat: data.features[0].geometry.coordinates[1] };
+            } catch(e) {}
+            return null;
+        }
+
+        async function runSmartAudit() {
+            // Ne garder que les courses terminées pour l'audit
+            const finishedRides = allMyRides.filter(r => r.status === 'Terminée' && r.startTime && r.endTime);
+            if (finishedRides.length === 0) return alert("Aucune course terminée avec des horaires à analyser.");
+            
+            document.getElementById('audit-modal').classList.remove('hidden');
+            document.getElementById('audit-loading').classList.remove('hidden');
+            document.getElementById('audit-results').classList.add('hidden');
+            document.getElementById('applyAuditBtn').classList.add('hidden');
+            document.getElementById('audit-results').innerHTML = '';
+            
+            try {
+                let proposals = [];
+                // Tri chronologique
+                let sortedRides = [...finishedRides].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
+
+                for (let i = 0; i < sortedRides.length; i++) {
+                    let ride = sortedRides[i];
+                    
+                    let origDuration = dayjs(ride.endTime).diff(dayjs(ride.startTime), 'minute');
+                    if (origDuration <= 0 || isNaN(origDuration)) origDuration = 15; 
+
+                    let proposedStartTime = dayjs(ride.startTime);
+                    let proposedEndTime = dayjs(ride.endTime);
+                    let isOverlap = false;
+                    let approachMinutes = 0;
+
+                    if (i > 0) {
+                        const prevRide = proposals[i - 1];
+                        const prevEndTime = dayjs(prevRide.proposedEndTime);
+                        
+                        const prevEndLoc = (prevRide.endLocation || "").trim().toLowerCase();
+                        const currStartLoc = (ride.startLocation || "").trim().toLowerCase();
+
+                        if (prevEndLoc === currStartLoc || currStartLoc.includes(prevEndLoc) || prevEndLoc.includes(currStartLoc)) {
+                            approachMinutes = 0;
+                        } else {
+                            approachMinutes = 15; 
+                            const startC = await getCoords(prevRide.endLocation);
+                            const endC = await getCoords(ride.startLocation);
+
+                            if (startC && endC) {
+                                try {
+                                    const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${startC.lon},${startC.lat};${endC.lon},${endC.lat}?overview=false`;
+                                    const routeRes = await fetch(osrmUrl);
+                                    const routeData = await routeRes.json();
+                                    if (routeData.code === "Ok" && routeData.routes.length > 0) {
+                                        let calcMins = Math.ceil(routeData.routes[0].duration / 60);
+                                        if (calcMins > 0 && calcMins <= 45) approachMinutes = calcMins;
+                                    }
+                                } catch(e) {}
+                            }
+                        }
+
+                        const earliestPossibleStart = prevEndTime.add(approachMinutes, 'minute');
+
+                        // Détection chevauchement
+                        if (proposedStartTime.isBefore(earliestPossibleStart)) {
+                            isOverlap = true;
+                            proposedStartTime = earliestPossibleStart;
+                            proposedEndTime = proposedStartTime.add(origDuration, 'minute');
+                        }
+                    }
+
+                    proposals.push({
+                        ...ride,
+                        proposedStartTime: proposedStartTime.toISOString(),
+                        proposedEndTime: proposedEndTime.toISOString(),
+                        hasConflict: isOverlap,
+                        theoreticalMinutes: origDuration
+                    });
+                }
+                
+                auditProposals = proposals;
+                displayAuditResults();
+
+            } catch (e) {
+                console.error(e);
+                alert("L'audit intelligent a échoué.");
+                closeAuditModal();
+            }
+        }
+
+        function displayAuditResults() {
+            document.getElementById('audit-loading').classList.add('hidden');
+            const resultsContainer = document.getElementById('audit-results');
+            resultsContainer.classList.remove('hidden');
+            
+            let hasChanges = false;
+            let html = '';
+
+            auditProposals.forEach((prop, idx) => {
+                const isChanged = prop.hasConflict;
+                if(isChanged) hasChanges = true;
+
+                const borderStyle = isChanged ? 'border-yellow-500 border-2' : 'border-slate-200 border';
+                const conflictBadge = isChanged ? `<span class="bg-red-100 text-red-600 text-[10px] font-bold px-2 py-1 rounded uppercase tracking-wider">Chevauchement corrigé</span>` : '';
+
+                html += `
+                    <div class="bg-white rounded-2xl p-4 ${borderStyle} flex flex-col gap-3">
+                        <div class="flex justify-between items-start">
+                            <h3 class="font-bold text-slate-800">${idx + 1}. ${prop.patientName || 'Patient inconnu'}</h3>
+                            ${conflictBadge}
+                        </div>
+                        <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl border border-slate-100">
+                            <div>
+                                <p class="text-[10px] font-bold text-slate-400 mb-1">ACTUEL</p>
+                                <p class="text-sm font-medium ${isChanged ? 'line-through text-slate-400' : 'text-slate-700'}">
+                                    ${formatTime(prop.startTime)} ➔ ${formatTime(prop.endTime)}
+                                </p>
+                            </div>
+                            <i data-lucide="arrow-right" class="w-4 h-4 text-slate-300"></i>
+                            <div class="text-right">
+                                <p class="text-[10px] font-bold text-yellow-600 mb-1">PROPOSÉ (${prop.theoreticalMinutes} min)</p>
+                                <p class="text-sm font-bold ${isChanged ? 'text-yellow-600' : 'text-slate-700'}">
+                                    ${formatTime(prop.proposedStartTime)} ➔ ${formatTime(prop.proposedEndTime)}
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            });
+
+            resultsContainer.innerHTML = html;
+            lucide.createIcons();
+
+            if (hasChanges) {
+                document.getElementById('applyAuditBtn').classList.remove('hidden');
+            } else {
+                resultsContainer.innerHTML += `<div class="p-4 bg-emerald-50 text-emerald-700 text-center rounded-xl font-bold border border-emerald-200 mt-4">Toutes les courses sont aux normes CPAM. Aucun chevauchement détecté.</div>`;
+            }
+        }
+
+        async function applyAuditCorrections() {
+            const btn = document.getElementById('applyAuditBtn');
+            btn.innerHTML = `<div class="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>`;
+            btn.disabled = true;
+
+            const token = localStorage.getItem('driverToken');
+            try {
+                for (const prop of auditProposals) {
+                    if (prop.hasConflict) {
+                        await fetch(`${RIDES_API_URL}/${prop._id}`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                            body: JSON.stringify({ startTime: prop.proposedStartTime, endTime: prop.proposedEndTime })
+                        });
+                    }
+                }
+                closeAuditModal();
+                loadData(); // On rafraîchit tout pour voir les nouvelles dates !
+            } catch (e) {
+                alert("Erreur lors de la sauvegarde du lissage.");
+            } finally {
+                btn.innerHTML = `<i data-lucide="save" class="w-6 h-6"></i> Appliquer les corrections`;
+                btn.disabled = false;
+            }
+        }
+
+        function closeAuditModal() {
+            document.getElementById('audit-modal').classList.add('hidden');
+        }
 
         function logout() {
             localStorage.removeItem('driverToken');
