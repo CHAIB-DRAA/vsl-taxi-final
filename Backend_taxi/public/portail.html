@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        /* Pour cacher la scrollbar sur les tableaux tout en gardant le scroll */
         .no-scrollbar::-webkit-scrollbar { display: none; }
         .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
     </style>
@@ -40,7 +39,7 @@
 
     <!-- TABLEAU DE BORD PERSONNEL -->
     <div id="dashboard-screen" class="hidden flex h-full">
-        <!-- SIDEBAR NAVIGATION -->
+        <!-- SIDEBAR -->
         <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex">
             <div class="p-6 border-b border-slate-800 flex items-center gap-3">
                 <div class="bg-yellow-500 p-2 rounded-lg text-slate-900"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
@@ -99,10 +98,12 @@
                     <!-- TABLEAU DES COURSES -->
                     <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
                         <div class="overflow-x-auto h-full no-scrollbar">
-                            <table class="w-full text-left border-collapse min-w-[900px]">
+                            <table class="w-full text-left border-collapse min-w-[1000px]">
                                 <thead class="sticky top-0 bg-slate-50 z-10 shadow-sm">
                                     <tr class="text-xs uppercase text-slate-500 border-b border-slate-200">
                                         <th class="px-6 py-4">Heure Prévue</th>
+                                        <!-- NOUVELLE COLONNE HORAIRES RÉELS -->
+                                        <th class="px-6 py-4 text-blue-600 bg-blue-50/50">Horaires Réels</th> 
                                         <th class="px-6 py-4">Patient</th>
                                         <th class="px-6 py-4">Trajet</th>
                                         <th class="px-6 py-4">Statut</th>
@@ -128,7 +129,6 @@
                 <div class="p-8">
                     <!-- KPI CARDS -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
-                        
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Km Totaux (Réels)</p>
@@ -136,7 +136,6 @@
                             </div>
                             <div class="bg-blue-50 p-4 rounded-xl text-blue-500"><i data-lucide="map" class="w-8 h-8"></i></div>
                         </div>
-
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
                             <div>
                                 <p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Frais Annexes (Péages)</p>
@@ -144,7 +143,6 @@
                             </div>
                             <div class="bg-yellow-50 p-4 rounded-xl text-yellow-600"><i data-lucide="coins" class="w-8 h-8"></i></div>
                         </div>
-
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-emerald-500">
                             <div>
                                 <p class="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-1">Courses Facturées</p>
@@ -152,31 +150,20 @@
                             </div>
                             <div class="bg-emerald-50 p-4 rounded-xl text-emerald-500"><i data-lucide="check-circle" class="w-8 h-8"></i></div>
                         </div>
-
                         <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-red-500">
                             <div>
-                                <p class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">En attente de facturation</p>
+                                <p class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">En attente facturation</p>
                                 <p class="text-3xl font-black text-slate-800" id="stat-non-facturees">0</p>
                             </div>
                             <div class="bg-red-50 p-4 rounded-xl text-red-500"><i data-lucide="alert-circle" class="w-8 h-8"></i></div>
                         </div>
                     </div>
-
-                    <div class="bg-slate-900 rounded-3xl p-8 text-white relative overflow-hidden shadow-xl">
-                        <i data-lucide="calculator" class="absolute -right-4 -bottom-4 w-48 h-48 text-white opacity-5"></i>
-                        <h2 class="text-xl font-bold mb-2">Astuce Facturation</h2>
-                        <p class="text-slate-400 max-w-2xl">
-                            Les statistiques ci-dessus sont calculées en temps réel sur l'ensemble des courses affichées. 
-                            Pensez bien à utiliser le bouton "Détails" dans l'onglet Planning à la fin de chaque journée pour déclarer vos kilomètres réels et vos péages, afin de garder une comptabilité propre.
-                        </p>
-                    </div>
-
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- 🚀 MODAL COMPLET (Détails + Édition) - INCHANGÉ -->
+    <!-- 🚀 MODAL COMPLET (Détails + Édition) -->
     <div id="edit-modal" class="hidden absolute inset-0 z-50 bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
             <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
@@ -208,8 +195,8 @@
                     <div class="space-y-6">
                         <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Suivi & Facturation</h3>
                         <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Début réelle</label><input type="time" id="edit-start-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Fin réelle</label><input type="time" id="edit-end-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
+                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Début (Réelle)</label><input type="time" id="edit-start-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
+                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Heure de Fin (Réelle)</label><input type="time" id="edit-end-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
                         </div>
                         <div class="grid grid-cols-2 gap-4">
                             <div class="space-y-1">
@@ -250,9 +237,8 @@
         const LOGIN_API_URL = '/api/user/login'; 
         const RIDES_API_URL = '/api/rides';
 
-        let allMyRides = []; // Stocke TOUTES les courses du serveur
+        let allMyRides = []; 
 
-        // --- NAVIGATION ENTRE ONGLETS ---
         function switchTab(tab) {
             const planningView = document.getElementById('view-planning');
             const comptaView = document.getElementById('view-compta');
@@ -262,50 +248,38 @@
             if(tab === 'planning') {
                 planningView.classList.remove('hidden');
                 comptaView.classList.add('hidden');
-                
                 navPlanning.className = "w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all";
                 navCompta.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all";
             } else {
                 planningView.classList.add('hidden');
                 comptaView.classList.remove('hidden');
-                
                 navCompta.className = "w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all";
                 navPlanning.className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all";
             }
         }
 
-        // --- ÉCOUTEURS POUR LE FILTRAGE ---
         document.getElementById('filter-search').addEventListener('input', applyFilters);
         document.getElementById('filter-status').addEventListener('change', applyFilters);
         document.getElementById('filter-factu').addEventListener('change', applyFilters);
 
-        // --- FONCTION DE FILTRAGE ---
         function applyFilters() {
             const searchTerm = document.getElementById('filter-search').value.toLowerCase();
             const statusTerm = document.getElementById('filter-status').value;
             const factuTerm = document.getElementById('filter-factu').value;
 
             const filteredRides = allMyRides.filter(ride => {
-                // Filtre par recherche texte (Nom du patient)
                 const matchSearch = (ride.patientName || '').toLowerCase().includes(searchTerm);
-                // Filtre par statut de course
                 const matchStatus = statusTerm === 'all' || (ride.status || 'À venir') === statusTerm;
-                // Filtre par statut facturation
                 const matchFactu = factuTerm === 'all' || (ride.statuFacturation || 'Non facturé') === factuTerm;
-
                 return matchSearch && matchStatus && matchFactu;
             });
-
             renderTable(filteredRides);
         }
 
-
-        // --- CONNEXION ---
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const email = document.getElementById('email').value;
             const password = document.getElementById('password').value;
-            
             try {
                 const res = await fetch(LOGIN_API_URL, {
                     method: 'POST',
@@ -313,7 +287,6 @@
                     body: JSON.stringify({ email, password })
                 });
                 const data = await res.json();
-                
                 if (res.ok && data.token) {
                     localStorage.setItem('driverToken', data.token);
                     document.getElementById('login-screen').classList.add('hidden');
@@ -325,31 +298,23 @@
             } catch (err) { alert("Erreur de connexion"); }
         });
 
-        // --- CHARGEMENT PRINCIPAL DES DONNÉES ---
         async function loadData() {
             const token = localStorage.getItem('driverToken');
             try {
                 const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (res.status === 401 || res.status === 403) { logout(); return; }
-
                 allMyRides = await res.json(); 
-                
-                // 1. On affiche le tableau (sans filtre au départ)
                 applyFilters();
-
-                // 2. On calcule la comptabilité
                 calculateCompta(allMyRides);
-
             } catch (err) { console.error(err); }
         }
 
-        // --- GÉNÉRATION DU TABLEAU ---
         function renderTable(ridesToDisplay) {
             const tbody = document.getElementById('rides-table');
             document.getElementById('ride-count').innerText = ridesToDisplay.length;
 
             if (ridesToDisplay.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400 font-medium bg-slate-50/50"><i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>Aucune course ne correspond à ces critères.</td></tr>`;
+                tbody.innerHTML = `<tr><td colspan="7" class="px-6 py-12 text-center text-slate-400 font-medium bg-slate-50/50"><i data-lucide="inbox" class="w-8 h-8 mx-auto mb-2 opacity-50"></i>Aucune course affichée.</td></tr>`;
                 lucide.createIcons();
                 return;
             }
@@ -362,6 +327,16 @@
                     dateStr = dateObj.toLocaleDateString('fr-FR', {day:'2-digit', month:'2-digit'}) + ' • ' + dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
                 }
                 
+                // --- LOGIQUE HORAIRES RÉELS ---
+                let realTimeStr = "--";
+                if (ride.startTime && ride.endTime) {
+                    // Si on a le début et la fin
+                    realTimeStr = `${ride.startTime} ➔ ${ride.endTime}`;
+                } else if (ride.startTime) {
+                    // Si on n'a que le début
+                    realTimeStr = `${ride.startTime} ➔ --`;
+                }
+                
                 let statusColor = 'bg-slate-100 text-slate-700';
                 if (ride.status === 'En attente') statusColor = 'bg-yellow-100 text-yellow-700';
                 if (ride.status === 'Terminée') statusColor = 'bg-green-100 text-green-700';
@@ -372,6 +347,8 @@
                 htmlContent += `
                     <tr class="hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-50 last:border-0" onclick="openModal('${ride._id}')">
                         <td class="px-6 py-4 font-bold text-sm text-slate-900 whitespace-nowrap">${dateStr}</td>
+                        <!-- NOUVELLE CELLULE : HORAIRES RÉELS -->
+                        <td class="px-6 py-4 font-semibold text-sm text-blue-600 bg-blue-50/20 whitespace-nowrap">${realTimeStr}</td>
                         <td class="px-6 py-4 font-bold text-sm text-slate-800">${ride.patientName || 'Inconnu'}</td>
                         <td class="px-6 py-4 text-sm text-slate-600 truncate max-w-[250px]">${ride.startLocation} ➔ ${ride.endLocation}</td>
                         <td class="px-6 py-4 whitespace-nowrap"><span class="px-3 py-1 text-xs font-bold rounded-full ${statusColor}">${ride.status || 'À venir'}</span></td>
@@ -389,35 +366,19 @@
             lucide.createIcons(); 
         }
 
-        // --- CALCUL DE LA COMPTABILITÉ ---
         function calculateCompta(rides) {
-            let totalKm = 0;
-            let totalPeage = 0;
-            let facturées = 0;
-            let nonFacturées = 0;
-
+            let totalKm = 0; let totalPeage = 0; let facturées = 0; let nonFacturées = 0;
             rides.forEach(ride => {
-                // Additionner les KM
                 if(ride.realDistance) totalKm += parseFloat(ride.realDistance);
-                // Additionner les péages
                 if(ride.tolls) totalPeage += parseFloat(ride.tolls);
-                
-                // Compter les statuts
-                if(ride.statuFacturation === 'Facturé') {
-                    facturées++;
-                } else {
-                    nonFacturées++;
-                }
+                if(ride.statuFacturation === 'Facturé') facturées++; else nonFacturées++;
             });
-
-            // Affichage dans les cartes KPI
             document.getElementById('stat-km').innerHTML = `${totalKm.toFixed(1)} <span class="text-lg text-slate-400">km</span>`;
             document.getElementById('stat-peage').innerHTML = `${totalPeage.toFixed(2).replace('.', ',')} <span class="text-lg text-slate-400">€</span>`;
             document.getElementById('stat-facturees').innerText = facturées;
             document.getElementById('stat-non-facturees').innerText = nonFacturées;
         }
 
-        // --- GESTION DU MODAL ---
         function openModal(rideId) {
             const ride = allMyRides.find(r => r._id === rideId);
             if (!ride) return;
@@ -432,26 +393,23 @@
             if(ride.date) {
                 const dateObj = new Date(ride.date);
                 document.getElementById('view-rdv').innerText = dateObj.toLocaleTimeString('fr-FR', {hour: '2-digit', minute:'2-digit'});
-            } else {
-                document.getElementById('view-rdv').innerText = "--:--";
-            }
+            } else { document.getElementById('view-rdv').innerText = "--:--"; }
 
             document.getElementById('edit-ride-id').value = ride._id;
             document.getElementById('edit-status').value = ride.status || 'À venir';
             document.getElementById('edit-facturation').value = ride.statuFacturation || 'Non facturé';
             document.getElementById('edit-km').value = ride.realDistance || '';
             document.getElementById('edit-peage').value = ride.tolls || '';
+            
+            // On charge les heures dans le formulaire
             document.getElementById('edit-start-time').value = ride.startTime || '';
             document.getElementById('edit-end-time').value = ride.endTime || '';
 
             document.getElementById('edit-modal').classList.remove('hidden');
         }
 
-        function closeModal() {
-            document.getElementById('edit-modal').classList.add('hidden');
-        }
+        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
-        // --- SAUVEGARDE DES MODIFICATIONS ---
         document.getElementById('editForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             const btn = document.getElementById('saveBtn');
@@ -464,6 +422,7 @@
                 statuFacturation: document.getElementById('edit-facturation').value,
                 realDistance: parseFloat(document.getElementById('edit-km').value) || 0,
                 tolls: parseFloat(document.getElementById('edit-peage').value) || 0,
+                // On récupère les heures depuis le formulaire
                 startTime: document.getElementById('edit-start-time').value,
                 endTime: document.getElementById('edit-end-time').value
             };
@@ -479,13 +438,10 @@
 
                 if (response.ok) {
                     closeModal();
-                    loadData(); // Rafraîchit les données, le tableau ET la compta
-                } else {
-                    alert("Erreur lors de la sauvegarde.");
-                }
-            } catch (err) {
-                alert("Problème réseau.");
-            } finally {
+                    loadData(); 
+                } else { alert("Erreur lors de la sauvegarde."); }
+            } catch (err) { alert("Problème réseau."); } 
+            finally {
                 btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer`;
                 btn.disabled = false;
                 lucide.createIcons();
