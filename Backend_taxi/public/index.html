@@ -4,22 +4,51 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <title>Réserver un Taxi Conventionné VSL à Toulouse | Taxi 31 Toulouse</title>
-    <meta name="description" content="Réservez votre transport médical assis (VSL) à Toulouse. Taxi agréé CPAM, tiers-payant intégral (100% ALD). Chauffeur professionnel et ponctuel.">
-    <meta name="keywords" content="réserver vsl toulouse, taxi conventionné cpam, transport médical toulouse, vsl purpan, vsl oncopole">
+    <!-- SEO : Balises de base -->
+    <title>Réserver un Taxi Conventionné VSL à Toulouse | Taxi 31</title>
+    <meta name="description" content="Réservez votre transport médical assis (VSL) à Toulouse et Haute-Garonne. Taxi agréé CPAM, tiers-payant intégral (100% ALD). Chauffeur ponctuel.">
     
+    <!-- SEO : Canonical URL (Évite le duplicate content) -->
+    <link rel="canonical" href="https://www.taxi-31-toulouse.fr/">
+    
+    <!-- SEO : Open Graph pour le partage social -->
     <meta property="og:title" content="Réservation Taxi Conventionné VSL - Taxi 31 Toulouse">
     <meta property="og:description" content="Votre trajet médicalisé sans avance de frais. Agréé CPAM 31.">
     <meta property="og:type" content="website">
-    <meta property="og:url" content="https://vsl-taxi.onrender.com/">
+    <meta property="og:url" content="https://www.taxi-31-toulouse.fr/">
+    <meta property="og:locale" content="fr_FR">
 
+    <!-- PERF : Preconnect pour accélérer le chargement des polices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- SEO : Données structurées JSON-LD (Crucial pour le SEO Local Google) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TaxiService",
+      "name": "Taxi 31 Toulouse",
+      "url": "https://www.taxi-31-toulouse.fr/",
+      "description": "Service de taxi conventionné VSL agréé CPAM pour transport médical assis à Toulouse et en Haute-Garonne.",
+      "telephone": "+33772339892",
+      "areaServed": {
+        "@type": "City",
+        "name": "Toulouse"
+      },
+      "priceRange": "Prise en charge CPAM",
+      "knowsAbout": ["Transport médical", "VSL", "Taxi conventionné", "CPAM", "ALD"]
+    }
+    </script>
+
+    <!-- Tailwind CDN (À remplacer par un build CSS compilé à l'avenir pour des perfs maximales) -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- PERF : 'defer' empêche le script de bloquer le rendu de la page -->
+    <script src="https://unpkg.com/lucide@latest" defer></script>
     
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap');
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        
         .bg-dark-900 { background-color: #0f172a; }
         .bg-slate-800 { background-color: #1e293b; }
         .accent-yellow { color: #eab308; }
@@ -29,8 +58,8 @@
 </head>
 <body class="bg-dark-900 text-slate-200 min-h-screen flex items-center justify-center p-4">
 
-    <div class="w-full max-w-2xl">
-        <div class="text-center mb-8">
+    <main class="w-full max-w-2xl">
+        <header class="text-center mb-8">
             <div class="inline-flex items-center gap-2 mb-4">
                 <div class="bg-yellow-500 p-2 rounded-lg text-slate-900">
                     <i data-lucide="map-pin" class="w-6 h-6"></i>
@@ -39,9 +68,9 @@
             </div>
             <h1 class="text-3xl font-bold text-white">Réservation de Transport Médical</h1>
             <p class="text-slate-400 mt-2 italic">Agréé CPAM - Prise en charge à 100% (ALD)</p>
-        </div>
+        </header>
 
-        <div class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+        <section class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
             <div class="bg-blue-600/10 p-4 text-center border-b border-blue-500/20">
                 <p class="text-blue-400 text-sm font-semibold flex items-center justify-center gap-2">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
@@ -55,63 +84,63 @@
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nom du Patient</label>
+                        <label for="patientName" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nom du Patient</label>
                         <div class="relative">
                             <i data-lucide="user" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                            <input type="text" id="patientName" required placeholder="Nom complet" 
+                            <input type="text" id="patientName" name="patientName" required placeholder="Nom complet" 
                                 class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Téléphone</label>
+                        <label for="patientPhone" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Téléphone</label>
                         <div class="relative">
                             <i data-lucide="phone" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                            <input type="tel" id="patientPhone" required placeholder="06 00 00 00 00" 
+                            <input type="tel" id="patientPhone" name="patientPhone" required placeholder="06 00 00 00 00" 
                                 class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
+                    <label for="startLocation" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
                     <div class="relative">
                         <i data-lucide="home" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                        <input type="text" id="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
+                        <input type="text" id="startLocation" name="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
                             class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
+                    <label for="endLocation" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
                     <div class="relative">
                         <i data-lucide="hospital" class="absolute left-4 top-3.5 text-blue-500 w-5 h-5"></i>
-                        <input type="text" id="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
+                        <input type="text" id="endLocation" name="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
                             class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white">
                     </div>
                 </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Date du Trajet</label>
+                        <label for="date" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Date du Trajet</label>
                         <div class="relative">
                             <i data-lucide="calendar" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                            <input type="date" id="date" required 
+                            <input type="date" id="date" name="date" required 
                                 class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
                     <div class="space-y-2">
-                        <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Heure du RDV</label>
+                        <label for="time" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Heure du RDV</label>
                         <div class="relative">
                             <i data-lucide="clock" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
-                            <input type="time" id="time" required 
+                            <input type="time" id="time" name="time" required 
                                 class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Type de demande médicalisée</label>
-                    <select id="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none">
+                    <label for="type" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Type de demande médicalisée</label>
+                    <select id="type" name="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none">
                         <option value="Aller">Aller simple</option>
                         <option value="Retour">Retour simple</option>
                         <option value="Consultation">Aller-Retour (Consultation)</option>
@@ -121,26 +150,29 @@
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Notes ou Besoins Spécifiques</label>
-                    <textarea id="notes" rows="2" placeholder="Code porte, fauteuil roulant, étage..." 
+                    <label for="notes" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Notes ou Besoins Spécifiques</label>
+                    <textarea id="notes" name="notes" rows="2" placeholder="Code porte, fauteuil roulant, étage..." 
                         class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white"></textarea>
                 </div>
 
-                <div id="statusMessage" class="hidden p-4 rounded-2xl text-center font-bold text-sm"></div>
+                <div id="statusMessage" aria-live="polite" class="hidden p-4 rounded-2xl text-center font-bold text-sm"></div>
 
                 <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-5 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
                     CONFIRMER MA RÉSERVATION
                 </button>
 
                 <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                    Taxi conventionné Haute-Garonne - 24h/7j - 07 72 33 98 92
+                    Taxi conventionné Haute-Garonne - 24h/7j - <a href="tel:+33772339892" class="hover:text-yellow-500 transition-colors">07 72 33 98 92</a>
                 </p>
             </form>
-        </div>
-    </div>
+        </section>
+    </main>
 
     <script>
-        lucide.createIcons();
+        // Le code JS reste inchangé pour maintenir la stabilité de ta réservation
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
+        });
 
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -152,27 +184,21 @@
             btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
             statusMsg.classList.add('hidden');
 
-            // --- CORRECTION ANTI-ERREUR 500 ET DÉCALAGE HORAIRE ---
-            const dateInput = document.getElementById('date').value; // Format attendu par le serveur : YYYY-MM-DD
-            const timeInput = document.getElementById('time').value; // Format saisi par le client : HH:mm
+            const dateInput = document.getElementById('date').value;
+            const timeInput = document.getElementById('time').value;
             
-            // On récupère l'heure UTC exacte pour anticiper le décalage du serveur Render
             const localDate = new Date(`${dateInput}T${timeInput}`);
             const utcHours = String(localDate.getUTCHours()).padStart(2, '0');
             const utcMinutes = String(localDate.getUTCMinutes()).padStart(2, '0');
-            const utcTime = `${utcHours}:${utcMinutes}`; // Ex: 07:00 au lieu de 09:00
+            const utcTime = `${utcHours}:${utcMinutes}`;
 
             const payload = {
                 patientName: document.getElementById('patientName').value,
                 patientPhone: document.getElementById('patientPhone').value,
                 startLocation: document.getElementById('startLocation').value,
                 endLocation: document.getElementById('endLocation').value,
-                
-                // 1. On remet la date brute pour éviter que ton backend ne plante (Erreur 500)
                 date: dateInput, 
-                // 2. On envoie l'heure compensée pour contrer le fuseau horaire de Render
                 time: utcTime, 
-                
                 type: document.getElementById('type').value,
                 notes: document.getElementById('notes').value,
                 source: "Web VSL Form",
@@ -190,7 +216,7 @@
 
                 if (response.ok) {
                     statusMsg.innerText = "✅ Demande reçue ! Votre chauffeur vous confirmera le trajet par SMS.";
-                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block";
+                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block mt-4";
                     document.getElementById('bookingForm').reset();
                     btn.innerText = "DEMANDE ENVOYÉE";
                 } else {
@@ -198,7 +224,7 @@
                 }
             } catch (error) {
                 statusMsg.innerText = "❌ Une erreur est survenue. Merci de nous appeler au 07 72 33 98 92.";
-                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block";
+                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block mt-4";
                 btn.disabled = false;
                 btn.innerText = "RÉESSAYER";
             }
