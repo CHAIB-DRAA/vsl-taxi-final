@@ -8,22 +8,22 @@
     <title>Réserver un Taxi Conventionné VSL à Toulouse | Taxi 31</title>
     <meta name="description" content="Réservez votre transport médical assis (VSL) à Toulouse et Haute-Garonne. Taxi agréé CPAM, tiers-payant intégral (100% ALD). Chauffeur ponctuel.">
     
-    <!-- SEO : Canonical URL (Évite le duplicate content) -->
+    <!-- SEO : Canonical URL -->
     <link rel="canonical" href="https://www.taxi-31-toulouse.fr/">
     
-    <!-- SEO : Open Graph pour le partage social -->
+    <!-- SEO : Open Graph -->
     <meta property="og:title" content="Réservation Taxi Conventionné VSL - Taxi 31 Toulouse">
     <meta property="og:description" content="Votre trajet médicalisé sans avance de frais. Agréé CPAM 31.">
     <meta property="og:type" content="website">
     <meta property="og:url" content="https://www.taxi-31-toulouse.fr/">
     <meta property="og:locale" content="fr_FR">
 
-    <!-- PERF : Preconnect pour accélérer le chargement des polices -->
+    <!-- PERF : Preconnect -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-    <!-- SEO : Données structurées JSON-LD (Crucial pour le SEO Local Google) -->
+    <!-- SEO : Données structurées JSON-LD -->
     <script type="application/ld+json">
     {
       "@context": "https://schema.org",
@@ -41,24 +41,29 @@
     }
     </script>
 
-    <!-- Tailwind CDN (À remplacer par un build CSS compilé à l'avenir pour des perfs maximales) -->
+    <!-- Tailwind CDN -->
     <script src="https://cdn.tailwindcss.com"></script>
-    
-    <!-- PERF : 'defer' empêche le script de bloquer le rendu de la page -->
     <script src="https://unpkg.com/lucide@latest" defer></script>
     
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
         .bg-dark-900 { background-color: #0f172a; }
         .bg-slate-800 { background-color: #1e293b; }
-        .accent-yellow { color: #eab308; }
         .btn-taxi { background-color: #eab308; color: #0f172a; }
         .btn-taxi:hover { background-color: #facc15; }
+        
+        /* Animation pour le bouton d'appel flottant */
+        @keyframes pulse-ring {
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 10px rgba(234, 179, 8, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(234, 179, 8, 0); }
+        }
+        .animate-pulse-ring { animation: pulse-ring 2s infinite; }
     </style>
 </head>
-<body class="bg-dark-900 text-slate-200 min-h-screen flex items-center justify-center p-4">
+<body class="bg-dark-900 text-slate-200 min-h-screen flex flex-col items-center p-4 pb-24 md:pb-8 relative">
 
-    <main class="w-full max-w-2xl">
+    <main class="w-full max-w-2xl mt-8">
         <header class="text-center mb-8">
             <div class="inline-flex items-center gap-2 mb-4">
                 <div class="bg-yellow-500 p-2 rounded-lg text-slate-900">
@@ -66,11 +71,24 @@
                 </div>
                 <span class="text-2xl font-extrabold text-white tracking-tight">Taxi<span class="text-yellow-500">31</span>Toulouse</span>
             </div>
-            <h1 class="text-3xl font-bold text-white">Réservation de Transport Médical</h1>
-            <p class="text-slate-400 mt-2 italic">Agréé CPAM - Prise en charge à 100% (ALD)</p>
+            <h1 class="text-3xl font-bold text-white leading-tight">Réservation de Transport Médical</h1>
+            <p class="text-slate-400 mt-3 text-lg">Agréé CPAM - Prise en charge à 100% (ALD)</p>
         </header>
 
-        <section class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+        <!-- NOUVEAU : Bloc d'Appel à l'Action Principal -->
+        <div class="bg-slate-800 border border-slate-700 rounded-3xl p-6 mb-8 shadow-xl flex flex-col md:flex-row items-center justify-between gap-6 text-center md:text-left">
+            <div>
+                <h2 class="text-xl font-bold text-white mb-2">Besoin d'un taxi rapidement ?</h2>
+                <p class="text-slate-400 text-sm">Notre standard est ouvert 24h/24 et 7j/7 pour vos urgences médicales ou questions.</p>
+            </div>
+            <a href="tel:0772339892" class="whitespace-nowrap btn-taxi font-bold text-lg rounded-2xl px-6 py-4 shadow-lg shadow-yellow-500/20 flex items-center gap-3 transform hover:scale-105 transition-all w-full md:w-auto justify-center">
+                <i data-lucide="phone-call" class="w-5 h-5"></i>
+                07 72 33 98 92
+            </a>
+        </div>
+
+        <section class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700 relative">
+            
             <div class="bg-blue-600/10 p-4 text-center border-b border-blue-500/20">
                 <p class="text-blue-400 text-sm font-semibold flex items-center justify-center gap-2">
                     <i data-lucide="shield-check" class="w-4 h-4"></i>
@@ -81,6 +99,13 @@
             <form id="bookingForm" class="p-8 space-y-6">
                 
                 <input type="hidden" id="chauffeurId" value="TON_ID_MONGO_ICI">
+
+                <!-- Séparateur Formulaire -->
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="h-px bg-slate-700 flex-1"></div>
+                    <span class="text-slate-500 text-sm font-bold uppercase tracking-wider">Ou réservez en ligne</span>
+                    <div class="h-px bg-slate-700 flex-1"></div>
+                </div>
 
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div class="space-y-2">
@@ -160,18 +185,22 @@
                 <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-5 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
                     CONFIRMER MA RÉSERVATION
                 </button>
-
-                <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
-                    Taxi conventionné Haute-Garonne - 24h/7j - <a href="tel:+33772339892" class="hover:text-yellow-500 transition-colors">07 72 33 98 92</a>
-                </p>
             </form>
         </section>
     </main>
 
+    <!-- NOUVEAU : Bouton Flottant (surtout utile sur mobile) -->
+    <a href="tel:0772339892" class="fixed md:hidden bottom-6 right-6 btn-taxi animate-pulse-ring rounded-full p-4 shadow-2xl flex items-center justify-center z-50">
+        <i data-lucide="phone" class="w-8 h-8"></i>
+    </a>
+
     <script>
-        // Le code JS reste inchangé pour maintenir la stabilité de ta réservation
         document.addEventListener('DOMContentLoaded', () => {
             lucide.createIcons();
+            
+            // On peut pré-remplir la date du jour par défaut pour faciliter la saisie
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').min = today;
         });
 
         document.getElementById('bookingForm').addEventListener('submit', async (e) => {
