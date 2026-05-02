@@ -71,6 +71,8 @@ const aiRoutes = require('./routes/ai');
 const adminRoutes = require('./routes/adminRoutes');
 const documentsRoutes = require('./routes/documentsTaxi');
 
+
+
 app.use('/api/rides', rideRoutes);
 app.use('/api/user', userRoutes);
 app.use('/api/documents', docRoutes);
@@ -81,7 +83,7 @@ app.use('/api/dispatch', dispatchRoutes);
 app.use('/api/groups', groupRoutes);
 app.use('/api/ai', aiRoutes); 
 app.use('/api/admin', adminRoutes);
-app.use('/api/documents', documentRoutes);
+app.use('/api/documentsTaxi', documentsRoutes);
 
 
 
