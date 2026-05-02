@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <title>Portail ERP Chauffeurs | Taxi 31</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://unpkg.com/lucide@latest"></script>
     
@@ -69,7 +70,7 @@
                 <button onclick="switchTab('compta')" id="nav-compta" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all">
                     <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Statistiques
                 </button>
-                <!-- ONGLET DRIVE/DOCUMENTS -->
+                <!-- ONGLET DOCUMENTS -->
                 <div class="pt-4 mt-2 border-t border-slate-800">
                     <button onclick="switchTab('documents')" id="nav-documents" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all">
                         <i data-lucide="folder-open" class="w-5 h-5"></i> Espace Partagé
@@ -102,12 +103,10 @@
 
                 <div class="p-8 flex-1 flex flex-col">
                     
-                    <!-- WIDGET : ALERTE DE CLÔTURE -->
+                    <!-- WIDGETS D'ALERTE -->
                     <div id="billing-alert-widget" class="hidden mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-sm flex justify-between items-center">
                         <div class="flex items-center gap-4">
-                            <div class="bg-yellow-100 p-3 rounded-full text-yellow-600">
-                                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-                            </div>
+                            <div class="bg-yellow-100 p-3 rounded-full text-yellow-600"><i data-lucide="alert-triangle" class="w-6 h-6"></i></div>
                             <div>
                                 <h2 class="text-lg font-bold text-slate-800">Clôture en attente</h2>
                                 <p class="text-slate-600 text-sm">Il vous reste <span id="pending-count" class="font-bold text-yellow-700">0</span> course(s) à vérifier et facturer pour la période sélectionnée.</p>
@@ -130,7 +129,6 @@
                             <input type="text" id="filter-search" placeholder="Recherche patient ou adresse..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-10 outline-none focus:border-yellow-500 transition-colors text-sm font-medium">
                         </div>
                         
-                        <!-- SELECTEUR DE DATES -->
                         <select id="filter-time" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
                             <option value="today">Aujourd'hui</option>
                             <option value="week">Cette semaine</option>
@@ -139,7 +137,6 @@
                             <option value="custom">Période précise...</option>
                         </select>
 
-                        <!-- SÉLECTEUR DE DATES PERSONNALISÉES (Caché par défaut) -->
                         <div id="custom-date-container" class="hidden items-center gap-2">
                             <input type="date" id="filter-start" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 text-sm font-semibold text-slate-700">
                             <span class="text-slate-400 font-bold text-sm">➔</span>
@@ -245,17 +242,9 @@
                 </header>
 
                 <div class="p-8 flex-1 flex flex-col overflow-y-auto">
-                    <!-- Barre de filtres Documents -->
-                    <div class="flex flex-wrap gap-4 mb-8">
-                        <button class="px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-bold shadow-sm">Tous</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Prescriptions (PMT)</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Factures</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Administratif</button>
-                    </div>
-
                     <!-- Grille des Documents -->
                     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="documents-grid">
-                        <!-- Les documents injectés via JS iront ici -->
+                        <!-- Documents injectés via JS -->
                     </div>
                 </div>
             </div>
@@ -286,7 +275,7 @@
                     <!-- PARTIE FACTURATION -->
                     <div class="space-y-6">
                         <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                            <h3 class="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2 border-b border-yellow-200 pb-2">Saisie Administrative Obligatoire</h3>
+                            <h3 class="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2 border-b border-yellow-200 pb-2">Saisie Administrative</h3>
                             <div class="grid grid-cols-2 gap-4 mt-4">
                                 <div class="space-y-1">
                                     <label class="text-sm font-bold text-slate-700">Kilométrage (Requis)</label>
@@ -328,34 +317,6 @@
         </div>
     </div>
 
-    <!-- MODAL AUDIT -->
-    <div id="audit-modal" class="hidden absolute inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
-                <div class="flex items-center gap-3">
-                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-lg"><i data-lucide="wand-2" class="w-6 h-6"></i></div>
-                    <h2 class="text-xl font-bold text-slate-800">Lissage Intelligent (CPAM)</h2>
-                </div>
-                <button type="button" onclick="closeAuditModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-full shadow-sm border border-slate-100"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <div class="p-6 overflow-y-auto bg-slate-50 flex-1">
-                <p class="text-slate-500 text-sm mb-6 text-center">Analyse du temps de trajet réel et correction des chevauchements pour la conformité CPAM.</p>
-                <div id="audit-loading" class="hidden flex-col items-center justify-center py-12">
-                    <div class="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p class="text-yellow-600 font-bold">Calcul des trajectoires via OSRM...</p>
-                </div>
-                <div id="audit-results" class="space-y-4"></div>
-            </div>
-
-            <div class="p-6 bg-white border-t border-slate-100">
-                <button type="button" id="applyAuditBtn" onclick="applyAuditCorrections()" class="hidden w-full bg-yellow-500 text-slate-900 font-bold text-lg rounded-xl p-4 hover:bg-yellow-400 transition-colors flex justify-center items-center gap-3 shadow-lg">
-                    <i data-lucide="save" class="w-6 h-6"></i> Appliquer les corrections
-                </button>
-            </div>
-        </div>
-    </div>
-
     <!-- MODAL UPLOAD DOCUMENT -->
     <div id="upload-modal" class="hidden absolute inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
@@ -365,22 +326,17 @@
             </div>
             
             <form id="uploadForm" class="p-6 space-y-6">
-                <!-- Zone de Drag & Drop -->
+                <!-- Zone Drag & Drop -->
                 <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3">
-                    <div class="bg-yellow-100 p-4 rounded-full text-yellow-600">
-                        <i data-lucide="file-up" class="w-8 h-8"></i>
-                    </div>
-                    <div>
-                        <p class="text-slate-700 font-bold">Cliquez ou glissez un fichier ici</p>
-                        <p class="text-slate-400 text-xs mt-1">PDF, JPG ou PNG (Max 5Mo)</p>
-                    </div>
+                    <div class="bg-yellow-100 p-4 rounded-full text-yellow-600"><i data-lucide="file-up" class="w-8 h-8"></i></div>
+                    <div><p class="text-slate-700 font-bold">Cliquez ou glissez un fichier ici</p><p class="text-slate-400 text-xs mt-1">PDF, JPG ou PNG</p></div>
                     <input type="file" id="file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png">
                 </div>
 
                 <div id="file-preview" class="hidden flex items-center justify-between bg-blue-50 border border-blue-100 p-4 rounded-xl">
                     <div class="flex items-center gap-3 overflow-hidden">
                         <i data-lucide="file-text" class="w-5 h-5 text-blue-500 flex-shrink-0"></i>
-                        <span id="file-name" class="font-bold text-sm text-blue-900 truncate">nom_du_fichier.pdf</span>
+                        <span id="file-name" class="font-bold text-sm text-blue-900 truncate"></span>
                     </div>
                     <button type="button" onclick="removeFile()" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
@@ -395,14 +351,45 @@
                     </select>
                 </div>
 
+                <div class="space-y-2">
+                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Description (Optionnel)</label>
+                    <input type="text" id="doc-description" placeholder="Ex: PMT Mr. Dupont" class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 text-sm font-medium">
+                </div>
+
                 <button type="submit" id="btn-upload" class="w-full bg-slate-900 text-white font-bold text-lg rounded-xl p-4 hover:bg-slate-800 transition-colors flex justify-center items-center gap-3">
-                    Partager avec l'équipe
+                    Partager le fichier
                 </button>
             </form>
         </div>
     </div>
 
-    <!-- SCRIPT PRINCIPAL -->
+    <!-- MODAL AUDIT -->
+    <div id="audit-modal" class="hidden absolute inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
+            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-lg"><i data-lucide="wand-2" class="w-6 h-6"></i></div>
+                    <h2 class="text-xl font-bold text-slate-800">Lissage Intelligent (CPAM)</h2>
+                </div>
+                <button type="button" onclick="closeAuditModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-full shadow-sm border border-slate-100"><i data-lucide="x" class="w-6 h-6"></i></button>
+            </div>
+            <div class="p-6 overflow-y-auto bg-slate-50 flex-1">
+                <p class="text-slate-500 text-sm mb-6 text-center">Analyse du temps de trajet réel et correction des chevauchements.</p>
+                <div id="audit-loading" class="hidden flex-col items-center justify-center py-12">
+                    <div class="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
+                    <p class="text-yellow-600 font-bold">Calcul en cours...</p>
+                </div>
+                <div id="audit-results" class="space-y-4"></div>
+            </div>
+            <div class="p-6 bg-white border-t border-slate-100">
+                <button type="button" id="applyAuditBtn" onclick="applyAuditCorrections()" class="hidden w-full bg-yellow-500 text-slate-900 font-bold text-lg rounded-xl p-4 hover:bg-yellow-400 transition-colors flex justify-center items-center gap-3 shadow-lg">
+                    Appliquer les corrections
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- SCRIPTS MOTEUR -->
     <script>
         dayjs.locale('fr');
         dayjs.extend(window.dayjs_plugin_isSameOrAfter);
@@ -412,18 +399,17 @@
 
         const LOGIN_API_URL = '/api/user/login'; 
         const RIDES_API_URL = '/api/rides';
+        const DOCS_API_URL = '/api/documents'; // URL de l'API Drive (DocumentsTaxi)
 
         let allMyRides = []; 
         let filteredRidesGlobal = []; 
+        let allMyDocuments = []; // Vraies données de ton API
         let chartInstance = null;
         let auditProposals = [];
 
-        // --- MOCK DATA DOCUMENTS ---
-        const mockDocuments = [
-            { id: 1, name: "Mode_Operatoire_Facturation.pdf", category: "Administratif", uploader: "Admin", date: new Date().toISOString(), size: "1.2 Mo", type: "pdf" }
-        ];
-
-        // --- NAVIGATION ---
+        // ==========================================
+        // 1. NAVIGATION
+        // ==========================================
         function switchTab(tab) {
             ['planning', 'patients', 'compta', 'documents'].forEach(t => {
                 document.getElementById(`view-${t}`).classList.add('hidden');
@@ -434,11 +420,11 @@
 
             if(tab === 'patients') generateCRM();
             if(tab === 'compta') renderChart(); 
-            if(tab === 'documents') renderDocuments(); 
+            if(tab === 'documents') loadDocuments(); // Récupère les vrais docs depuis la DB
         }
 
         // ==========================================
-        // 1. LOGIQUE API COURSES ET CONNEXION
+        // 2. AUTHENTIFICATION & DONNÉES COURSES
         // ==========================================
         document.getElementById('loginForm').addEventListener('submit', async (e) => {
             e.preventDefault();
@@ -455,24 +441,19 @@
             try {
                 const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
                 if (res.status === 401 || res.status === 403) { logout(); return; }
-                
                 const rawData = await res.json(); 
                 allMyRides = Array.isArray(rawData) ? rawData : [];
                 allMyRides.sort((a,b) => new Date(b.date) - new Date(a.date));
-                
                 if (isInit) {
                     document.getElementById('filter-time').value = 'today';
                     document.getElementById('filter-status').value = 'all'; 
                 }
                 applyFilters();
-            } catch (err) { 
-                console.error("Erreur chargement:", err);
-                renderTable([]); 
-            }
+            } catch (err) { renderTable([]); }
         }
 
         // ==========================================
-        // 2. LOGIQUE FILTRES & TABLEAU DE BORD (PLANNING)
+        // 3. LOGIQUE FILTRES & TABLEAU DE BORD
         // ==========================================
         document.getElementById('filter-time').addEventListener('change', (e) => {
             const customContainer = document.getElementById('custom-date-container');
@@ -491,7 +472,6 @@
 
         function applyFilters() {
             if (!allMyRides || !Array.isArray(allMyRides)) return;
-
             const searchTerm = document.getElementById('filter-search').value.toLowerCase();
             const statusTerm = document.getElementById('filter-status').value;
             const factuTerm = document.getElementById('filter-factu').value;
@@ -504,7 +484,6 @@
                 const matchSearch = (ride.patientName || '').toLowerCase().includes(searchTerm) || (ride.startLocation || '').toLowerCase().includes(searchTerm);
                 const matchStatus = statusTerm === 'all' || (ride.status || 'À venir') === statusTerm;
                 const matchFactu = factuTerm === 'all' || (ride.statuFacturation || 'Non facturé') === factuTerm;
-                
                 let matchTime = true;
                 if(ride.date && timeTerm !== 'all') {
                     const rDate = dayjs(ride.date);
@@ -554,7 +533,6 @@
                 const isMissingKm = !ride.realDistance || ride.realDistance == 0;
                 const isNotBilled = ride.statuFacturation !== 'Facturé';
                 const rowBorder = isNotBilled ? 'border-l-4 border-yellow-400' : 'border-l-4 border-transparent';
-
                 const kmDisplay = isMissingKm ? `<span class="text-red-500 font-bold text-xs bg-red-50 px-2 py-1 rounded flex items-center gap-1 w-max"><i data-lucide="alert-circle" class="w-3 h-3"></i> À saisir</span>` : `<span class="font-bold text-slate-800">${ride.realDistance} km</span>`;
                 const factuDisplay = isNotBilled ? `<span class="text-yellow-600 font-bold text-xs bg-yellow-50 border border-yellow-200 px-2 py-1 rounded">À facturer</span>` : `<span class="text-emerald-600 font-bold text-xs bg-emerald-50 border border-emerald-200 px-2 py-1 rounded"><i data-lucide="check" class="w-3 h-3 inline"></i> Facturé</span>`;
 
@@ -570,7 +548,7 @@
         }
 
         // ==========================================
-        // 3. LOGIQUE ÉDITION ET SAUVEGARDE
+        // 4. ÉDITION DES COURSES
         // ==========================================
         function openModal(id) {
             const r = allMyRides.find(x => x._id === id);
@@ -609,13 +587,13 @@
 
             try {
                 await fetch(`${RIDES_API_URL}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` }, body: JSON.stringify(p) });
-                closeModal(); loadData(false); // Garde les filtres actifs
+                closeModal(); loadData(false); // Charge sans écraser les filtres
             } catch (err) { alert("Erreur réseau"); } 
             finally { btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer et Clôturer`; btn.disabled = false; lucide.createIcons(); }
         });
 
         // ==========================================
-        // 4. CRM, COMPTA ET EXPORT
+        // 5. CRM, COMPTA & EXPORT
         // ==========================================
         function generateCRM() {
             const map = {};
@@ -679,27 +657,50 @@
         }
 
         // ==========================================
-        // 5. NOUVEAU: LOGIQUE DOCUMENTS & UPLOAD
+        // 6. ESPACE DOCUMENTS (DRIVE) & UPLOAD
         // ==========================================
-        function renderDocuments() {
+        async function loadDocuments() {
+            const token = localStorage.getItem('driverToken');
+            try {
+                const res = await fetch(DOCS_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
+                if (res.ok) {
+                    allMyDocuments = await res.json();
+                    renderDocuments(allMyDocuments);
+                }
+            } catch (err) { console.error("Erreur documents:", err); }
+        }
+
+        function renderDocuments(docs) {
             const grid = document.getElementById('documents-grid');
+            if (!docs || docs.length === 0) {
+                grid.innerHTML = `<p class="col-span-full text-center text-slate-400 font-medium py-12">Aucun document partagé pour le moment.</p>`;
+                return;
+            }
             let html = '';
-            mockDocuments.forEach(doc => {
-                const icon = doc.type === 'pdf' ? 'file-text' : 'image';
+            docs.forEach(doc => {
+                let sizeDisplay = doc.size ? (doc.size / 1024 / 1024).toFixed(2) + ' Mo' : '--';
+                const icon = (doc.mimeType && doc.mimeType.includes('pdf')) ? 'file-text' : 'image';
                 const colorCat = doc.category === 'PMT' ? 'text-red-600 bg-red-50 border-red-100' : doc.category === 'Facture' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-blue-600 bg-blue-50 border-blue-100';
+                const uploaderName = (doc.uploaderId && doc.uploaderId.name) ? doc.uploaderId.name : "Collaborateur";
+
                 html += `
                     <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col">
                         <div class="flex justify-between items-start mb-4">
-                            <div class="bg-slate-100 p-3 rounded-xl text-slate-600 group-hover:bg-yellow-100 group-hover:text-yellow-600 transition-colors"><i data-lucide="${icon}" class="w-6 h-6"></i></div>
+                            <div class="bg-slate-100 p-3 rounded-xl text-slate-600 group-hover:bg-yellow-100 group-hover:text-yellow-600 transition-colors">
+                                <i data-lucide="${icon}" class="w-6 h-6"></i>
+                            </div>
                             <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-md border ${colorCat}">${doc.category}</span>
                         </div>
                         <h3 class="font-bold text-slate-800 text-sm truncate mb-1" title="${doc.name}">${doc.name}</h3>
-                        <p class="text-xs text-slate-400 font-medium mb-4">Ajouté par ${doc.uploader} • ${dayjs(doc.date).format('DD/MM/YYYY')}</p>
+                        ${doc.description ? `<p class="text-xs text-slate-500 mb-2 truncate italic">"${doc.description}"</p>` : ''}
+                        <p class="text-xs text-slate-400 font-medium mb-4">Ajouté par ${uploaderName} • ${dayjs(doc.createdAt).format('DD/MM/YYYY')}</p>
+                        
                         <div class="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-300">${doc.size}</span>
+                            <span class="text-xs font-bold text-slate-300">${sizeDisplay}</span>
                             <div class="flex gap-2">
-                                <button class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><i data-lucide="eye" class="w-4 h-4"></i></button>
-                                <button class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="download" class="w-4 h-4"></i></button>
+                                <a href="${doc.viewLink || '#'}" target="_blank" class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors">
+                                    <i data-lucide="eye" class="w-4 h-4"></i>
+                                </a>
                             </div>
                         </div>
                     </div>`;
@@ -727,24 +728,45 @@
         }
         function removeFile() { currentFile = null; fileInput.value = ''; dropZone.classList.remove('hidden'); filePreview.classList.add('hidden'); }
 
-        document.getElementById('uploadForm').addEventListener('submit', (e) => {
+        document.getElementById('uploadForm').addEventListener('submit', async (e) => {
             e.preventDefault();
             if(!currentFile) return alert("Veuillez sélectionner un fichier.");
+            
             const btn = document.getElementById('btn-upload');
             btn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Envoi...`;
-            
-            // Simulation upload
-            setTimeout(() => {
-                mockDocuments.unshift({
-                    id: Date.now(), name: currentFile.name, category: document.getElementById('doc-category').value, uploader: "Moi",
-                    date: new Date().toISOString(), size: (currentFile.size / 1024 / 1024).toFixed(2) + " Mo", type: currentFile.type.includes('pdf') ? 'pdf' : 'image'
+            btn.disabled = true;
+
+            const formData = new FormData();
+            formData.append('file', currentFile);
+            formData.append('category', document.getElementById('doc-category').value);
+            formData.append('description', document.getElementById('doc-description').value);
+            const token = localStorage.getItem('driverToken');
+
+            try {
+                const response = await fetch(DOCS_API_URL + '/upload', {
+                    method: 'POST', headers: { 'Authorization': `Bearer ${token}` }, body: formData
                 });
-                closeUploadModal(); renderDocuments(); btn.innerHTML = `Partager avec l'équipe`;
-            }, 1000);
+
+                if (response.ok) {
+                    closeUploadModal(); 
+                    await loadDocuments(); // Recharge la vue sans recharger la page
+                    
+                    const btnUploadModal = document.querySelector('[onclick="openUploadModal()"]');
+                    btnUploadModal.innerHTML = `<i data-lucide="check" class="w-5 h-5"></i> Ajouté avec succès !`;
+                    btnUploadModal.classList.replace('bg-yellow-500', 'bg-green-500');
+                    setTimeout(() => {
+                        btnUploadModal.innerHTML = `<i data-lucide="upload-cloud" class="w-5 h-5"></i> Déposer un document`;
+                        btnUploadModal.classList.replace('bg-green-500', 'bg-yellow-500'); lucide.createIcons();
+                    }, 3000);
+                } else {
+                    const err = await response.json(); alert(`Erreur: ${err.error || "Échec serveur"}`);
+                }
+            } catch (err) { alert("Problème réseau."); } 
+            finally { btn.innerHTML = `Partager avec l'équipe`; btn.disabled = false; }
         });
 
         // ==========================================
-        // 6. LISSAGE INTELLIGENT (AUDIT CPAM)
+        // 7. LISSAGE INTELLIGENT (AUDIT CPAM)
         // ==========================================
         async function getCoords(address) {
             try {
@@ -788,7 +810,7 @@
                                 </div>
                             </div>`;
                 });
-                document.getElementById('audit-results').innerHTML = html;
+                document.getElementById('audit-results').innerHTML = html || '<p class="text-slate-500">Aucun chevauchement détecté.</p>';
                 if(hasChanges) document.getElementById('applyAuditBtn').classList.remove('hidden');
             } catch (e) { alert("Échec de l'audit."); closeAuditModal(); }
         }
