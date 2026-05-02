@@ -2,817 +2,233 @@
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <title>Portail ERP Chauffeurs | Taxi 31</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/lucide@latest"></script>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     
-    <!-- Gestion experte du temps -->
-    <script src="https://unpkg.com/dayjs@1.11.10/dayjs.min.js"></script>
-    <script src="https://unpkg.com/dayjs@1.11.10/locale/fr.js"></script>
-    <script src="https://unpkg.com/dayjs@1.11.10/plugin/isSameOrAfter.js"></script>
-    <script src="https://unpkg.com/dayjs@1.11.10/plugin/isSameOrBefore.js"></script>
-    <script src="https://unpkg.com/dayjs@1.11.10/plugin/isoWeek.js"></script>
+    <!-- SEO : Balises de base -->
+    <title>Réserver un Taxi Conventionné VSL à Toulouse | Taxi 31</title>
+    <meta name="description" content="Réservez votre transport médical assis (VSL) à Toulouse et Haute-Garonne. Taxi agréé CPAM, tiers-payant intégral (100% ALD). Chauffeur ponctuel.">
     
-    <!-- Graphiques -->
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- SEO : Canonical URL (Évite le duplicate content) -->
+    <link rel="canonical" href="https://www.taxi-31-toulouse.fr/">
     
+    <!-- SEO : Open Graph pour le partage social -->
+    <meta property="og:title" content="Réservation Taxi Conventionné VSL - Taxi 31 Toulouse">
+    <meta property="og:description" content="Votre trajet médicalisé sans avance de frais. Agréé CPAM 31.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://www.taxi-31-toulouse.fr/">
+    <meta property="og:locale" content="fr_FR">
+
+    <!-- PERF : Preconnect pour accélérer le chargement des polices -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+
+    <!-- SEO : Données structurées JSON-LD (Crucial pour le SEO Local Google) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "TaxiService",
+      "name": "Taxi 31 Toulouse",
+      "url": "https://www.taxi-31-toulouse.fr/",
+      "description": "Service de taxi conventionné VSL agréé CPAM pour transport médical assis à Toulouse et en Haute-Garonne.",
+      "telephone": "+33772339892",
+      "areaServed": {
+        "@type": "City",
+        "name": "Toulouse"
+      },
+      "priceRange": "Prise en charge CPAM",
+      "knowsAbout": ["Transport médical", "VSL", "Taxi conventionné", "CPAM", "ALD"]
+    }
+    </script>
+
+    <!-- Tailwind CDN (À remplacer par un build CSS compilé à l'avenir pour des perfs maximales) -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- PERF : 'defer' empêche le script de bloquer le rendu de la page -->
+    <script src="https://unpkg.com/lucide@latest" defer></script>
+    
     <style>
         body { font-family: 'Plus Jakarta Sans', sans-serif; }
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        /* Style pour la zone de Drag & Drop des documents */
-        .drag-active { border-color: #eab308 !important; background-color: #fefce8 !important; }
+        .bg-dark-900 { background-color: #0f172a; }
+        .bg-slate-800 { background-color: #1e293b; }
+        .accent-yellow { color: #eab308; }
+        .btn-taxi { background-color: #eab308; color: #0f172a; }
+        .btn-taxi:hover { background-color: #facc15; }
     </style>
 </head>
-<body class="bg-slate-50 h-screen overflow-hidden text-slate-800 relative">
+<body class="bg-dark-900 text-slate-200 min-h-screen flex items-center justify-center p-4">
 
-    <!-- ÉCRAN DE CONNEXION -->
-    <div id="login-screen" class="absolute inset-0 z-50 bg-slate-900 flex flex-col items-center justify-center p-4">
-        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl w-full max-w-md border border-slate-700">
-            <div class="text-center mb-8">
-                <div class="bg-yellow-500 w-16 h-16 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <i data-lucide="calculator" class="w-8 h-8 text-slate-900"></i>
+    <main class="w-full max-w-2xl">
+        <header class="text-center mb-8">
+            <div class="inline-flex items-center gap-2 mb-4">
+                <div class="bg-yellow-500 p-2 rounded-lg text-slate-900">
+                    <i data-lucide="map-pin" class="w-6 h-6"></i>
                 </div>
-                <h1 class="text-2xl font-bold text-white">Taxi 31 ERP</h1>
-                <p class="text-slate-400 text-sm mt-1">Espace Chauffeur & Collaboratif</p>
+                <span class="text-2xl font-extrabold text-white tracking-tight">Taxi<span class="text-yellow-500">31</span>Toulouse</span>
             </div>
-            <form id="loginForm" class="space-y-4">
-                <input type="email" id="email" required placeholder="Adresse email" 
-                    class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:border-yellow-500 outline-none">
-                <input type="password" id="password" required placeholder="Mot de passe" 
-                    class="w-full bg-slate-900 border border-slate-600 rounded-xl p-4 text-white focus:border-yellow-500 outline-none">
-                <p id="login-error" class="text-red-400 text-sm hidden font-bold text-center">Identifiants incorrects</p>
-                <button type="submit" class="w-full bg-yellow-500 text-slate-900 font-bold text-lg rounded-xl p-4 hover:bg-yellow-400 transition-colors">
-                    Se connecter
-                </button>
-            </form>
-        </div>
-    </div>
+            <h1 class="text-3xl font-bold text-white">Réservation de Transport Médical</h1>
+            <p class="text-slate-400 mt-2 italic">Agréé CPAM - Prise en charge à 100% (ALD)</p>
+        </header>
 
-    <!-- TABLEAU DE BORD ERP -->
-    <div id="dashboard-screen" class="hidden flex h-full">
-        
-        <!-- SIDEBAR -->
-        <aside class="w-64 bg-slate-900 text-white flex flex-col hidden md:flex shadow-2xl z-20">
-            <div class="p-6 border-b border-slate-800 flex items-center gap-3">
-                <div class="bg-yellow-500 p-2 rounded-lg text-slate-900"><i data-lucide="shield-check" class="w-6 h-6"></i></div>
-                <span class="text-xl font-extrabold tracking-tight">Taxi<span class="text-yellow-500">31</span></span>
-            </div>
-            <nav class="flex-1 p-4 space-y-2">
-                <button onclick="switchTab('planning')" id="nav-planning" class="w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all">
-                    <i data-lucide="check-square" class="w-5 h-5"></i> Clôture & Factu
-                </button>
-                <button onclick="switchTab('patients')" id="nav-patients" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all">
-                    <i data-lucide="users" class="w-5 h-5"></i> Base Patients
-                </button>
-                <button onclick="switchTab('compta')" id="nav-compta" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all">
-                    <i data-lucide="bar-chart-3" class="w-5 h-5"></i> Statistiques
-                </button>
-                <!-- ONGLET DRIVE/DOCUMENTS -->
-                <div class="pt-4 mt-2 border-t border-slate-800">
-                    <button onclick="switchTab('documents')" id="nav-documents" class="w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all">
-                        <i data-lucide="folder-open" class="w-5 h-5"></i> Espace Partagé
-                    </button>
-                </div>
-            </nav>
-            <div class="p-4 border-t border-slate-800">
-                <button onclick="logout()" class="flex items-center gap-3 px-4 py-3 w-full text-slate-400 hover:text-red-400 transition-colors font-semibold">
-                    <i data-lucide="power" class="w-5 h-5"></i> Déconnexion
-                </button>
-            </div>
-        </aside>
-
-        <!-- MAIN CONTENT -->
-        <main class="flex-1 flex flex-col h-full overflow-y-auto bg-slate-50 relative">
-            
-            <!-- ONGLET 1 : CLÔTURE & FACTURATION -->
-            <div id="view-planning" class="flex flex-col h-full">
-                <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-                    <h1 class="text-2xl font-bold">Clôture Administrative</h1>
-                    <div class="flex items-center gap-3">
-                        <button onclick="exportCSV()" class="bg-slate-100 text-slate-600 hover:bg-slate-200 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors">
-                            <i data-lucide="download" class="w-4 h-4"></i> Export CSV
-                        </button>
-                        <button onclick="runSmartAudit()" class="bg-slate-900 hover:bg-slate-800 text-white px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 transition-colors shadow-sm">
-                            <i data-lucide="wand-2" class="w-4 h-4 text-yellow-500"></i> Lissage CPAM
-                        </button>
-                    </div>
-                </header>
-
-                <div class="p-8 flex-1 flex flex-col">
-                    
-                    <!-- WIDGET : ALERTE DE CLÔTURE -->
-                    <div id="billing-alert-widget" class="hidden mb-6 bg-yellow-50 border border-yellow-200 rounded-2xl p-6 shadow-sm flex justify-between items-center">
-                        <div class="flex items-center gap-4">
-                            <div class="bg-yellow-100 p-3 rounded-full text-yellow-600">
-                                <i data-lucide="alert-triangle" class="w-6 h-6"></i>
-                            </div>
-                            <div>
-                                <h2 class="text-lg font-bold text-slate-800">Clôture en attente</h2>
-                                <p class="text-slate-600 text-sm">Il vous reste <span id="pending-count" class="font-bold text-yellow-700">0</span> course(s) à vérifier et facturer pour la période sélectionnée.</p>
-                            </div>
-                        </div>
-                        <button onclick="filterOnlyPending()" class="bg-yellow-500 text-slate-900 px-6 py-3 rounded-xl font-bold text-sm hover:bg-yellow-400 transition-colors shadow-sm">
-                            Traiter maintenant
-                        </button>
-                    </div>
-
-                    <div id="billing-success-widget" class="hidden mb-6 bg-emerald-50 border border-emerald-200 rounded-2xl p-6 shadow-sm flex items-center gap-4">
-                        <div class="bg-emerald-100 p-3 rounded-full text-emerald-600"><i data-lucide="check-circle" class="w-6 h-6"></i></div>
-                        <div><h2 class="text-lg font-bold text-emerald-800">Tout est à jour !</h2><p class="text-emerald-600 text-sm">Toutes les courses affichées ont été facturées avec succès.</p></div>
-                    </div>
-
-                    <!-- BARRE DE FILTRES -->
-                    <div class="bg-white p-4 rounded-2xl shadow-sm border border-slate-200 mb-6 flex flex-wrap gap-4 items-center">
-                        <div class="flex-1 min-w-[200px] relative">
-                            <i data-lucide="search" class="absolute left-3 top-3 w-5 h-5 text-slate-400"></i>
-                            <input type="text" id="filter-search" placeholder="Recherche patient ou adresse..." class="w-full bg-slate-50 border border-slate-200 rounded-xl p-2.5 pl-10 outline-none focus:border-yellow-500 transition-colors text-sm font-medium">
-                        </div>
-                        
-                        <!-- SELECTEUR DE DATES -->
-                        <select id="filter-time" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
-                            <option value="today">Aujourd'hui</option>
-                            <option value="week">Cette semaine</option>
-                            <option value="month">Ce mois-ci</option>
-                            <option value="all">Toutes les dates</option>
-                            <option value="custom">Période précise...</option>
-                        </select>
-
-                        <!-- SÉLECTEUR DE DATES PERSONNALISÉES (Caché par défaut) -->
-                        <div id="custom-date-container" class="hidden items-center gap-2">
-                            <input type="date" id="filter-start" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 text-sm font-semibold text-slate-700">
-                            <span class="text-slate-400 font-bold text-sm">➔</span>
-                            <input type="date" id="filter-end" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 text-sm font-semibold text-slate-700">
-                        </div>
-
-                        <select id="filter-status" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
-                            <option value="all">Tous statuts</option>
-                            <option value="En attente">En attente (Web)</option>
-                            <option value="À venir">À venir</option>
-                            <option value="Terminée">Terminée</option>
-                        </select>
-                        
-                        <select id="filter-factu" class="bg-slate-50 border border-slate-200 rounded-xl p-2.5 outline-none focus:border-yellow-500 transition-colors text-sm font-semibold text-slate-700">
-                            <option value="all">Toute la facturation</option>
-                            <option value="Non facturé">À facturer</option>
-                            <option value="Facturé">Déjà facturé</option>
-                        </select>
-                    </div>
-
-                    <!-- TABLEAU -->
-                    <div class="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden flex-1 relative">
-                        <div class="overflow-x-auto h-full no-scrollbar">
-                            <table class="w-full text-left border-collapse min-w-[1000px]">
-                                <thead class="sticky top-0 bg-slate-50 z-10 shadow-sm border-b border-slate-200">
-                                    <tr class="text-xs uppercase text-slate-500">
-                                        <th class="px-6 py-4">Horaires</th>
-                                        <th class="px-6 py-4">Patient</th>
-                                        <th class="px-6 py-4">Trajet</th>
-                                        <th class="px-6 py-4">Saisie Km</th>
-                                        <th class="px-6 py-4">Facturation</th>
-                                        <th class="px-6 py-4 text-right">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody id="rides-table" class="divide-y divide-slate-100"></tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
+        <section class="bg-slate-800 rounded-3xl shadow-2xl overflow-hidden border border-slate-700">
+            <div class="bg-blue-600/10 p-4 text-center border-b border-blue-500/20">
+                <p class="text-blue-400 text-sm font-semibold flex items-center justify-center gap-2">
+                    <i data-lucide="shield-check" class="w-4 h-4"></i>
+                    Tiers-Payant appliqué : Zéro avance de frais
+                </p>
             </div>
 
-            <!-- ONGLET 2 : CRM PATIENTS -->
-            <div id="view-patients" class="hidden flex flex-col h-full">
-                <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-                    <h1 class="text-2xl font-bold">Base de données Patients</h1>
-                    <div class="bg-purple-50 text-purple-700 border border-purple-100 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2">
-                        <span id="patient-count">0</span> fiches
-                    </div>
-                </header>
-                <div class="p-8 flex-1 overflow-y-auto">
-                    <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6" id="patients-grid"></div>
-                </div>
-            </div>
+            <form id="bookingForm" class="p-8 space-y-6">
+                
+                <input type="hidden" id="chauffeurId" value="TON_ID_MONGO_ICI">
 
-            <!-- ONGLET 3 : COMPTABILITÉ & ANALYSE -->
-            <div id="view-compta" class="hidden flex flex-col h-full">
-                <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-                    <h1 class="text-2xl font-bold">Analyse Financière</h1>
-                </header>
-                <div class="p-8 overflow-y-auto">
-                    <!-- KPI CARDS -->
-                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-                            <div><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Km Totaux</p><p class="text-3xl font-black text-slate-800" id="stat-km">0</p></div>
-                            <div class="bg-blue-50 p-4 rounded-xl text-blue-500"><i data-lucide="map" class="w-8 h-8"></i></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between">
-                            <div><p class="text-sm font-bold text-slate-400 uppercase tracking-wider mb-1">Péages</p><p class="text-3xl font-black text-slate-800" id="stat-peage">0 €</p></div>
-                            <div class="bg-yellow-50 p-4 rounded-xl text-yellow-600"><i data-lucide="coins" class="w-8 h-8"></i></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-emerald-500">
-                            <div><p class="text-sm font-bold text-emerald-600 uppercase tracking-wider mb-1">Facturées</p><p class="text-3xl font-black text-slate-800" id="stat-facturees">0</p></div>
-                            <div class="bg-emerald-50 p-4 rounded-xl text-emerald-500"><i data-lucide="check-circle" class="w-8 h-8"></i></div>
-                        </div>
-                        <div class="bg-white p-6 rounded-2xl shadow-sm border border-slate-200 flex items-center justify-between border-l-4 border-l-red-500">
-                            <div><p class="text-sm font-bold text-red-500 uppercase tracking-wider mb-1">À facturer</p><p class="text-3xl font-black text-slate-800" id="stat-non-facturees">0</p></div>
-                            <div class="bg-red-50 p-4 rounded-xl text-red-500"><i data-lucide="alert-circle" class="w-8 h-8"></i></div>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="patientName" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Nom du Patient</label>
+                        <div class="relative">
+                            <i data-lucide="user" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="text" id="patientName" name="patientName" required placeholder="Nom complet" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
-                    <!-- GRAPHIQUE CHART.JS -->
-                    <div class="bg-white p-6 rounded-3xl shadow-sm border border-slate-200 mb-8">
-                        <div class="flex justify-between items-center mb-6">
-                            <h2 class="text-lg font-bold text-slate-800">Activité des 7 derniers jours</h2>
-                            <span class="text-sm text-slate-400 font-medium">Basé sur le kilométrage facturable</span>
-                        </div>
-                        <div class="h-[300px] w-full">
-                            <canvas id="activityChart"></canvas>
+                    <div class="space-y-2">
+                        <label for="patientPhone" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Téléphone</label>
+                        <div class="relative">
+                            <i data-lucide="phone" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="tel" id="patientPhone" name="patientPhone" required placeholder="06 00 00 00 00" 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
                         </div>
                     </div>
-                </div>
-            </div>
-
-            <!-- ONGLET 4 : ESPACE DOCUMENTS / DRIVE -->
-            <div id="view-documents" class="hidden flex flex-col h-full">
-                <header class="bg-white border-b border-slate-200 px-8 py-5 flex justify-between items-center sticky top-0 z-10">
-                    <div>
-                        <h1 class="text-2xl font-bold">Bibliothèque Partagée</h1>
-                        <p class="text-sm text-slate-500 mt-1">Centralisez vos PMT, factures et documents administratifs.</p>
-                    </div>
-                    <button onclick="openUploadModal()" class="bg-yellow-500 hover:bg-yellow-400 text-slate-900 px-6 py-3 rounded-xl font-bold text-sm flex items-center gap-2 transition-colors shadow-sm">
-                        <i data-lucide="upload-cloud" class="w-5 h-5"></i> Déposer un document
-                    </button>
-                </header>
-
-                <div class="p-8 flex-1 flex flex-col overflow-y-auto">
-                    <!-- Barre de filtres Documents -->
-                    <div class="flex flex-wrap gap-4 mb-8">
-                        <button class="px-4 py-2 bg-slate-900 text-white rounded-full text-sm font-bold shadow-sm">Tous</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Prescriptions (PMT)</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Factures</button>
-                        <button class="px-4 py-2 bg-white text-slate-600 border border-slate-200 rounded-full text-sm font-bold hover:bg-slate-50 transition-colors">Administratif</button>
-                    </div>
-
-                    <!-- Grille des Documents -->
-                    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="documents-grid">
-                        <!-- Les documents injectés via JS iront ici -->
-                    </div>
-                </div>
-            </div>
-
-        </main>
-    </div>
-
-    <!-- MODAL D'ÉDITION DE CLÔTURE -->
-    <div id="edit-modal" class="hidden absolute inset-0 z-[60] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-4xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
-                <div class="flex items-center gap-3">
-                    <div class="bg-blue-100 text-blue-600 p-2 rounded-lg"><i data-lucide="clipboard-edit" class="w-6 h-6"></i></div>
-                    <h2 class="text-xl font-bold text-slate-800">Clôture de la course</h2>
-                </div>
-                <button type="button" onclick="closeModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-full shadow-sm border border-slate-100"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <form id="editForm" class="p-6 overflow-y-auto">
-                <input type="hidden" id="edit-ride-id">
-                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <!-- RÉSUMÉ FIXE -->
-                    <div class="bg-slate-50 rounded-2xl p-6 border border-slate-100 space-y-4">
-                        <h3 class="text-xs font-bold text-slate-400 uppercase tracking-wider mb-2 border-b border-slate-200 pb-2">Rappel du Trajet</h3>
-                        <div><p class="text-xs text-slate-500 mb-1">Patient</p><p class="font-bold text-slate-800 text-lg" id="view-patient"></p></div>
-                        <div class="pt-2"><p class="text-xs text-slate-500 mb-1">Trajet</p><p class="font-semibold text-slate-800 bg-white p-3 rounded-xl border border-slate-200 flex flex-col gap-1"><span id="view-start"></span> <i data-lucide="arrow-down" class="w-3 h-3 text-slate-300"></i> <span id="view-end" class="text-blue-600"></span></p></div>
-                    </div>
-                    <!-- PARTIE FACTURATION -->
-                    <div class="space-y-6">
-                        <div class="bg-yellow-50 p-4 rounded-xl border border-yellow-200">
-                            <h3 class="text-xs font-bold text-yellow-700 uppercase tracking-wider mb-2 border-b border-yellow-200 pb-2">Saisie Administrative Obligatoire</h3>
-                            <div class="grid grid-cols-2 gap-4 mt-4">
-                                <div class="space-y-1">
-                                    <label class="text-sm font-bold text-slate-700">Kilométrage (Requis)</label>
-                                    <div class="relative"><input type="number" step="0.1" id="edit-km" required class="w-full border border-slate-200 rounded-xl p-3 pr-10 outline-none focus:border-yellow-500 shadow-sm"><span class="absolute right-4 top-3.5 text-slate-400 font-bold">km</span></div>
-                                </div>
-                                <div class="space-y-1">
-                                    <label class="text-sm font-bold text-slate-700">Péages (Optionnel)</label>
-                                    <div class="relative"><input type="number" step="0.1" id="edit-peage" class="w-full border border-slate-200 rounded-xl p-3 pr-10 outline-none focus:border-yellow-500 shadow-sm"><span class="absolute right-4 top-3.5 text-slate-400 font-bold">€</span></div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Début (Réel)</label><input type="datetime-local" id="edit-start-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
-                            <div class="space-y-1"><label class="text-sm font-bold text-slate-700">Fin (Réel)</label><input type="datetime-local" id="edit-end-time" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm"></div>
-                        </div>
-                        
-                        <div class="grid grid-cols-2 gap-4">
-                            <div class="space-y-1">
-                                <label class="text-sm font-bold text-slate-700">Statut</label>
-                                <select id="edit-status" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 bg-white shadow-sm font-semibold">
-                                    <option value="À venir">À venir</option><option value="Terminée">Terminée</option>
-                                </select>
-                            </div>
-                            <div class="space-y-1">
-                                <label class="text-sm font-bold text-slate-700">Facturation</label>
-                                <select id="edit-facturation" class="w-full border border-slate-200 rounded-xl p-3 outline-none focus:border-emerald-500 bg-white shadow-sm font-semibold">
-                                    <option value="Non facturé">Non facturé</option><option value="Facturé">Facturé (Terminé)</option>
-                                </select>
-                            </div>
-                        </div>
-
-                        <button type="submit" id="saveBtn" class="w-full bg-slate-900 text-white font-bold text-lg rounded-xl p-4 hover:bg-slate-800 mt-6 transition-colors flex justify-center items-center gap-3 shadow-lg">
-                            <i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer et Clôturer
-                        </button>
-                    </div>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <!-- MODAL AUDIT -->
-    <div id="audit-modal" class="hidden absolute inset-0 z-[70] bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
-         <div class="bg-white rounded-3xl shadow-2xl w-full max-w-3xl overflow-hidden transform transition-all flex flex-col max-h-[90vh]">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50 sticky top-0 z-10">
-                <div class="flex items-center gap-3">
-                    <div class="bg-yellow-100 text-yellow-600 p-2 rounded-lg"><i data-lucide="wand-2" class="w-6 h-6"></i></div>
-                    <h2 class="text-xl font-bold text-slate-800">Lissage Intelligent (CPAM)</h2>
-                </div>
-                <button type="button" onclick="closeAuditModal()" class="text-slate-400 hover:text-red-500 transition-colors bg-white p-2 rounded-full shadow-sm border border-slate-100"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <div class="p-6 overflow-y-auto bg-slate-50 flex-1">
-                <p class="text-slate-500 text-sm mb-6 text-center">Analyse du temps de trajet réel et correction des chevauchements pour la conformité CPAM.</p>
-                <div id="audit-loading" class="hidden flex-col items-center justify-center py-12">
-                    <div class="w-10 h-10 border-4 border-yellow-500 border-t-transparent rounded-full animate-spin mb-4"></div>
-                    <p class="text-yellow-600 font-bold">Calcul des trajectoires via OSRM...</p>
-                </div>
-                <div id="audit-results" class="space-y-4"></div>
-            </div>
-
-            <div class="p-6 bg-white border-t border-slate-100">
-                <button type="button" id="applyAuditBtn" onclick="applyAuditCorrections()" class="hidden w-full bg-yellow-500 text-slate-900 font-bold text-lg rounded-xl p-4 hover:bg-yellow-400 transition-colors flex justify-center items-center gap-3 shadow-lg">
-                    <i data-lucide="save" class="w-6 h-6"></i> Appliquer les corrections
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MODAL UPLOAD DOCUMENT -->
-    <div id="upload-modal" class="hidden absolute inset-0 z-[80] bg-slate-900/60 backdrop-blur-sm flex items-center justify-center p-4">
-        <div class="bg-white rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden transform transition-all">
-            <div class="p-6 border-b border-slate-100 flex justify-between items-center bg-slate-50">
-                <h2 class="text-xl font-bold text-slate-800">Ajouter un document</h2>
-                <button type="button" onclick="closeUploadModal()" class="text-slate-400 hover:text-red-500"><i data-lucide="x" class="w-6 h-6"></i></button>
-            </div>
-            
-            <form id="uploadForm" class="p-6 space-y-6">
-                <!-- Zone de Drag & Drop -->
-                <div id="drop-zone" class="border-2 border-dashed border-slate-300 rounded-2xl p-8 text-center hover:bg-slate-50 transition-colors cursor-pointer flex flex-col items-center justify-center gap-3">
-                    <div class="bg-yellow-100 p-4 rounded-full text-yellow-600">
-                        <i data-lucide="file-up" class="w-8 h-8"></i>
-                    </div>
-                    <div>
-                        <p class="text-slate-700 font-bold">Cliquez ou glissez un fichier ici</p>
-                        <p class="text-slate-400 text-xs mt-1">PDF, JPG ou PNG (Max 5Mo)</p>
-                    </div>
-                    <input type="file" id="file-input" class="hidden" accept=".pdf,.jpg,.jpeg,.png">
-                </div>
-
-                <div id="file-preview" class="hidden flex items-center justify-between bg-blue-50 border border-blue-100 p-4 rounded-xl">
-                    <div class="flex items-center gap-3 overflow-hidden">
-                        <i data-lucide="file-text" class="w-5 h-5 text-blue-500 flex-shrink-0"></i>
-                        <span id="file-name" class="font-bold text-sm text-blue-900 truncate">nom_du_fichier.pdf</span>
-                    </div>
-                    <button type="button" onclick="removeFile()" class="text-red-400 hover:text-red-600"><i data-lucide="trash-2" class="w-4 h-4"></i></button>
                 </div>
 
                 <div class="space-y-2">
-                    <label class="text-xs font-bold text-slate-400 uppercase tracking-wider">Catégorie</label>
-                    <select id="doc-category" required class="w-full bg-slate-50 border border-slate-200 rounded-xl p-3 outline-none focus:border-yellow-500 font-semibold text-slate-700">
-                        <option value="PMT">Prescription Médicale (PMT)</option>
-                        <option value="Facture">Facture Partenaire</option>
-                        <option value="Administratif">Document Administratif</option>
-                        <option value="Autre">Autre</option>
+                    <label for="startLocation" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Lieu de Prise en Charge</label>
+                    <div class="relative">
+                        <i data-lucide="home" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                        <input type="text" id="startLocation" name="startLocation" required placeholder="Adresse exacte (Domicile, Clinique...)" 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="endLocation" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Destination</label>
+                    <div class="relative">
+                        <i data-lucide="hospital" class="absolute left-4 top-3.5 text-blue-500 w-5 h-5"></i>
+                        <input type="text" id="endLocation" name="endLocation" required placeholder="Hôpital Purpan, Oncopole, Pasteur..." 
+                            class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-blue-500 transition-all text-white">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div class="space-y-2">
+                        <label for="date" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Date du Trajet</label>
+                        <div class="relative">
+                            <i data-lucide="calendar" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="date" id="date" name="date" required 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
+                    <div class="space-y-2">
+                        <label for="time" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Heure du RDV</label>
+                        <div class="relative">
+                            <i data-lucide="clock" class="absolute left-4 top-3.5 text-slate-500 w-5 h-5"></i>
+                            <input type="time" id="time" name="time" required 
+                                class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 pl-12 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-2">
+                    <label for="type" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Type de demande médicalisée</label>
+                    <select id="type" name="type" class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-3.5 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white appearance-none">
+                        <option value="Aller">Aller simple</option>
+                        <option value="Retour">Retour simple</option>
+                        <option value="Consultation">Aller-Retour (Consultation)</option>
+                        <option value="Hospit">Entrée / Sortie d'hospitalisation</option>
+                        <option value="Dialyse">Série de soins (Dialyse/Chimio)</option>
                     </select>
                 </div>
 
-                <button type="submit" id="btn-upload" class="w-full bg-slate-900 text-white font-bold text-lg rounded-xl p-4 hover:bg-slate-800 transition-colors flex justify-center items-center gap-3">
-                    Partager avec l'équipe
+                <div class="space-y-2">
+                    <label for="notes" class="text-xs font-bold text-slate-400 uppercase tracking-wider ml-1">Notes ou Besoins Spécifiques</label>
+                    <textarea id="notes" name="notes" rows="2" placeholder="Code porte, fauteuil roulant, étage..." 
+                        class="w-full bg-slate-900 border border-slate-700 rounded-2xl p-4 outline-none focus:ring-2 focus:ring-yellow-500 transition-all text-white"></textarea>
+                </div>
+
+                <div id="statusMessage" aria-live="polite" class="hidden p-4 rounded-2xl text-center font-bold text-sm"></div>
+
+                <button type="submit" id="submitBtn" class="w-full btn-taxi font-black text-xl rounded-2xl p-5 shadow-xl shadow-yellow-500/10 flex items-center justify-center gap-3 transform hover:scale-[1.02] transition-all">
+                    CONFIRMER MA RÉSERVATION
                 </button>
+
+                <p class="text-center text-[10px] text-slate-500 uppercase tracking-widest font-bold">
+                    Taxi conventionné Haute-Garonne - 24h/7j - <a href="tel:+33772339892" class="hover:text-yellow-500 transition-colors">07 72 33 98 92</a>
+                </p>
             </form>
-        </div>
-    </div>
+        </section>
+    </main>
 
-    <!-- SCRIPT PRINCIPAL -->
     <script>
-        dayjs.locale('fr');
-        dayjs.extend(window.dayjs_plugin_isSameOrAfter);
-        dayjs.extend(window.dayjs_plugin_isSameOrBefore);
-        dayjs.extend(window.dayjs_plugin_isoWeek);
-        lucide.createIcons();
-
-        const LOGIN_API_URL = '/api/user/login'; 
-        const RIDES_API_URL = '/api/rides';
-
-        let allMyRides = []; 
-        let filteredRidesGlobal = []; 
-        let chartInstance = null;
-        let auditProposals = [];
-
-        // --- MOCK DATA DOCUMENTS ---
-        const mockDocuments = [
-            { id: 1, name: "Mode_Operatoire_Facturation.pdf", category: "Administratif", uploader: "Admin", date: new Date().toISOString(), size: "1.2 Mo", type: "pdf" }
-        ];
-
-        // --- NAVIGATION ---
-        function switchTab(tab) {
-            ['planning', 'patients', 'compta', 'documents'].forEach(t => {
-                document.getElementById(`view-${t}`).classList.add('hidden');
-                document.getElementById(`nav-${t}`).className = "w-full flex items-center gap-3 px-4 py-3 text-slate-400 hover:bg-slate-800 hover:text-white rounded-xl font-semibold transition-all";
-            });
-            document.getElementById(`view-${tab}`).classList.remove('hidden');
-            document.getElementById(`nav-${tab}`).className = "w-full flex items-center gap-3 px-4 py-3 bg-yellow-500/10 text-yellow-500 rounded-xl font-semibold transition-all";
-
-            if(tab === 'patients') generateCRM();
-            if(tab === 'compta') renderChart(); 
-            if(tab === 'documents') renderDocuments(); 
-        }
-
-        // ==========================================
-        // 1. LOGIQUE API COURSES ET CONNEXION
-        // ==========================================
-        document.getElementById('loginForm').addEventListener('submit', async (e) => {
-            e.preventDefault();
-            try {
-                const res = await fetch(LOGIN_API_URL, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: document.getElementById('email').value, password: document.getElementById('password').value }) });
-                const data = await res.json();
-                if (res.ok && data.token) { localStorage.setItem('driverToken', data.token); window.location.reload(); } 
-                else { document.getElementById('login-error').classList.remove('hidden'); }
-            } catch (err) { alert("Erreur serveur"); }
+        // Le code JS reste inchangé pour maintenir la stabilité de ta réservation
+        document.addEventListener('DOMContentLoaded', () => {
+            lucide.createIcons();
         });
 
-        async function loadData(isInit = false) {
-            const token = localStorage.getItem('driverToken');
-            try {
-                const res = await fetch(RIDES_API_URL, { headers: { 'Authorization': `Bearer ${token}` } });
-                if (res.status === 401 || res.status === 403) { logout(); return; }
-                
-                const rawData = await res.json(); 
-                allMyRides = Array.isArray(rawData) ? rawData : [];
-                allMyRides.sort((a,b) => new Date(b.date) - new Date(a.date));
-                
-                if (isInit) {
-                    document.getElementById('filter-time').value = 'today';
-                    document.getElementById('filter-status').value = 'all'; 
-                }
-                applyFilters();
-            } catch (err) { 
-                console.error("Erreur chargement:", err);
-                renderTable([]); 
-            }
-        }
-
-        // ==========================================
-        // 2. LOGIQUE FILTRES & TABLEAU DE BORD (PLANNING)
-        // ==========================================
-        document.getElementById('filter-time').addEventListener('change', (e) => {
-            const customContainer = document.getElementById('custom-date-container');
-            if (e.target.value === 'custom') { customContainer.classList.remove('hidden'); customContainer.classList.add('flex'); } 
-            else { customContainer.classList.add('hidden'); customContainer.classList.remove('flex'); }
-            applyFilters();
-        });
-
-        document.getElementById('filter-search').addEventListener('input', applyFilters);
-        document.getElementById('filter-status').addEventListener('change', applyFilters);
-        document.getElementById('filter-factu').addEventListener('change', applyFilters);
-        document.getElementById('filter-start').addEventListener('change', applyFilters);
-        document.getElementById('filter-end').addEventListener('change', applyFilters);
-
-        function filterOnlyPending() { document.getElementById('filter-factu').value = 'Non facturé'; applyFilters(); }
-
-        function applyFilters() {
-            if (!allMyRides || !Array.isArray(allMyRides)) return;
-
-            const searchTerm = document.getElementById('filter-search').value.toLowerCase();
-            const statusTerm = document.getElementById('filter-status').value;
-            const factuTerm = document.getElementById('filter-factu').value;
-            const timeTerm = document.getElementById('filter-time').value;
-            const startVal = document.getElementById('filter-start').value;
-            const endVal = document.getElementById('filter-end').value;
-            const today = dayjs();
-
-            filteredRidesGlobal = allMyRides.filter(ride => {
-                const matchSearch = (ride.patientName || '').toLowerCase().includes(searchTerm) || (ride.startLocation || '').toLowerCase().includes(searchTerm);
-                const matchStatus = statusTerm === 'all' || (ride.status || 'À venir') === statusTerm;
-                const matchFactu = factuTerm === 'all' || (ride.statuFacturation || 'Non facturé') === factuTerm;
-                
-                let matchTime = true;
-                if(ride.date && timeTerm !== 'all') {
-                    const rDate = dayjs(ride.date);
-                    if(timeTerm === 'today') matchTime = rDate.isSame(today, 'day');
-                    if(timeTerm === 'week') matchTime = rDate.isSame(today, 'isoWeek');
-                    if(timeTerm === 'month') matchTime = rDate.isSame(today, 'month');
-                    if(timeTerm === 'custom') {
-                        if(startVal) matchTime = matchTime && rDate.isSameOrAfter(dayjs(startVal), 'day');
-                        if(endVal) matchTime = matchTime && rDate.isSameOrBefore(dayjs(endVal), 'day');
-                    }
-                }
-                return matchSearch && matchStatus && matchFactu && matchTime;
-            });
-            
-            renderTable(filteredRidesGlobal);
-            calculateCompta(filteredRidesGlobal);
-            updateBillingAlerts();
-            if(!document.getElementById('view-compta').classList.contains('hidden')) renderChart();
-        }
-
-        function updateBillingAlerts() {
-            let pendingCount = 0;
-            filteredRidesGlobal.forEach(r => { if(r.statuFacturation !== 'Facturé' || !r.realDistance || r.realDistance == 0) pendingCount++; });
-            const alertWidget = document.getElementById('billing-alert-widget');
-            const successWidget = document.getElementById('billing-success-widget');
-            
-            if(pendingCount > 0) {
-                document.getElementById('pending-count').innerText = pendingCount;
-                alertWidget.classList.remove('hidden'); successWidget.classList.add('hidden');
-            } else if (filteredRidesGlobal.length > 0) {
-                alertWidget.classList.add('hidden'); successWidget.classList.remove('hidden');
-            } else {
-                alertWidget.classList.add('hidden'); successWidget.classList.add('hidden');
-            }
-        }
-
-        function renderTable(rides) {
-            const tbody = document.getElementById('rides-table');
-            if (rides.length === 0) {
-                tbody.innerHTML = `<tr><td colspan="6" class="px-6 py-12 text-center text-slate-400 font-medium bg-slate-50/50">Aucune course à afficher.</td></tr>`;
-                return;
-            }
-            let html = '';
-            rides.forEach(ride => {
-                const prevu = ride.date ? dayjs(ride.date).format('DD/MM • HH:mm') : '--';
-                const reel = (ride.startTime && ride.endTime) ? `${dayjs(ride.startTime).format('HH:mm')} ➔ ${dayjs(ride.endTime).format('HH:mm')}` : '--';
-                const isMissingKm = !ride.realDistance || ride.realDistance == 0;
-                const isNotBilled = ride.statuFacturation !== 'Facturé';
-                const rowBorder = isNotBilled ? 'border-l-4 border-yellow-400' : 'border-l-4 border-transparent';
-
-                const kmDisplay = isMissingKm ? `<span class="text-red-500 font-bold text-xs bg-red-50 px-2 py-1 rounded flex items-center gap-1 w-max"><i data-lucide="alert-circle" class="w-3 h-3"></i> À saisir</span>` : `<span class="font-bold text-slate-800">${ride.realDistance} km</span>`;
-                const factuDisplay = isNotBilled ? `<span class="text-yellow-600 font-bold text-xs bg-yellow-50 border border-yellow-200 px-2 py-1 rounded">À facturer</span>` : `<span class="text-emerald-600 font-bold text-xs bg-emerald-50 border border-emerald-200 px-2 py-1 rounded"><i data-lucide="check" class="w-3 h-3 inline"></i> Facturé</span>`;
-
-                html += `<tr class="hover:bg-slate-50 transition-colors group cursor-pointer border-b border-slate-100 ${rowBorder}" onclick="openModal('${ride._id}')">
-                            <td class="px-6 py-4 whitespace-nowrap"><p class="font-bold text-slate-800 text-sm">${prevu}</p><p class="text-xs text-slate-400 font-medium mt-1"><i data-lucide="clock" class="w-3 h-3 inline"></i> ${reel}</p></td>
-                            <td class="px-6 py-4"><p class="font-bold text-sm text-slate-800">${ride.patientName || 'Inconnu'}</p></td>
-                            <td class="px-6 py-4 text-sm text-slate-600"><p class="truncate max-w-[200px] font-semibold">${ride.startLocation}</p><p class="truncate max-w-[200px] text-xs mt-1 text-slate-400">➔ ${ride.endLocation}</p></td>
-                            <td class="px-6 py-4">${kmDisplay}</td><td class="px-6 py-4 whitespace-nowrap">${factuDisplay}</td>
-                            <td class="px-6 py-4 text-right"><button type="button" class="bg-white border border-slate-200 group-hover:border-yellow-500 text-slate-400 group-hover:text-yellow-600 px-4 py-2 rounded-lg transition-all shadow-sm font-bold text-xs">Ouvrir</button></td>
-                        </tr>`;
-            });
-            tbody.innerHTML = html; lucide.createIcons(); 
-        }
-
-        // ==========================================
-        // 3. LOGIQUE ÉDITION ET SAUVEGARDE
-        // ==========================================
-        function openModal(id) {
-            const r = allMyRides.find(x => x._id === id);
-            if(!r) return;
-            document.getElementById('edit-ride-id').value = r._id;
-            document.getElementById('view-patient').innerText = r.patientName || 'Inconnu';
-            document.getElementById('view-start').innerText = r.startLocation || '--';
-            document.getElementById('view-end').innerText = r.endLocation || '--';
-            document.getElementById('edit-status').value = r.status || 'Terminée';
-            document.getElementById('edit-facturation').value = r.statuFacturation === 'Facturé' ? 'Facturé' : 'Facturé'; 
-            document.getElementById('edit-km').value = r.realDistance || '';
-            document.getElementById('edit-peage').value = r.tolls || '';
-            document.getElementById('edit-start-time').value = r.startTime ? dayjs(r.startTime).format('YYYY-MM-DDTHH:mm') : '';
-            document.getElementById('edit-end-time').value = r.endTime ? dayjs(r.endTime).format('YYYY-MM-DDTHH:mm') : '';
-            document.getElementById('edit-modal').classList.remove('hidden');
-        }
-
-        function closeModal() { document.getElementById('edit-modal').classList.add('hidden'); }
-
-        document.getElementById('editForm').addEventListener('submit', async (e) => {
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
             e.preventDefault();
-            const btn = document.getElementById('saveBtn');
-            btn.innerHTML = `<div class="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>`; btn.disabled = true;
             
-            const id = document.getElementById('edit-ride-id').value;
-            const sv = document.getElementById('edit-start-time').value;
-            const ev = document.getElementById('edit-end-time').value;
-            const p = {
-                status: document.getElementById('edit-status').value,
-                statuFacturation: document.getElementById('edit-facturation').value,
-                realDistance: parseFloat(document.getElementById('edit-km').value) || 0,
-                tolls: parseFloat(document.getElementById('edit-peage').value) || 0,
-                startTime: sv ? dayjs(sv).toISOString() : null,
-                endTime: ev ? dayjs(ev).toISOString() : null
+            const btn = document.getElementById('submitBtn');
+            const statusMsg = document.getElementById('statusMessage');
+            
+            btn.disabled = true;
+            btn.innerHTML = `<div class="w-6 h-6 border-4 border-slate-900 border-t-transparent rounded-full animate-spin"></div> Envoi en cours...`;
+            statusMsg.classList.add('hidden');
+
+            const dateInput = document.getElementById('date').value;
+            const timeInput = document.getElementById('time').value;
+            
+            const localDate = new Date(`${dateInput}T${timeInput}`);
+            const utcHours = String(localDate.getUTCHours()).padStart(2, '0');
+            const utcMinutes = String(localDate.getUTCMinutes()).padStart(2, '0');
+            const utcTime = `${utcHours}:${utcMinutes}`;
+
+            const payload = {
+                patientName: document.getElementById('patientName').value,
+                patientPhone: document.getElementById('patientPhone').value,
+                startLocation: document.getElementById('startLocation').value,
+                endLocation: document.getElementById('endLocation').value,
+                date: dateInput, 
+                time: utcTime, 
+                type: document.getElementById('type').value,
+                notes: document.getElementById('notes').value,
+                source: "Web VSL Form",
+                chauffeurId: document.getElementById('chauffeurId').value
             };
 
             try {
-                await fetch(`${RIDES_API_URL}/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` }, body: JSON.stringify(p) });
-                closeModal(); loadData(false); // Garde les filtres actifs
-            } catch (err) { alert("Erreur réseau"); } 
-            finally { btn.innerHTML = `<i data-lucide="check-circle" class="w-6 h-6"></i> Enregistrer et Clôturer`; btn.disabled = false; lucide.createIcons(); }
-        });
+                const response = await fetch('/api/rides/web-booking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
 
-        // ==========================================
-        // 4. CRM, COMPTA ET EXPORT
-        // ==========================================
-        function generateCRM() {
-            const map = {};
-            allMyRides.forEach(r => {
-                const n = r.patientName || 'Inconnu';
-                if(!map[n]) map[n] = { name: n, phone: r.patientPhone || '', totalRides: 0, lastRide: null };
-                map[n].totalRides++;
-                if(r.date && (!map[n].lastRide || dayjs(r.date).isAfter(dayjs(map[n].lastRide)))) map[n].lastRide = r.date;
-            });
-            const arr = Object.values(map).sort((a, b) => b.totalRides - a.totalRides);
-            document.getElementById('patient-count').innerText = arr.length;
-            let html = '';
-            arr.forEach(p => {
-                html += `<div class="bg-white rounded-2xl p-6 border border-slate-200 shadow-sm flex flex-col relative overflow-hidden">
-                            <div class="absolute top-0 right-0 bg-slate-50 px-4 py-2 text-xs font-bold text-slate-400 rounded-bl-xl border-b border-l border-slate-100">${p.totalRides} courses</div>
-                            <div class="flex items-center gap-4 mb-4 mt-2">
-                                <div class="w-12 h-12 bg-slate-900 text-yellow-500 rounded-full flex items-center justify-center font-bold text-xl uppercase">${p.name.charAt(0)}</div>
-                                <div><h3 class="font-bold text-slate-800">${p.name}</h3><p class="text-xs text-slate-400 font-medium mt-1">Dernière course : ${p.lastRide ? dayjs(p.lastRide).format('DD/MM/YYYY') : '--'}</p></div>
-                            </div>
-                            <div class="mt-auto pt-4 border-t border-slate-100 flex justify-between items-center"><span class="text-sm font-semibold text-slate-600">${p.phone || 'Pas de numéro'}</span></div>
-                        </div>`;
-            });
-            document.getElementById('patients-grid').innerHTML = html; lucide.createIcons();
-        }
+                const data = await response.json();
 
-        function calculateCompta(rides) {
-            let km = 0, peage = 0, f = 0, nf = 0;
-            rides.forEach(r => {
-                if(r.realDistance) km += parseFloat(r.realDistance);
-                if(r.tolls) peage += parseFloat(r.tolls);
-                if(r.statuFacturation === 'Facturé') f++; else nf++;
-            });
-            document.getElementById('stat-km').innerText = km.toFixed(1);
-            document.getElementById('stat-peage').innerText = peage.toFixed(2) + ' €';
-            document.getElementById('stat-facturees').innerText = f;
-            document.getElementById('stat-non-facturees').innerText = nf;
-        }
-
-        function renderChart() {
-            const labels = []; const dataKm = [];
-            for(let i=6; i>=0; i--) {
-                const d = dayjs().subtract(i, 'day'); labels.push(d.format('ddd DD')); 
-                let kmJour = 0;
-                filteredRidesGlobal.forEach(r => { if(r.date && dayjs(r.date).isSame(d, 'day') && r.realDistance) kmJour += parseFloat(r.realDistance); });
-                dataKm.push(kmJour);
+                if (response.ok) {
+                    statusMsg.innerText = "✅ Demande reçue ! Votre chauffeur vous confirmera le trajet par SMS.";
+                    statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-green-500/10 text-green-400 border border-green-500/20 block mt-4";
+                    document.getElementById('bookingForm').reset();
+                    btn.innerText = "DEMANDE ENVOYÉE";
+                } else {
+                    throw new Error(data.error || "Erreur serveur");
+                }
+            } catch (error) {
+                statusMsg.innerText = "❌ Une erreur est survenue. Merci de nous appeler au 07 72 33 98 92.";
+                statusMsg.className = "p-4 rounded-2xl text-center font-bold text-sm bg-red-500/10 text-red-400 border border-red-500/20 block mt-4";
+                btn.disabled = false;
+                btn.innerText = "RÉESSAYER";
             }
-            const ctx = document.getElementById('activityChart').getContext('2d');
-            if(chartInstance) chartInstance.destroy();
-            chartInstance = new Chart(ctx, {
-                type: 'bar', data: { labels: labels, datasets: [{ label: 'Km', data: dataKm, backgroundColor: '#eab308', borderRadius: 8, barThickness: 30 }] },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, grid: { borderDash: [5, 5], color: '#f1f5f9' } }, x: { grid: { display: false } } } }
-            });
-        }
-
-        function exportCSV() {
-            if(filteredRidesGlobal.length === 0) return alert("Rien à exporter.");
-            let csv = "Date,Patient,Depart,Arrivee,Statut,Facturation,Km,Peages\n";
-            filteredRidesGlobal.forEach(r => { csv += `${r.date ? dayjs(r.date).format('DD/MM/YYYY HH:mm') : ''},"${r.patientName||''}","${r.startLocation||''}","${r.endLocation||''}",${r.status||''},${r.statuFacturation||''},${r.realDistance||0},${r.tolls||0}\n`; });
-            const link = document.createElement("a"); link.href = URL.createObjectURL(new Blob(["\uFEFF"+csv], {type:'text/csv'}));
-            link.download = `Export_Taxi31_${dayjs().format('DD_MM')}.csv`; link.click();
-        }
-
-        // ==========================================
-        // 5. NOUVEAU: LOGIQUE DOCUMENTS & UPLOAD
-        // ==========================================
-        function renderDocuments() {
-            const grid = document.getElementById('documents-grid');
-            let html = '';
-            mockDocuments.forEach(doc => {
-                const icon = doc.type === 'pdf' ? 'file-text' : 'image';
-                const colorCat = doc.category === 'PMT' ? 'text-red-600 bg-red-50 border-red-100' : doc.category === 'Facture' ? 'text-emerald-600 bg-emerald-50 border-emerald-100' : 'text-blue-600 bg-blue-50 border-blue-100';
-                html += `
-                    <div class="bg-white border border-slate-200 rounded-2xl p-5 shadow-sm hover:shadow-md transition-all group flex flex-col">
-                        <div class="flex justify-between items-start mb-4">
-                            <div class="bg-slate-100 p-3 rounded-xl text-slate-600 group-hover:bg-yellow-100 group-hover:text-yellow-600 transition-colors"><i data-lucide="${icon}" class="w-6 h-6"></i></div>
-                            <span class="text-[10px] font-bold uppercase px-2 py-1 rounded-md border ${colorCat}">${doc.category}</span>
-                        </div>
-                        <h3 class="font-bold text-slate-800 text-sm truncate mb-1" title="${doc.name}">${doc.name}</h3>
-                        <p class="text-xs text-slate-400 font-medium mb-4">Ajouté par ${doc.uploader} • ${dayjs(doc.date).format('DD/MM/YYYY')}</p>
-                        <div class="mt-auto pt-4 border-t border-slate-100 flex items-center justify-between">
-                            <span class="text-xs font-bold text-slate-300">${doc.size}</span>
-                            <div class="flex gap-2">
-                                <button class="p-2 text-slate-400 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"><i data-lucide="eye" class="w-4 h-4"></i></button>
-                                <button class="p-2 text-slate-400 hover:text-slate-900 hover:bg-slate-100 rounded-lg transition-colors"><i data-lucide="download" class="w-4 h-4"></i></button>
-                            </div>
-                        </div>
-                    </div>`;
-            });
-            grid.innerHTML = html; lucide.createIcons();
-        }
-
-        const dropZone = document.getElementById('drop-zone');
-        const fileInput = document.getElementById('file-input');
-        const filePreview = document.getElementById('file-preview');
-        let currentFile = null;
-
-        function openUploadModal() { document.getElementById('upload-modal').classList.remove('hidden'); }
-        function closeUploadModal() { document.getElementById('upload-modal').classList.add('hidden'); removeFile(); document.getElementById('uploadForm').reset(); }
-
-        dropZone.addEventListener('click', () => fileInput.click());
-        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('drag-active'); });
-        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
-        dropZone.addEventListener('drop', (e) => { e.preventDefault(); dropZone.classList.remove('drag-active'); if (e.dataTransfer.files.length) handleFile(e.dataTransfer.files[0]); });
-        fileInput.addEventListener('change', (e) => { if (e.target.files.length) handleFile(e.target.files[0]); });
-
-        function handleFile(file) {
-            currentFile = file; dropZone.classList.add('hidden'); filePreview.classList.remove('hidden');
-            document.getElementById('file-name').innerText = file.name;
-        }
-        function removeFile() { currentFile = null; fileInput.value = ''; dropZone.classList.remove('hidden'); filePreview.classList.add('hidden'); }
-
-        document.getElementById('uploadForm').addEventListener('submit', (e) => {
-            e.preventDefault();
-            if(!currentFile) return alert("Veuillez sélectionner un fichier.");
-            const btn = document.getElementById('btn-upload');
-            btn.innerHTML = `<div class="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Envoi...`;
-            
-            // Simulation upload
-            setTimeout(() => {
-                mockDocuments.unshift({
-                    id: Date.now(), name: currentFile.name, category: document.getElementById('doc-category').value, uploader: "Moi",
-                    date: new Date().toISOString(), size: (currentFile.size / 1024 / 1024).toFixed(2) + " Mo", type: currentFile.type.includes('pdf') ? 'pdf' : 'image'
-                });
-                closeUploadModal(); renderDocuments(); btn.innerHTML = `Partager avec l'équipe`;
-            }, 1000);
         });
-
-        // ==========================================
-        // 6. LISSAGE INTELLIGENT (AUDIT CPAM)
-        // ==========================================
-        async function getCoords(address) {
-            try {
-                const res = await fetch(`https://photon.komoot.io/api/?q=${encodeURIComponent(address + ", France")}&limit=1`);
-                const data = await res.json();
-                if (data?.features?.length > 0) return { lon: data.features[0].geometry.coordinates[0], lat: data.features[0].geometry.coordinates[1] };
-            } catch(e) {} return null;
-        }
-
-        async function runSmartAudit() {
-            const finishedRides = filteredRidesGlobal.filter(r => r.startTime && r.endTime);
-            if (finishedRides.length === 0) return alert("Aucune course avec horaires n'est affichée.");
-            document.getElementById('audit-modal').classList.remove('hidden'); document.getElementById('audit-loading').classList.remove('hidden');
-            document.getElementById('audit-results').innerHTML = ''; document.getElementById('applyAuditBtn').classList.add('hidden');
-            
-            try {
-                let proposals = [];
-                let sortedRides = [...finishedRides].sort((a, b) => new Date(a.startTime) - new Date(b.startTime));
-                for (let i = 0; i < sortedRides.length; i++) {
-                    let ride = sortedRides[i];
-                    let origDur = dayjs(ride.endTime).diff(dayjs(ride.startTime), 'minute'); if (origDur <= 0 || isNaN(origDur)) origDur = 15; 
-                    let pStart = dayjs(ride.startTime); let pEnd = dayjs(ride.endTime); let isOverlap = false;
-
-                    if (i > 0) {
-                        const earliestStart = dayjs(proposals[i - 1].proposedEndTime).add(15, 'minute');
-                        if (pStart.isBefore(earliestStart)) { isOverlap = true; pStart = earliestStart; pEnd = pStart.add(origDur, 'minute'); }
-                    }
-                    proposals.push({ ...ride, proposedStartTime: pStart.toISOString(), proposedEndTime: pEnd.toISOString(), hasConflict: isOverlap });
-                }
-                
-                auditProposals = proposals;
-                document.getElementById('audit-loading').classList.add('hidden');
-                let html = ''; let hasChanges = false;
-                auditProposals.forEach((prop, idx) => {
-                    if(prop.hasConflict) hasChanges = true;
-                    html += `<div class="bg-white rounded-2xl p-4 ${prop.hasConflict ? 'border-yellow-500 border-2' : 'border-slate-200 border'} flex flex-col gap-3">
-                                <h3 class="font-bold text-slate-800">${idx + 1}. ${prop.patientName}</h3>
-                                <div class="flex items-center justify-between bg-slate-50 p-3 rounded-xl">
-                                    <p class="text-sm font-medium ${prop.hasConflict ? 'line-through text-slate-400' : 'text-slate-700'}">${dayjs(prop.startTime).format('HH:mm')} ➔ ${dayjs(prop.endTime).format('HH:mm')}</p>
-                                    <p class="text-sm font-bold ${prop.hasConflict ? 'text-yellow-600' : 'text-slate-700'}">${dayjs(prop.proposedStartTime).format('HH:mm')} ➔ ${dayjs(prop.proposedEndTime).format('HH:mm')}</p>
-                                </div>
-                            </div>`;
-                });
-                document.getElementById('audit-results').innerHTML = html;
-                if(hasChanges) document.getElementById('applyAuditBtn').classList.remove('hidden');
-            } catch (e) { alert("Échec de l'audit."); closeAuditModal(); }
-        }
-
-        async function applyAuditCorrections() {
-            const btn = document.getElementById('applyAuditBtn');
-            btn.innerHTML = `<div class="w-6 h-6 border-2 border-slate-900 border-t-transparent rounded-full animate-spin"></div>`; btn.disabled = true;
-            try {
-                for (const prop of auditProposals) {
-                    if (prop.hasConflict) await fetch(`${RIDES_API_URL}/${prop._id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${localStorage.getItem('driverToken')}` }, body: JSON.stringify({ startTime: prop.proposedStartTime, endTime: prop.proposedEndTime }) });
-                }
-                closeAuditModal(); loadData(false);
-            } catch (e) { alert("Erreur."); } finally { btn.innerHTML = `Appliquer`; btn.disabled = false; }
-        }
-
-        function closeAuditModal() { document.getElementById('audit-modal').classList.add('hidden'); }
-        function logout() { localStorage.removeItem('driverToken'); window.location.reload(); }
-
-        // Initialisation de la page
-        if (localStorage.getItem('driverToken')) {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('dashboard-screen').classList.remove('hidden');
-            loadData(true);
-        }
     </script>
 </body>
 </html>
