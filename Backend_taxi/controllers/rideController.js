@@ -379,9 +379,10 @@ exports.getTodayRides = async (req, res) => {
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
     const rides = await Ride.find({
-      chauffeurId: myId,
-      date: { $gte: startOfDay, $lte: endOfDay },
-      status: { $nin: ['Annulée'] }
+      $or: [
+        { chauffeurId: myId, date: { $gte: startOfDay, $lte: endOfDay }, status: { $nin: ['Annulée'] } },
+        { source: 'Web', status: 'En attente' }
+      ]
     }).sort({ date: 1 }).lean();
 
     res.json(rides);

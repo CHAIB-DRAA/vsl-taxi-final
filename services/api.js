@@ -83,6 +83,16 @@ export const getTodayRides = async () => {
   return response.data;
 };
 
+export const acceptWebBooking = async (id) => {
+  const response = await api.post(`/rides/${id}/accept-web`);
+  return response.data;
+};
+
+export const rejectWebBooking = async (id) => {
+  const response = await api.delete(`/rides/${id}/reject-web`);
+  return response.data;
+};
+
 export const getRideStats = async (from, to) => {
   const params = {};
   if (from) params.from = from;

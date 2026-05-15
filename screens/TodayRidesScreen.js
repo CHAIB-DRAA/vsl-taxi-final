@@ -6,7 +6,7 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import 'moment/locale/fr';
-import { getTodayRides, startRideById, finishRideById, cancelRideById } from '../services/api';
+import { getTodayRides, startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
 
 const C = {
   bg:     '#F2F3F7',
@@ -108,6 +108,38 @@ export default function TodayRidesScreen() {
     setCancelReason('');
   };
 
+  const handleAcceptWeb = async (id) => {
+    Alert.alert('Accepter la course ?', 'La demande web sera ajoutée à votre planning.', [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Accepter ✓', onPress: async () => {
+          try {
+            const updated = await acceptWebBooking(id);
+            setRides(prev => prev.map(r => r._id === id ? updated.ride : r));
+          } catch {
+            Alert.alert('Erreur', 'Impossible d\'accepter la demande.');
+          }
+        }
+      },
+    ]);
+  };
+
+  const handleRejectWeb = async (id, patientName) => {
+    Alert.alert('Refuser la demande ?', `Refuser la course de ${patientName} ? Elle sera supprimée.`, [
+      { text: 'Annuler', style: 'cancel' },
+      {
+        text: 'Refuser', style: 'destructive', onPress: async () => {
+          try {
+            await rejectWebBooking(id);
+            setRides(prev => prev.filter(r => r._id !== id));
+          } catch {
+            Alert.alert('Erreur', 'Impossible de refuser la demande.');
+          }
+        }
+      },
+    ]);
+  };
+
   const submitCancel = async () => {
     try {
       const updated = await cancelRideById(cancelModal.rideId, cancelReason);
@@ -120,24 +152,37 @@ export default function TodayRidesScreen() {
 
   const renderItem = ({ item }) => {
     const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG['À venir'];
-    const isFinished = item.status === 'Terminée';
+    const isFinished  = item.status === 'Terminée';
     const isCancelled = item.status === 'Annulée';
-    const isActive = item.status === 'En cours';
+    const isActive    = item.status === 'En cours';
+    const isWebPending = item.source === 'Web' && item.status === 'En attente';
 
     const duration = isFinished && item.startTime && item.endTime
       ? moment(item.endTime).diff(moment(item.startTime), 'minutes')
       : null;
 
-    const accentColor = isCancelled ? C.red : isFinished ? C.text3 : isActive ? C.green : C.border;
+    const accentColor = isWebPending ? '#D97706'
+      : isCancelled ? C.red
+      : isFinished  ? C.text3
+      : isActive    ? C.green
+      : C.border;
 
     return (
-      <View style={[styles.card, { borderLeftColor: accentColor }]}>
+      <View style={[styles.card, { borderLeftColor: accentColor, borderLeftWidth: isWebPending ? 4 : 3 }]}>
+
+        {/* BANDEAU DEMANDE WEB */}
+        {isWebPending && (
+          <View style={styles.webBanner}>
+            <Ionicons name="globe-outline" size={13} color="#92400E" />
+            <Text style={styles.webBannerText}>DEMANDE VIA LE SITE WEB — À TRAITER</Text>
+          </View>
+        )}
 
         {/* HEADER : heure + statut */}
         <View style={styles.cardHeader}>
           <View>
             <Text style={[styles.timeText, (isFinished || isCancelled) && styles.dimmed]}>
-              {moment(item.date).format('HH:mm')}
+              {moment(item.date).format(isWebPending ? 'ddd D MMM · HH:mm' : 'HH:mm')}
             </Text>
             {isActive && (
               <View style={styles.liveRow}>
@@ -146,10 +191,12 @@ export default function TodayRidesScreen() {
               </View>
             )}
           </View>
-          <View style={[styles.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.color + '44' }]}>
-            <Ionicons name={cfg.icon} size={12} color={cfg.color} />
-            <Text style={[styles.statusText, { color: cfg.color }]}>{item.status}</Text>
-          </View>
+          {!isWebPending && (
+            <View style={[styles.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.color + '44' }]}>
+              <Ionicons name={cfg.icon} size={12} color={cfg.color} />
+              <Text style={[styles.statusText, { color: cfg.color }]}>{item.status}</Text>
+            </View>
+          )}
         </View>
 
         {/* PATIENT */}
@@ -214,8 +261,22 @@ export default function TodayRidesScreen() {
           </View>
         ) : null}
 
-        {/* ACTIONS */}
-        {!isFinished && !isCancelled && (
+        {/* ACTIONS DEMANDE WEB */}
+        {isWebPending && (
+          <View style={styles.webActions}>
+            <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)}>
+              <Ionicons name="checkmark" size={18} color="#FFF" />
+              <Text style={styles.btnAcceptText}>Accepter</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.btnReject} onPress={() => handleRejectWeb(item._id, item.patientName)}>
+              <Ionicons name="close" size={18} color={C.red} />
+              <Text style={styles.btnRejectText}>Refuser</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ACTIONS NORMALES */}
+        {!isFinished && !isCancelled && !isWebPending && (
           <View style={styles.actions}>
             {!isActive ? (
               <TouchableOpacity style={styles.btnStart} onPress={() => handleStart(item._id)}>
@@ -469,6 +530,31 @@ const styles = StyleSheet.create({
     width: 44, height: 44, justifyContent: 'center', alignItems: 'center',
     backgroundColor: C.red + '11', borderRadius: 12, borderWidth: 1, borderColor: C.red + '33',
   },
+
+  // Demande web
+  webBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#FEF3C7', borderRadius: 8,
+    paddingHorizontal: 10, paddingVertical: 6,
+    marginBottom: 12,
+  },
+  webBannerText: {
+    fontSize: 10, fontWeight: '800', color: '#92400E', letterSpacing: 0.4,
+  },
+  webActions: {
+    flexDirection: 'row', gap: 10, marginTop: 14,
+  },
+  btnAccept: {
+    flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: '#16A34A', paddingVertical: 14, borderRadius: 12, gap: 8,
+  },
+  btnAcceptText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  btnReject: {
+    flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    backgroundColor: C.red + '11', paddingVertical: 14, borderRadius: 12, gap: 8,
+    borderWidth: 1, borderColor: C.red + '33',
+  },
+  btnRejectText: { color: C.red, fontWeight: '800', fontSize: 14 },
 
   empty: { alignItems: 'center', paddingTop: 80 },
   emptyCircle: {
