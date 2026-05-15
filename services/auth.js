@@ -1,18 +1,20 @@
 import axios from 'axios';
-const API_URL = 'https://vsl-taxi.onrender.com/api/rides';
+
+const BASE_URL = 'https://vsl-taxi.onrender.com/api/user';
+
 export const signUp = async (email, fullName, password) => {
-  const res = await axios.post(`${API_URL}/signup`, { email, fullName, password });
+  const res = await axios.post(`${BASE_URL}/signup`, { email, fullName, password });
   return res.data;
 };
 
 export const signIn = async (email, password) => {
-  const res = await axios.post(`${API_URL}/signin`, { email, password });
-  return res.data.user; // renvoie user pour session
-  token: res.data.token    // le token JWT renvoyé par le backend
-
+  const res = await axios.post(`${BASE_URL}/login`, { email, password });
+  return { user: res.data.user, token: res.data.token };
 };
 
-export const getCurrentSession = async () => {
-  const res = await axios.get(`${API_URL}/session`);
-  return res.data.user || null;
+export const getCurrentSession = async (token) => {
+  const res = await axios.get(`${BASE_URL}/profile`, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+  return res.data;
 };

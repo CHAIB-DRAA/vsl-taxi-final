@@ -7,7 +7,7 @@ const API_URL = 'https://vsl-taxi.onrender.com/api';
 // 1. Création de l'instance Axios
 const api = axios.create({
   baseURL: API_URL,
-  timeout: 15000, // On laisse un peu de temps (15s) pour les connexions lentes
+  timeout: 30000,
   headers: {
     'Content-Type': 'application/json',
   },
@@ -63,6 +63,34 @@ export const shareRide = async (rideId, contactId, note) => {
   return response.data;
 };
 
+export const startRideById = async (id) => {
+  const response = await api.patch(`/rides/${id}/start`);
+  return response.data;
+};
+
+export const finishRideById = async (id, realDistance, tolls = 0) => {
+  const response = await api.patch(`/rides/${id}/finish`, { realDistance, tolls });
+  return response.data;
+};
+
+export const cancelRideById = async (id, reason = '') => {
+  const response = await api.patch(`/rides/${id}/cancel`, { reason });
+  return response.data;
+};
+
+export const getTodayRides = async () => {
+  const response = await api.get('/rides/today');
+  return response.data;
+};
+
+export const getRideStats = async (from, to) => {
+  const params = {};
+  if (from) params.from = from;
+  if (to) params.to = to;
+  const response = await api.get('/rides/stats', { params });
+  return response.data;
+};
+
 // --- PATIENTS ---
 export const getPatients = async () => {
   // L'erreur 401 venait souvent d'ici car cette route est protégée
@@ -75,6 +103,16 @@ export const createPatient = async (patientData) => {
   return response.data;
 };
 
+export const updatePatient = async (id, updates) => {
+  const response = await api.put(`/patients/${id}`, updates);
+  return response.data;
+};
+
+export const deletePatient = async (id) => {
+  const response = await api.delete(`/patients/${id}`);
+  return response.data;
+};
+
 // --- GROUPES & CONTACTS ---
 export const getGroups = async () => {
   const response = await api.get('/groups');
@@ -83,9 +121,7 @@ export const getGroups = async () => {
 
 // Pour récupérer la liste des collègues/contacts (utilisé dans le partage)
 export const getContacts = async () => {
-  // Vérifie si ta route backend est bien /user/contacts ou juste /users
-  // Par défaut je mets /user/contacts comme souvent configuré
-  const response = await api.get('/user/contacts'); 
+  const response = await api.get('/contacts');
   return response.data;
 };
 

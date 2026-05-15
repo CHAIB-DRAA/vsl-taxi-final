@@ -23,14 +23,22 @@ const rideSchema = mongoose.Schema({
   startTime: { type: Date }, 
   endTime: { type: Date },   
   // 'À venir' pour les courses normales, 'En attente' pour le web ou les partages non validés
-  status: { type: String, default: 'En attente' }, 
+  status: {
+    type: String,
+    enum: ['En attente', 'À venir', 'En cours', 'Terminée', 'Annulée'],
+    default: 'En attente'
+  },
+  cancelReason: { type: String, default: '' },
 
-  // --- NOUVEAU : ORIGINE DE LA COURSE ---
-  // Permet de savoir si ça vient de l'application ou du site internet (Formulaire patient)
   source: { type: String, enum: ['App', 'Web'], default: 'App' },
-  
-  // NOUVEAU : Notes additionnelles (pratique pour les infos du formulaire Web)
+
   notes: { type: String, default: '' },
+  motif: {
+    type: String,
+    enum: ['Consultation', 'Traitement', 'Hospitalisation', 'HDJ', 'Urgence', 'Autre'],
+    default: 'Consultation',
+  },
+  price: { type: Number, default: 0 },
 
   // --- DONNÉES CPAM (Facturation) ---
   realDistance: { type: Number }, 
@@ -43,5 +51,10 @@ const rideSchema = mongoose.Schema({
   shareNote: { type: String, default: '' } 
 
 }, { timestamps: true });
+
+// Index composés pour les requêtes fréquentes (évite les full-collection scans)
+rideSchema.index({ chauffeurId: 1, date: -1 });               // getTodayRides, getRides
+rideSchema.index({ chauffeurId: 1, status: 1, date: -1 });    // getStats, filtres
+rideSchema.index({ source: 1, status: 1 });                   // demandes web en attente
 
 module.exports = mongoose.model('Ride', rideSchema);

@@ -75,30 +75,51 @@ const RideHistoryCard = ({ item, hasConflict, onPress }) => {
 
 export default memo(RideHistoryCard);
 
+const C = {
+  bg: '#F2F3F7', card: '#FFFFFF', card2: '#F5F7FB',
+  border: '#E2E5EC', text: '#111827', text2: '#6B7280', text3: '#9CA3AF',
+  brand: '#FF6B00', green: '#16A34A', red: '#EF4444',
+};
+
 const styles = StyleSheet.create({
-  card: { backgroundColor: '#FFF', borderRadius: 16, marginBottom: 12, elevation: 2, padding: 15, borderLeftWidth: 4, borderLeftColor: 'transparent' },
-  cardConflicting: { borderLeftColor: '#D32F2F', backgroundColor: '#FFF0F0' }, 
+  card: {
+    backgroundColor: C.card, borderRadius: 16, marginBottom: 10,
+    padding: 14, borderLeftWidth: 3, borderLeftColor: 'transparent',
+    borderWidth: 1, borderColor: C.border,
+  },
+  cardConflicting: { borderLeftColor: C.red, backgroundColor: '#FFF1F2' },
   cardContent: { flexDirection: 'row', alignItems: 'center' },
-  
-  // 👈 MODIFIÉ : J'ai élargi un peu la colonne pour que "JJ/MM/AAAA" rentre parfaitement
-  dateCol: { alignItems: 'center', paddingRight: 15, borderRightWidth: 1, borderRightColor: '#F0F0F0', width: 85 }, 
-  
-  dayText: { fontSize: 18, fontWeight: 'bold', color: '#333' }, 
-  // 👈 MODIFIÉ : J'ai mis la date en orange pour bien la faire ressortir
-  monthText: { fontSize: 11, color: '#FF6B00', fontWeight: 'bold', marginTop: 4 }, 
-  
-  detailsCol: { flex: 1, paddingLeft: 15 },
-  patientName: { fontSize: 16, fontWeight: 'bold', color: '#333', flex:1 },
-  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 6, gap: 10 },
-  typeBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#e6f0fa', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6 },
-  typeBadgeText: { fontSize: 11, color: '#0056b3', fontWeight: 'bold', textTransform: 'capitalize' },
+
+  dateCol: {
+    alignItems: 'center', paddingRight: 14,
+    borderRightWidth: 1, borderRightColor: C.border, width: 82,
+  },
+  dayText: { fontSize: 18, fontWeight: '800', color: C.text },
+  monthText: { fontSize: 11, color: C.brand, fontWeight: '700', marginTop: 3 },
+
+  detailsCol: { flex: 1, paddingLeft: 14 },
+  patientName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1 },
+  infoRow: { flexDirection: 'row', alignItems: 'center', marginTop: 5, gap: 8 },
+  typeBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#EFF6FF', paddingHorizontal: 6, paddingVertical: 2, borderRadius: 6,
+  },
+  typeBadgeText: { fontSize: 11, color: '#2563EB', fontWeight: '700', textTransform: 'capitalize' },
   timeEndBox: { flexDirection: 'row', alignItems: 'center' },
-  rideInfoText: { fontSize: 13, color: '#666' },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  priceTextList: { fontSize: 16, fontWeight: 'bold', color: '#2E7D32' },
-  billedBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#E8F5E9', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  billedText: { fontSize: 11, fontWeight: 'bold', color: '#2E7D32' },
-  pendingText: { fontSize: 11, color: '#F57C00', fontStyle: 'italic' },
-  conflictBadge: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFEBEE', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-  conflictBadgeText: { fontSize: 11, fontWeight: 'bold', color: '#D32F2F' },
+  rideInfoText: { fontSize: 12, color: C.text2 },
+  metaRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 8 },
+  priceTextList: { fontSize: 15, fontWeight: '800', color: C.green },
+  billedBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+    borderWidth: 1, borderColor: '#BBF7D0',
+  },
+  billedText: { fontSize: 11, fontWeight: '700', color: C.green },
+  pendingText: { fontSize: 11, color: C.brand, fontStyle: 'italic', fontWeight: '600' },
+  conflictBadge: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: '#FFF1F2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8,
+    borderWidth: 1, borderColor: '#FECACA',
+  },
+  conflictBadgeText: { fontSize: 11, fontWeight: '700', color: C.red },
 });

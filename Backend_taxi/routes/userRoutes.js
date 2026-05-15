@@ -1,128 +1,122 @@
 const express = require('express');
 const router = express.Router();
-const crypto = require('crypto'); // Pour générer le token aléatoire
-const bcrypt = require('bcrypt'); // 👈 AJOUTÉ : Pour hacher le mot de passe lors du reset
-const User = require('../models/User'); // Import du modèle User
-const sendEmail = require('../utils/emailService'); // Import du service Email
+const crypto = require('crypto');
+const bcrypt = require('bcrypt');
+const User = require('../models/User');
+const sendEmail = require('../utils/emailService');
 const authMiddleware = require('../middleware/auth');
+const { createLimiter } = require('../middleware/rateLimiter');
 
-// Import de tous vos contrôleurs (y compris le nouveau getMyContacts)
-const { 
-    signupUser, 
-    loginUser, 
-    addContact,
-    getMyContacts, // 👈 AJOUTÉ : Import indispensable
-    searchUsers,
-    getProfile,
-    updateProfile,
-    getUsers
+const {
+  signupUser,
+  loginUser,
+  addContact,
+  getMyContacts,
+  searchUsers,
+  getProfile,
+  updateProfile,
+  getUsers
 } = require('../controllers/userController');
 
+// Rate limiters
+const authLimiter  = createLimiter({ windowMs: 15 * 60 * 1000, max: 10, message: 'Trop de tentatives de connexion. Réessayez dans 15 minutes.' });
+const resetLimiter = createLimiter({ windowMs: 60 * 60 * 1000, max: 5,  message: 'Trop de demandes de réinitialisation. Réessayez dans 1 heure.' });
+
 // ==========================================
-// 1. ROUTES D'AUTHENTIFICATION & USER
+// AUTHENTIFICATION
 // ==========================================
 
-router.post('/signup', signupUser);
-router.post('/login', loginUser);
+router.post('/signup', authLimiter, signupUser);
+router.post('/login',  authLimiter, loginUser);
 
-// --- Routes Protégées (Token requis) ---
+// ==========================================
+// GESTION DES UTILISATEURS (protégées)
+// ==========================================
 
-// Récupérer tous les users (pour dev ou admin)
-router.get('/users', authMiddleware, getUsers);
-
-// Contacts
+router.get('/users',    authMiddleware, getUsers);
+router.get('/contacts', authMiddleware, getMyContacts);
 router.post('/addContact', authMiddleware, addContact);
-router.get('/contacts', authMiddleware, getMyContacts); // 👈 AJOUTÉ : La route qui manquait (Erreur 404)
-
-// Recherche & Profil
-router.get('/search', authMiddleware, searchUsers);
-router.get('/profile', authMiddleware, getProfile);
-router.put('/profile', authMiddleware, updateProfile);
-
+router.get('/search',   authMiddleware, searchUsers);
+router.get('/profile',  authMiddleware, getProfile);
+router.put('/profile',  authMiddleware, updateProfile);
 
 // ==========================================
-// 2. SÉCURITÉ : MOT DE PASSE OUBLIÉ
+// MOT DE PASSE OUBLIÉ
 // ==========================================
 
-// --- DEMANDE (Envoi Email) ---
-router.post('/forgot-password', async (req, res) => {
-    const { email } = req.body;
-    console.log("📨 Demande Reset pour :", email);
+router.post('/forgot-password', resetLimiter, async (req, res) => {
+  const { email } = req.body;
+  if (!email) return res.status(400).json({ message: "Email requis." });
+
+  try {
+    const user = await User.findOne({
+      email: { $regex: new RegExp(`^${email.trim()}$`, 'i') }
+    });
+
+    // On répond toujours avec le même message pour éviter l'énumération de comptes
+    if (!user) {
+      return res.json({ message: 'Si ce compte existe, un email a été envoyé.' });
+    }
+
+    const resetToken = crypto.randomBytes(3).toString('hex').toUpperCase();
+    user.resetPasswordToken = resetToken;
+    user.resetPasswordExpires = Date.now() + 3_600_000; // 1h
+    await user.save();
 
     try {
-        // Recherche insensible à la casse
-        const user = await User.findOne({ 
-            email: { $regex: new RegExp(`^${email}$`, 'i') } 
-        });
-
-        if (!user) {
-            return res.status(404).json({ message: "Aucun compte avec cet email." });
-        }
-
-        // Générer le token
-        const resetToken = crypto.randomBytes(3).toString('hex').toUpperCase();
-
-        // Sauvegarder le token + expiration (1h)
-        user.resetPasswordToken = resetToken;
-        user.resetPasswordExpires = Date.now() + 3600000; 
-        await user.save(); 
-
-        // Envoyer l'email
-        try {
-            await sendEmail({
-                email: user.email,
-                subject: 'Code de réinitialisation Taxi App',
-                message: `Votre code est : ${resetToken}`,
-                token: resetToken
-            });
-            res.json({ message: 'Email envoyé ! Vérifiez vos spams.' });
-        } catch (err) {
-            // Nettoyage si erreur email
-            user.resetPasswordToken = undefined;
-            user.resetPasswordExpires = undefined;
-            await user.save();
-            return res.status(500).json({ message: "Erreur lors de l'envoi de l'email." });
-        }
-
-    } catch (error) {
-        console.error("Erreur Forgot:", error);
-        res.status(500).json({ message: error.message });
+      await sendEmail({
+        email: user.email,
+        subject: 'Code de réinitialisation – Taxi App',
+        message: `Votre code de réinitialisation est :`,
+        token: resetToken
+      });
+    } catch {
+      user.resetPasswordToken = undefined;
+      user.resetPasswordExpires = undefined;
+      await user.save();
+      return res.status(500).json({ message: "Erreur lors de l'envoi de l'email." });
     }
+
+    res.json({ message: 'Si ce compte existe, un email a été envoyé.' });
+
+  } catch (error) {
+    console.error("Erreur forgot-password:", error);
+    res.status(500).json({ message: "Erreur serveur." });
+  }
 });
 
-// --- VALIDATION (Changement du mot de passe) ---
-router.post('/reset-password', async (req, res) => {
-    const { resetToken, newPassword } = req.body;
+router.post('/reset-password', resetLimiter, async (req, res) => {
+  const { resetToken, newPassword } = req.body;
 
-    try {
-        // Chercher l'utilisateur avec ce token ET date valide
-        const user = await User.findOne({
-            resetPasswordToken: resetToken,
-            resetPasswordExpires: { $gt: Date.now() }
-        });
+  if (!resetToken || !newPassword) {
+    return res.status(400).json({ message: 'Code et nouveau mot de passe requis.' });
+  }
 
-        if (!user) {
-            return res.status(400).json({ message: 'Code invalide ou expiré.' });
-        }
+  if (newPassword.length < 8) {
+    return res.status(400).json({ message: 'Le mot de passe doit contenir au moins 8 caractères.' });
+  }
 
-        // 🔒 CRYPTAGE MANUEL DU MOT DE PASSE
-        // Comme nous n'avons plus le "pre('save')" dans le modèle, 
-        // nous devons le faire ici, sinon le mot de passe sera en clair.
-        const hashedPassword = await bcrypt.hash(newPassword, 10);
-        user.password = hashedPassword;
-        
-        // Nettoyage des tokens
-        user.resetPasswordToken = undefined;
-        user.resetPasswordExpires = undefined;
+  try {
+    const user = await User.findOne({
+      resetPasswordToken: resetToken,
+      resetPasswordExpires: { $gt: Date.now() }
+    });
 
-        await user.save();
-
-        res.json({ message: 'Mot de passe modifié avec succès ! Connectez-vous.' });
-
-    } catch (error) {
-        console.error("Erreur Reset:", error);
-        res.status(500).json({ message: error.message });
+    if (!user) {
+      return res.status(400).json({ message: 'Code invalide ou expiré.' });
     }
+
+    user.password = await bcrypt.hash(newPassword, 12);
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpires = undefined;
+    await user.save();
+
+    res.json({ message: 'Mot de passe modifié avec succès ! Connectez-vous.' });
+
+  } catch (error) {
+    console.error("Erreur reset-password:", error);
+    res.status(500).json({ message: "Erreur serveur." });
+  }
 });
 
 module.exports = router;

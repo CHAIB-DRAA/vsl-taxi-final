@@ -17,13 +17,13 @@ import { extractSecuNumber } from '../services/ocrService';
 
 // Contexte & API
 import { useData } from '../contexts/DataContext';
-import api, { getPatients, updatePatient, deletePatient, getRides } from '../services/api';
+import api, { getPatients, updatePatient, deletePatient } from '../services/api';
 
 // Composant Scanner
 import DocumentScannerButton from '../components/DocumentScannerButton';
 
 export default function PatientsScreen() {
-  const { contacts } = useData(); 
+  const { contacts, allRides } = useData();
 
   // --- ÉTATS GLOBAUX ---
   const [patients, setPatients] = useState([]);
@@ -98,11 +98,11 @@ export default function PatientsScreen() {
   const fetchPatientDetails = async (patient) => {
     try {
       setLoadingDetails(true);
-      
-      // 1. Historique
-      const allRides = await getRides();
-      const myRides = allRides.filter(r => r.patientName === patient.fullName);
-      myRides.sort((a, b) => new Date(b.date) - new Date(a.date));
+
+      // 1. Historique — utilise le cache DataContext, évite un appel API
+      const myRides = allRides
+        .filter(r => r.patientName === patient.fullName)
+        .sort((a, b) => new Date(b.date) - new Date(a.date));
       setPatientRides(myRides);
 
       // 2. Documents

@@ -46,6 +46,7 @@ export default function CreateRideScreen({ navigation, route }) {
   const [showDatePicker, setShowDatePicker] = useState(false);
   
   const [type, setType] = useState('Aller');
+  const [motif, setMotif] = useState('Consultation');
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   
   const [loading, setLoading] = useState(false); 
@@ -77,6 +78,7 @@ export default function CreateRideScreen({ navigation, route }) {
         if (data.startLocation) setStartLocation(data.startLocation);
         if (data.endLocation) setEndLocation(data.endLocation);
         if (data.type) setType(data.type);
+        if (data.motif) setMotif(data.motif);
         if (data.notes) setNotes(data.notes);
 
         if (data.date) setDate(new Date(data.date));
@@ -198,8 +200,8 @@ export default function CreateRideScreen({ navigation, route }) {
       setLoading(true);
       const rideData = {
         patientName, patientPhone, startLocation, endLocation,
-        date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null, 
-        type, isRoundTrip, notes
+        date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null,
+        type, motif, isRoundTrip, notes
       };
       
       if (editingRideId) {
@@ -303,6 +305,22 @@ export default function CreateRideScreen({ navigation, route }) {
                   onPress={() => handleTypeChange(t)}
                 >
                   <Text style={[styles.typeButtonText, type === t && {color: '#FFF'}]}>{t}</Text>
+                </TouchableOpacity>
+              ))}
+            </ScrollView>
+          </View>
+
+          {/* === MOTIF === */}
+          <View style={[styles.sectionContainer, { zIndex: 1 }]}>
+            <Text style={styles.sectionTitle}>MOTIF DE TRANSPORT (CPAM)</Text>
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{marginTop: 10}}>
+              {['Consultation', 'Traitement', 'Hospitalisation', 'HDJ', 'Urgence'].map((m) => (
+                <TouchableOpacity
+                  key={m}
+                  style={[styles.typeButton, motif === m && styles.typeButtonActive]}
+                  onPress={() => setMotif(m)}
+                >
+                  <Text style={[styles.typeButtonText, motif === m && {color: '#FFF'}]}>{m}</Text>
                 </TouchableOpacity>
               ))}
             </ScrollView>

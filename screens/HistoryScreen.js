@@ -18,7 +18,13 @@ import { calculatePrice } from '../utils/pricing';
 import RideHistoryCard from '../components/RideHistoryCard';
 import RideDetailsModal from '../components/RideDetailsModal';
 
-dayjs.locale('fr'); // Configuration globale de la langue
+dayjs.locale('fr');
+
+const C = {
+  bg: '#F2F3F7', card: '#FFFFFF', card2: '#F5F7FB',
+  border: '#E2E5EC', text: '#111827', text2: '#6B7280', text3: '#9CA3AF',
+  brand: '#FF6B00', green: '#16A34A', red: '#EF4444',
+};
 
 export default function HistoryScreen() {
   const [rides, setRides] = useState([]);
@@ -32,6 +38,7 @@ export default function HistoryScreen() {
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
   const [selectedRide, setSelectedRide] = useState(null);
+  const [isSaving, setIsSaving] = useState(false);
 
   // --- ÉTATS POUR L'AUDIT INTELLIGENT ---
   const [showAuditModal, setShowAuditModal] = useState(false);
@@ -259,33 +266,42 @@ export default function HistoryScreen() {
   };
 
   const handleSaveEdit = async (rideToEdit, editData) => {
+    if (isSaving) return;
+    setIsSaving(true);
     try {
       const updates = {
         realDistance: parseFloat(editData.realDistance) || 0,
         tolls: parseFloat(editData.tolls) || 0
       };
-      
+
       if (editData.startTime.includes(':')) {
         const [h, m] = editData.startTime.split(':');
         updates.startTime = dayjs(rideToEdit.date).hour(parseInt(h)).minute(parseInt(m)).toISOString();
       }
-      
+
       if (editData.endTime.includes(':')) {
         const [h, m] = editData.endTime.split(':');
         updates.endTime = dayjs(rideToEdit.date).hour(parseInt(h)).minute(parseInt(m)).toISOString();
       }
 
-      const tempRide = { ...rideToEdit, ...updates }; 
-      updates.price = parseFloat(calculatePrice(tempRide)); 
+      const tempRide = { ...rideToEdit, ...updates };
+      updates.price = parseFloat(calculatePrice(tempRide));
 
       await updateRide(rideToEdit._id, updates);
-      
+
       const finalRide = { ...rideToEdit, ...updates };
       setSelectedRide(finalRide);
-      setRides(prev => prev.map(r => r._id === finalRide._id ? finalRide : r).sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date)));
-      
+      setRides(prev =>
+        prev.map(r => r._id === finalRide._id ? finalRide : r)
+          .sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date))
+      );
+
       Alert.alert("Succès", `Mise à jour réussie !\nNouveau Prix : ${updates.price} €`);
-    } catch (err) { Alert.alert("Erreur", "Mise à jour échouée."); } 
+    } catch (err) {
+      Alert.alert("Erreur", "Mise à jour échouée.");
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleDeleteRide = (id) => {
@@ -310,20 +326,21 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#FF6B00" />
-      
+      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+
       <View style={styles.header}>
         <View style={styles.headerTop}>
-            <Text style={styles.headerTitle}>Facturation</Text>
-            
-            {/* 👈 AJOUT DU BOUTON LISSAGE ICI */}
+            <View>
+              <Text style={styles.headerTitle}>Facturation</Text>
+              <Text style={styles.headerDate}>{currentDate.format('dddd D MMMM')}</Text>
+            </View>
             <View style={{flexDirection: 'row', gap: 10}}>
                 <TouchableOpacity style={styles.exportBtn} onPress={runSmartAudit}>
-                    <Ionicons name="color-wand-outline" size={18} color="#FFF" />
+                    <Ionicons name="color-wand-outline" size={16} color={C.brand} />
                     <Text style={styles.exportBtnText}>Lissage</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.exportBtn} onPress={generateCSV}>
-                    <Ionicons name="download-outline" size={18} color="#FFF" />
+                    <Ionicons name="download-outline" size={16} color={C.brand} />
                     <Text style={styles.exportBtnText}>CSV</Text>
                 </TouchableOpacity>
             </View>
@@ -331,19 +348,19 @@ export default function HistoryScreen() {
 
         <View style={styles.monthSelector}>
              <TouchableOpacity onPress={() => setCurrentDate(currentDate.subtract(1, 'day'))} style={styles.monthArrow}>
-                <Ionicons name="chevron-back" size={24} color="#FFF" />
+                <Ionicons name="chevron-back" size={22} color={C.brand} />
              </TouchableOpacity>
-             
-             <TouchableOpacity 
-                onPress={() => setShowDatePicker(true)} 
+
+             <TouchableOpacity
+                onPress={() => setShowDatePicker(true)}
                 style={styles.dateSelectorBtn}
              >
-                 <Ionicons name="calendar-outline" size={18} color="#FFF" style={{marginRight: 8}} />
+                 <Ionicons name="calendar-outline" size={16} color={C.brand} style={{marginRight: 8}} />
                  <Text style={styles.monthTitle}>{currentDate.format('dddd DD MMMM')}</Text>
              </TouchableOpacity>
 
              <TouchableOpacity onPress={() => setCurrentDate(currentDate.add(1, 'day'))} style={styles.monthArrow}>
-                <Ionicons name="chevron-forward" size={24} color="#FFF" />
+                <Ionicons name="chevron-forward" size={22} color={C.brand} />
              </TouchableOpacity>
         </View>
 
@@ -367,32 +384,33 @@ export default function HistoryScreen() {
              <View style={styles.statDivider} />
              <View style={styles.statItem}>
                  <Text style={styles.statValue}>{stats.km}</Text>
-                 <Text style={styles.statLabel}>Km Total</Text>
+                 <Text style={styles.statLabel}>Km</Text>
              </View>
              <View style={styles.statDivider} />
              <View style={styles.statItem}>
-                 <Text style={styles.statValue}>{stats.ca.toFixed(2)} €</Text>
+                 <Text style={styles.statValue}>{stats.ca.toFixed(0)} €</Text>
                  <Text style={styles.statLabel}>CA Estimé</Text>
              </View>
         </View>
       </View>
 
       <View style={styles.searchContainer}>
-          <Ionicons name="search" size={20} color="#999" />
-          <TextInput 
-              style={styles.searchInput} 
-              placeholder="Rechercher patient, ville..." 
+          <Ionicons name="search" size={18} color={C.text3} />
+          <TextInput
+              style={styles.searchInput}
+              placeholder="Rechercher patient, ville..."
+              placeholderTextColor={C.text3}
               value={searchText}
               onChangeText={setSearchText}
           />
           {searchText.length > 0 && (
               <TouchableOpacity onPress={() => setSearchText('')}>
-                  <Ionicons name="close-circle" size={18} color="#CCC" />
+                  <Ionicons name="close-circle" size={18} color={C.text3} />
               </TouchableOpacity>
           )}
       </View>
 
-      {loading && !refreshing ? <ActivityIndicator size="large" color="#FF6B00" style={{marginTop: 50}} /> : (
+      {loading && !refreshing ? <ActivityIndicator size="large" color={C.brand} style={{marginTop: 50}} /> : (
         <FlatList 
             data={filteredRides} 
             keyExtractor={i => i._id} 
@@ -490,32 +508,65 @@ export default function HistoryScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6F8' },
-  header: { backgroundColor: '#FF6B00', paddingTop: Platform.OS === 'ios' ? 60 : 50, paddingBottom: 40, paddingHorizontal: 20, borderBottomLeftRadius: 30, borderBottomRightRadius: 30, elevation: 8 },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: '#FFF' },
-  exportBtn: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.2)', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 20, alignItems: 'center' },
-  exportBtnText: { color: '#FFF', fontWeight: 'bold', marginLeft: 5, fontSize: 12 },
-  monthSelector: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, paddingHorizontal: 10 },
-  dateSelectorBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 15, paddingVertical: 8, borderRadius: 20 },
-  monthTitle: { color: '#FFF', fontSize: 16, fontWeight: 'bold', textTransform: 'capitalize' },
-  monthArrow: { padding: 5 },
-  statsContainer: { flexDirection: 'row', backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 16, padding: 15, justifyContent: 'space-between', borderColor: 'rgba(255,255,255,0.3)', borderWidth: 1 },
-  statItem: { alignItems: 'center', flex: 1 },
-  statValue: { color: '#FFF', fontSize: 18, fontWeight: 'bold' },
-  statLabel: { color: 'rgba(255,255,255,0.8)', fontSize: 11, marginTop: 2 },
-  statDivider: { width: 1, height: '80%', backgroundColor: 'rgba(255,255,255,0.3)' },
-  searchContainer: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', marginHorizontal: 20, marginTop: -25, borderRadius: 15, paddingHorizontal: 15, paddingVertical: 12, elevation: 5 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16, color: '#333' },
-  listContent: { paddingHorizontal: 20, paddingTop: 15, paddingBottom: 100 },
-  emptyText: { textAlign: 'center', marginTop: 40, color: '#999', fontSize: 16 },
+  container: { flex: 1, backgroundColor: C.bg },
 
-  // Styles communs pour les Modals (Audit & Détails)
-  modalContainer: { flex: 1, backgroundColor: '#F4F6F8' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#FFF', borderBottomWidth: 1, borderBottomColor: '#EEE' },
+  header: {
+    backgroundColor: C.card,
+    paddingTop: Platform.OS === 'ios' ? 60 : 50,
+    paddingBottom: 16,
+    paddingHorizontal: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
+  headerDate: { fontSize: 13, color: C.brand, fontWeight: '600', textTransform: 'capitalize', marginTop: 2 },
+  exportBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.brand + '15', paddingVertical: 7, paddingHorizontal: 12,
+    borderRadius: 10, borderWidth: 1, borderColor: C.brand + '33',
+  },
+  exportBtnText: { color: C.brand, fontWeight: '700', fontSize: 12 },
+
+  monthSelector: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  dateSelectorBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card2, paddingHorizontal: 14, paddingVertical: 8,
+    borderRadius: 10, borderWidth: 1, borderColor: C.border,
+  },
+  monthTitle: { color: C.text, fontSize: 14, fontWeight: '700', textTransform: 'capitalize' },
+  monthArrow: { padding: 6 },
+
+  statsContainer: {
+    flexDirection: 'row', backgroundColor: C.card2, borderRadius: 14,
+    padding: 14, justifyContent: 'space-between',
+    borderWidth: 1, borderColor: C.border,
+  },
+  statItem: { alignItems: 'center', flex: 1 },
+  statValue: { color: C.brand, fontSize: 18, fontWeight: '800' },
+  statLabel: { color: C.text2, fontSize: 11, marginTop: 2, fontWeight: '600' },
+  statDivider: { width: 1, height: '80%', backgroundColor: C.border, alignSelf: 'center' },
+
+  searchContainer: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card, marginHorizontal: 16, marginTop: 12,
+    borderRadius: 12, paddingHorizontal: 14, paddingVertical: 11,
+    borderWidth: 1, borderColor: C.border,
+  },
+  searchInput: { flex: 1, fontSize: 15, color: C.text },
+  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
+  emptyText: { textAlign: 'center', marginTop: 40, color: C.text2, fontSize: 15 },
+
+  // Modal Audit
+  modalContainer: { flex: 1, backgroundColor: C.bg },
+  modalHeader: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    padding: 20, backgroundColor: C.card,
+    borderBottomWidth: 1, borderBottomColor: C.border,
+  },
   iconBtn: { padding: 5 },
-  modalTitle: { fontSize: 18, fontWeight: 'bold', color: '#333' },
-  sectionCard: { backgroundColor: '#FFF', borderRadius: 16, padding: 20, marginBottom: 15, elevation: 1 },
+  modalTitle: { fontSize: 18, fontWeight: '800', color: C.text },
+  sectionCard: { backgroundColor: C.card, borderRadius: 16, padding: 20, marginBottom: 15, borderWidth: 1, borderColor: C.border },
   saveBtn: { padding: 15, borderRadius: 12, alignItems: 'center' },
   saveBtnText: { color: '#FFF', fontWeight: 'bold' },
 });

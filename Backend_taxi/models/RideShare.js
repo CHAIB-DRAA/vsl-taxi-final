@@ -23,7 +23,10 @@ const rideShareSchema = new mongoose.Schema({
     default: 'pending' 
   }
 }, {
-  timestamps: true 
+  timestamps: true
 });
+
+rideShareSchema.index({ toUserId: 1, statusPartage: 1 });
+rideShareSchema.index({ rideId: 1 });
 
 module.exports = mongoose.model('RideShare', rideShareSchema);

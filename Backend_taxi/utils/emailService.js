@@ -1,52 +1,43 @@
-const axios = require('axios');
+const nodemailer = require('nodemailer');
 
-const sendEmail = async (options) => {
-  // On vérifie que la clé est bien là
-  if (!process.env.BREVO_API_KEY) {
-    throw new Error("Clé API Brevo manquante dans les variables d'environnement.");
+const createTransporter = () => {
+  if (!process.env.EMAIL_USER || !process.env.EMAIL_PASS) {
+    throw new Error("EMAIL_USER et EMAIL_PASS sont requis dans les variables d'environnement.");
   }
 
-  // URL de l'API Brevo
-  const url = 'https://api.brevo.com/v3/smtp/email';
-
-  // Préparation des données
-  const data = {
-    sender: { 
-      name: "Taxi App Support", 
-      email: process.env.EMAIL_USER // Doit être l'email validé dans Brevo
+  return nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
     },
-    to: [
-      { email: options.email, name: options.email }
-    ],
-    subject: options.subject,
-    htmlContent: `
-      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333;">
-        <h2 style="color: #FF6B00;">${options.subject}</h2>
-        <p>${options.message}</p>
-        ${options.token ? `<h1 style="background: #eee; padding: 10px; display: inline-block; border-radius: 5px;">${options.token}</h1>` : ''}
-        <p style="font-size: 12px; color: #777; margin-top: 20px;">Ceci est un message automatique.</p>
+  });
+};
+
+const sendEmail = async ({ email, subject, message, token }) => {
+  const transporter = createTransporter();
+
+  const mailOptions = {
+    from: `"Taxi App Support" <${process.env.EMAIL_USER}>`,
+    to: email,
+    subject,
+    html: `
+      <div style="font-family: Arial, sans-serif; padding: 20px; color: #333; max-width: 500px; margin: auto;">
+        <h2 style="color: #FF6B00;">${subject}</h2>
+        <p>${message}</p>
+        ${token ? `
+          <div style="background: #f4f4f4; padding: 16px; border-radius: 8px; text-align: center; margin: 20px 0;">
+            <span style="font-size: 32px; font-weight: bold; letter-spacing: 8px; color: #333;">${token}</span>
+          </div>
+          <p style="color: #666; font-size: 14px;">Ce code expire dans <strong>1 heure</strong>.</p>
+        ` : ''}
+        <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;" />
+        <p style="font-size: 12px; color: #999;">Ceci est un message automatique, merci de ne pas y répondre.</p>
       </div>
-    `
+    `,
   };
 
-  // Configuration de la requête
-  const config = {
-    headers: {
-      'accept': 'application/json',
-      'api-key': process.env.BREVO_API_KEY, // La clé xkeysib-...
-      'content-type': 'application/json'
-    }
-  };
-
-  console.log(`🔌 Envoi via BREVO API vers ${options.email}...`);
-
-  try {
-    const response = await axios.post(url, data, config);
-    console.log("✅ Email envoyé avec succès ! ID Message:", response.data.messageId);
-  } catch (error) {
-    console.error("❌ ERREUR BREVO :", error.response ? error.response.data : error.message);
-    throw new Error("Erreur lors de l'envoi de l'email via Brevo.");
-  }
+  await transporter.sendMail(mailOptions);
 };
 
 module.exports = sendEmail;

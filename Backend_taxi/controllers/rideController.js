@@ -3,22 +3,54 @@ const User = require('../models/User');
 const RideShare = require('../models/RideShare');
 const { Expo } = require('expo-server-sdk');
 
+// ── Tarification taxi conventionné (tarifs moyens France, ajustables) ──
+const TARIFS = {
+  priseEnCharge: 2.60,  // Fixe au départ
+  kmTarifA: 0.99,       // Lundi-Samedi 7h00-19h00
+  kmTarifB: 1.20,       // Nuit (19h-7h), Dimanche, Jours fériés
+  minPerception: 8.50,  // Minimum de perception
+};
+
+const FERIES = new Set([
+  '2025-01-01','2025-04-21','2025-05-01','2025-05-08','2025-05-29',
+  '2025-06-09','2025-07-14','2025-08-15','2025-11-01','2025-11-11','2025-12-25',
+  '2026-01-01','2026-04-06','2026-05-01','2026-05-08','2026-05-14',
+  '2026-05-25','2026-07-14','2026-08-15','2026-11-01','2026-11-11','2026-12-25',
+]);
+
+function calculerPrix(rideDate, km, tolls = 0) {
+  const d = new Date(rideDate);
+  const h = d.getHours();
+  const isNuit  = h >= 19 || h < 7;
+  const isDim   = d.getDay() === 0;
+  const isFerie = FERIES.has(d.toISOString().split('T')[0]);
+  const tarifKm = (isNuit || isDim || isFerie) ? TARIFS.kmTarifB : TARIFS.kmTarifA;
+  const total   = TARIFS.priseEnCharge + km * tarifKm + tolls;
+  return Math.round(Math.max(total, TARIFS.minPerception) * 100) / 100;
+}
+
 const expo = new Expo();
 
 // --- 1. CRÉATION ---
 exports.createRide = async (req, res) => {
   try {
     const chauffeurId = req.user.id;
-    const { date, patientPhone, ...rest } = req.body;
+    const { date, patientPhone, startLocation, endLocation, ...rest } = req.body;
 
     if (!date) return res.status(400).json({ message: 'Date manquante' });
-    
+    if (!startLocation || !endLocation) return res.status(400).json({ message: 'Adresses manquantes' });
+
+    const rideDate = new Date(date);
+    if (isNaN(rideDate.getTime())) return res.status(400).json({ message: 'Date invalide' });
+
     const ride = new Ride({
       ...rest,
-      date: new Date(date),
+      startLocation,
+      endLocation,
+      date: rideDate,
       chauffeurId,
-      patientPhone: patientPhone || '', 
-      status: 'En attente'
+      patientPhone: patientPhone || '',
+      status: 'À venir'
     });
 
     await ride.save();
@@ -206,7 +238,14 @@ exports.createWebBooking = async (req, res) => {
       return res.status(400).json({ error: "Veuillez remplir tous les champs obligatoires." });
     }
 
-    const combinedDateTime = new Date(`${date}T${time}:00`).toISOString();
+    // Validation de la date : pas dans le passé
+    const combinedDateTime = new Date(`${date}T${time}:00`);
+    if (isNaN(combinedDateTime.getTime())) {
+      return res.status(400).json({ error: "Date ou heure invalide." });
+    }
+    if (combinedDateTime < new Date()) {
+      return res.status(400).json({ error: "La date de la course ne peut pas être dans le passé." });
+    }
 
     const newRide = new Ride({
       patientName,
@@ -224,24 +263,22 @@ exports.createWebBooking = async (req, res) => {
 
     await newRide.save();
 
-    // 🚨 NOUVEAU : ENVOI DE LA NOTIFICATION PUSH AUX CHAUFFEURS
-    // On cherche tous les utilisateurs qui ont activé les notifications
-    const allDrivers = await User.find({ pushToken: { $exists: true, $ne: null } });
-    
-    let messages = [];
-    for (let driver of allDrivers) {
-      if (Expo.isExpoPushToken(driver.pushToken)) {
-        messages.push({
-          to: driver.pushToken,
-          sound: 'default', // Fait sonner le téléphone !
-          title: '🚨 NOUVELLE DEMANDE WEB !',
-          body: `${patientName} demande un transport le ${date} à ${time}. Ouvrez l'appli !`,
-          data: { type: 'new_web_booking' },
-        });
-      }
-    }
-    
-    // Si on a trouvé des chauffeurs, on tire la sonnette
+    // Envoi push : seulement le token, sans charger tout le document User
+    const drivers = await User.find(
+      { pushToken: { $exists: true, $ne: null } },
+      { pushToken: 1, _id: 0 }
+    ).lean();
+
+    const messages = drivers
+      .filter(d => Expo.isExpoPushToken(d.pushToken))
+      .map(d => ({
+        to: d.pushToken,
+        sound: 'default',
+        title: '🚨 NOUVELLE DEMANDE WEB !',
+        body: `${patientName} demande un transport le ${date} à ${time}. Ouvrez l'appli !`,
+        data: { type: 'new_web_booking' },
+      }));
+
     if (messages.length > 0) {
       await expo.sendPushNotificationsAsync(messages);
     }
@@ -279,54 +316,193 @@ exports.rejectWebBooking = async (req, res) => {
 };
 
 
-const Patient = require('../models/Patient'); // Assure-toi d'importer ton modèle Patient/Contact en haut du fichier
+// --- 11. DÉMARRER ---
+exports.startRide = async (req, res) => {
+  try {
+    const ride = await Ride.findOneAndUpdate(
+      { _id: req.params.id, chauffeurId: req.user.id, status: { $in: ['À venir', 'En attente'] } },
+      { $set: { startTime: new Date(), status: 'En cours' } },
+      { new: true }
+    );
+    if (!ride) return res.status(404).json({ message: "Course introuvable ou déjà démarrée." });
+    res.json(ride);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 12. TERMINER ---
+exports.finishRide = async (req, res) => {
+  try {
+    const { realDistance, tolls } = req.body;
+    const km  = parseFloat(realDistance) || 0;
+    const tls = parseFloat(tolls) || 0;
+
+    const existing = await Ride.findOne({ _id: req.params.id, chauffeurId: req.user.id, status: 'En cours' });
+    if (!existing) return res.status(404).json({ message: "Course introuvable ou non démarrée." });
+
+    const price = calculerPrix(existing.date, km, tls);
+
+    const ride = await Ride.findByIdAndUpdate(
+      req.params.id,
+      { $set: { endTime: new Date(), status: 'Terminée', realDistance: km, tolls: tls, price } },
+      { new: true }
+    );
+    res.json(ride);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 13. ANNULER ---
+exports.cancelRide = async (req, res) => {
+  try {
+    const { reason } = req.body;
+    const ride = await Ride.findOneAndUpdate(
+      { _id: req.params.id, chauffeurId: req.user.id, status: { $nin: ['Terminée', 'Annulée'] } },
+      { $set: { status: 'Annulée', cancelReason: reason || '' } },
+      { new: true }
+    );
+    if (!ride) return res.status(404).json({ message: "Course introuvable ou déjà terminée." });
+    res.json(ride);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 14. COURSES DU JOUR ---
+exports.getTodayRides = async (req, res) => {
+  try {
+    const myId = req.user.id;
+    const now = new Date();
+    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
+    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
+
+    const rides = await Ride.find({
+      chauffeurId: myId,
+      date: { $gte: startOfDay, $lte: endOfDay },
+      status: { $nin: ['Annulée'] }
+    }).sort({ date: 1 }).lean();
+
+    res.json(rides);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 15. STATISTIQUES ---
+exports.getStats = async (req, res) => {
+  try {
+    const myId = req.user.id;
+    const { from, to } = req.query;
+    const now = new Date();
+    const startDate = from ? new Date(from) : new Date(now.getFullYear(), now.getMonth(), 1);
+    const endDate = to ? new Date(to) : now;
+
+    const rides = await Ride.find({
+      chauffeurId: myId,
+      status: 'Terminée',
+      date: { $gte: startDate, $lte: endDate }
+    }).lean();
+
+    const totalRides = rides.length;
+    const totalKm = rides.reduce((sum, r) => sum + (r.realDistance || 0), 0);
+    const totalTolls = rides.reduce((sum, r) => sum + (r.tolls || 0), 0);
+    const billed = rides.filter(r => r.statuFacturation === 'Facturé').length;
+    const unbilled = totalRides - billed;
+
+    res.json({ totalRides, totalKm: Math.round(totalKm * 10) / 10, totalTolls, billed, unbilled });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// --- 16. RÉCAPITULATIF FACTURATION CPAM ---
+exports.getBillingSummary = async (req, res) => {
+  try {
+    const { from, to, statuFacturation } = req.query;
+    const query = { chauffeurId: req.user.id, status: 'Terminée' };
+    if (from || to) {
+      query.date = {};
+      if (from) query.date.$gte = new Date(from);
+      if (to)   query.date.$lte = new Date(to);
+    }
+    if (statuFacturation) query.statuFacturation = statuFacturation;
+
+    const rides = await Ride.find(query)
+      .select('patientName date type motif startLocation endLocation realDistance tolls price statuFacturation')
+      .sort({ date: 1 })
+      .lean();
+
+    const totalKm     = rides.reduce((s, r) => s + (r.realDistance || 0), 0);
+    const totalTolls  = rides.reduce((s, r) => s + (r.tolls || 0), 0);
+    const totalAmount = rides.reduce((s, r) => s + (r.price || 0), 0);
+
+    res.json({
+      rides,
+      summary: {
+        count: rides.length,
+        totalKm:     Math.round(totalKm * 10) / 10,
+        totalTolls:  Math.round(totalTolls * 100) / 100,
+        totalAmount: Math.round(totalAmount * 100) / 100,
+      },
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+const Patient = require('../models/Patient');
 
 // --- 10. IMPORTATION MASSIVE & CRÉATION AUTO DES CONTACTS ---
 exports.importMassRides = async (req, res) => {
   try {
     const { rides } = req.body;
     const chauffeurId = req.user.id;
-    let addedRidesCount = 0;
-    let newContactsCount = 0;
 
-    if (!rides || !Array.isArray(rides)) {
+    if (!rides || !Array.isArray(rides) || rides.length === 0) {
       return res.status(400).json({ message: "Aucune course fournie." });
     }
 
-    for (const rideData of rides) {
-      // 1. Vérifier si le patient existe déjà dans ton répertoire
-      // (On cherche par nom, en ignorant les majuscules/minuscules)
-      let patient = await Patient.findOne({ 
-        name: { $regex: new RegExp('^' + rideData.patientName + '$', "i") },
-        chauffeurId: chauffeurId
-      });
-
-      // 2. S'il n'existe pas, ON LE CRÉE AUTOMATIQUEMENT !
-      if (!patient && rideData.patientName) {
-        patient = new Patient({
-          name: rideData.patientName,
-          phone: rideData.patientPhone || '',
-          chauffeurId: chauffeurId
-        });
-        await patient.save();
-        newContactsCount++;
-      }
-
-      // 3. On crée la course
-      const newRide = new Ride({
-        ...rideData,
-        chauffeurId: chauffeurId,
-        status: 'À venir',
-        source: 'App'
-      });
-      await newRide.save();
-      addedRidesCount++;
+    // Validation basique : garder seulement les courses avec les champs requis
+    const validRides = rides.filter(r => r.patientName && r.startLocation && r.endLocation && r.date);
+    if (validRides.length === 0) {
+      return res.status(400).json({ message: "Aucune course valide (patientName, startLocation, endLocation, date requis)." });
     }
 
-    res.status(200).json({ 
-      message: "Importation réussie", 
-      addedRidesCount, 
-      newContactsCount 
+    // 1. Récupérer tous les patients existants en UNE seule requête
+    const patientNames = [...new Set(validRides.map(r => r.patientName).filter(Boolean))];
+    const existingPatients = await Patient.find({
+      name: { $in: patientNames },
+      chauffeurId
+    }, { name: 1 }).lean();
+    const existingNames = new Set(existingPatients.map(p => p.name.toLowerCase()));
+
+    // 2. Créer seulement les patients manquants, en une seule insertion
+    const newPatientDocs = patientNames
+      .filter(n => !existingNames.has(n.toLowerCase()))
+      .map(name => ({
+        name,
+        phone: validRides.find(r => r.patientName === name)?.patientPhone || '',
+        chauffeurId,
+      }));
+    if (newPatientDocs.length > 0) {
+      await Patient.insertMany(newPatientDocs, { ordered: false });
+    }
+
+    // 3. Insérer toutes les courses en une seule requête
+    const rideDocs = validRides.map(({ _id, ...rideData }) => ({
+      ...rideData,
+      chauffeurId,
+      status: 'À venir',
+      source: 'App',
+    }));
+    await Ride.insertMany(rideDocs, { ordered: false });
+
+    res.status(200).json({
+      message: "Importation réussie",
+      addedRidesCount: rideDocs.length,
+      newContactsCount: newPatientDocs.length,
     });
 
   } catch (error) {

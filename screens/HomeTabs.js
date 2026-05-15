@@ -1,7 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { 
-  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl, 
-  ActivityIndicator, Alert, StatusBar, Platform, Dimensions 
+  View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
+  ActivityIndicator, Alert, StatusBar, Platform
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -18,7 +18,18 @@ import { getRides } from '../services/api';
 import { extractSecuNumber } from '../services/ocrService';
 import { calculatePrice } from '../utils/pricing'; 
 
-const { width } = Dimensions.get('window');
+const C = {
+  bg:     '#F2F3F7',
+  card:   '#FFFFFF',
+  card2:  '#F5F7FB',
+  border: '#E2E5EC',
+  text:   '#111827',
+  text2:  '#6B7280',
+  text3:  '#9CA3AF',
+  brand:  '#FF6B00',
+  green:  '#16A34A',
+  red:    '#EF4444',
+};
 
 export default function HomeScreen({ navigation }) {
   const [loading, setLoading] = useState(false);
@@ -165,14 +176,14 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor="#E65100" />
-      
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent} 
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor="#FFF"/>}
+      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor={C.brand}/>}
         showsVerticalScrollIndicator={false}
       >
-        {/* === HEADER PREMIUM === */}
+        {/* === HEADER === */}
         <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
@@ -180,99 +191,87 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.date}>{moment().format('dddd D MMMM')}</Text>
             </View>
             <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarBtn}>
-              <Ionicons name="settings-outline" size={22} color="#E65100" />
+              <Ionicons name="settings-outline" size={20} color={C.text2} />
             </TouchableOpacity>
           </View>
 
           {/* STATS CARDS */}
           <View style={styles.statsContainer}>
-            
-            {/* Carte 1 : Courses du jour */}
-            <View style={[styles.statCard, { marginBottom: 15 }]}>
-              <View style={[styles.iconContainer, { backgroundColor: 'rgba(255,255,255,0.2)' }]}>
-                <Ionicons name="car-sport-outline" size={20} color="#FFF" />
+
+            {/* Courses du jour */}
+            <View style={styles.statCardRow}>
+              <View style={styles.statCardHalf}>
+                <View style={styles.statIconBox}>
+                  <Ionicons name="car-sport-outline" size={18} color={C.brand} />
+                </View>
+                <Text style={styles.statLabelSmall}>Aujourd'hui</Text>
+                <Text style={styles.statValueLarge}>{stats.todayCount}</Text>
               </View>
-              <View style={{flexDirection: 'row', justifyContent: 'space-between', flex: 1, alignItems: 'center'}}>
-                  <Text style={styles.statLabelMain}>Courses aujourd'hui</Text>
-                  <Text style={styles.statValue}>{stats.todayCount}</Text>
+
+              {/* Sélecteur de mois + CA */}
+              <View style={styles.statCardHalf}>
+                <View style={styles.monthRow}>
+                  <TouchableOpacity onPress={goToPreviousMonth} hitSlop={{top:8,right:8,bottom:8,left:8}}>
+                    <Ionicons name="chevron-back" size={16} color={C.text2} />
+                  </TouchableOpacity>
+                  <Text style={styles.monthText}>{selectedMonth.format('MMM YY')}</Text>
+                  <TouchableOpacity onPress={goToNextMonth} hitSlop={{top:8,right:8,bottom:8,left:8}}>
+                    <Ionicons name="chevron-forward" size={16} color={C.text2} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.statValueLarge}>{stats.monthEarnings} €</Text>
+                <Text style={styles.statLabelSmall}>CA estimé</Text>
               </View>
             </View>
 
-            {/* SÉLECTEUR DE MOIS POUR LA FACTURATION */}
-            <View style={styles.monthSelectorRow}>
-              <TouchableOpacity onPress={goToPreviousMonth} style={styles.monthArrow}>
-                <Ionicons name="chevron-back" size={20} color="#FFF" />
-              </TouchableOpacity>
-              
-              <Text style={styles.monthSelectorText}>{selectedMonth.format('MMMM YYYY')}</Text>
-              
-              <TouchableOpacity onPress={goToNextMonth} style={styles.monthArrow}>
-                <Ionicons name="chevron-forward" size={20} color="#FFF" />
-              </TouchableOpacity>
+            {/* Déjà facturé */}
+            <View style={styles.billedCard}>
+              <View style={styles.statIconBox}>
+                <Ionicons name="checkmark-done-circle" size={18} color={C.green} />
+              </View>
+              <View style={{flex: 1}}>
+                <Text style={styles.statLabelSmall}>Déjà facturé</Text>
+                <Text style={[styles.statValueLarge, { color: C.green }]}>{stats.monthBilledEarnings} €</Text>
+              </View>
             </View>
-            
-            {/* Ligne 2 : Les deux CA côte à côte */}
-            <View style={{flexDirection: 'row', justifyContent: 'space-between', gap: 10}}>
-                <View style={[styles.statCard, {flex: 1, paddingVertical: 12, flexDirection: 'column', alignItems: 'flex-start'}]}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
-                      <Ionicons name="calculator-outline" size={14} color="rgba(255,255,255,0.8)" style={{marginRight: 5}}/>
-                      <Text style={styles.statLabelSmall}>CA Estimé</Text>
-                  </View>
-                  <Text style={styles.statValueLarge}>{stats.monthEarnings} €</Text>
-                </View>
 
-                <View style={[styles.statCard, {flex: 1, paddingVertical: 12, flexDirection: 'column', alignItems: 'flex-start', backgroundColor: 'rgba(76, 175, 80, 0.3)', borderColor: 'rgba(76, 175, 80, 0.5)'}]}>
-                  <View style={{flexDirection: 'row', alignItems: 'center', marginBottom: 5}}>
-                      <Ionicons name="checkmark-done-circle" size={14} color="#A5D6A7" style={{marginRight: 5}}/>
-                      <Text style={[styles.statLabelSmall, {color: '#E8F5E9'}]}>Déjà Facturé</Text>
-                  </View>
-                  <Text style={[styles.statValueLarge, {color: '#FFF'}]}>{stats.monthBilledEarnings} €</Text>
-                </View>
-            </View>
-            
           </View>
         </View>
 
         <View style={styles.bodyContainer}>
-            
+
             {/* === PROCHAIN DÉPART === */}
             <Text style={styles.sectionTitle}>Prochain Départ</Text>
             {stats.nextRide ? (
-                <TouchableOpacity 
+                <TouchableOpacity
                     style={styles.nextRideCard}
-                    activeOpacity={0.9}
-                    onPress={() => navigation.navigate('Agenda')} 
+                    activeOpacity={0.85}
+                    onPress={() => navigation.navigate('Agenda')}
                 >
                     <View style={styles.ticketLeft}>
-                        <View style={styles.timeBlock}>
-                            <Text style={styles.bigTime}>{moment(stats.nextRide.date).format('HH:mm')}</Text>
-                            <Text style={styles.timeLabel}>DÉPART</Text>
-                        </View>
+                        <Text style={styles.bigTime}>{moment(stats.nextRide.date).format('HH:mm')}</Text>
+                        <Text style={styles.timeLabel}>DÉPART</Text>
                     </View>
 
                     <View style={styles.ticketDivider}>
-                        <View style={[styles.notch, {top: -10}]} />
                         <View style={styles.dashedLine} />
-                        <View style={[styles.notch, {bottom: -10}]} />
                     </View>
 
                     <View style={styles.ticketRight}>
-                        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start'}}>
+                        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10}}>
                             <Text style={styles.patientName} numberOfLines={1}>{stats.nextRide.patientName}</Text>
-                            <View style={[styles.typeBadge, {backgroundColor: stats.nextRide.type === 'Ambulance' ? '#FFEBEE' : '#E3F2FD'}]}>
-                                <Text style={{color: stats.nextRide.type === 'Ambulance' ? '#D32F2F' : '#1565C0', fontWeight:'bold', fontSize:10}}>
-                                    {stats.nextRide.type}
-                                </Text>
+                            <View style={styles.typeBadge}>
+                                <Text style={styles.typeBadgeText}>{stats.nextRide.type}</Text>
                             </View>
                         </View>
-                        
+
                         <View style={styles.routeMini}>
                             <View style={styles.routePoint}>
-                                <View style={[styles.dot, {backgroundColor:'#4CAF50'}]}/>
+                                <View style={[styles.routeDot, {backgroundColor: C.green}]}/>
                                 <Text style={styles.routeText} numberOfLines={1}>{stats.nextRide.startLocation}</Text>
                             </View>
                             <View style={styles.routePoint}>
-                                <View style={[styles.dot, {backgroundColor:'#FF6B00'}]}/>
+                                <View style={[styles.routeDot, {backgroundColor: C.brand, borderRadius: 2}]}/>
                                 <Text style={styles.routeText} numberOfLines={1}>{stats.nextRide.endLocation}</Text>
                             </View>
                         </View>
@@ -280,51 +279,59 @@ export default function HomeScreen({ navigation }) {
                 </TouchableOpacity>
             ) : (
                 <View style={styles.emptyCard}>
-                    <Ionicons name="checkmark-circle-outline" size={48} color="#CCC" />
-                    <Text style={styles.emptyText}>Aucune course à venir aujourd'hui.</Text>
-                    <Text style={styles.emptySubText}>Profitez de votre pause ! ☕</Text>
+                    <View style={styles.emptyCircle}>
+                      <Ionicons name="checkmark-circle-outline" size={32} color={C.brand} />
+                    </View>
+                    <Text style={styles.emptyText}>Journée libre</Text>
+                    <Text style={styles.emptySubText}>Aucune course à venir aujourd'hui</Text>
                 </View>
             )}
 
             {/* === OUTIL SCANNER === */}
             <Text style={styles.sectionTitle}>Outils Rapides</Text>
-            <TouchableOpacity 
-                style={styles.scannerCard} 
-                onPress={handleAntiFraudScan} 
+            <TouchableOpacity
+                style={styles.scannerCard}
+                onPress={handleAntiFraudScan}
                 disabled={scanning}
                 activeOpacity={0.8}
             >
                 <View style={styles.scannerIconBox}>
-                    {scanning ? <ActivityIndicator color="#FFF"/> : <Ionicons name="scan" size={24} color="#FFF" />}
+                    {scanning ? <ActivityIndicator color="#FFF"/> : <Ionicons name="scan" size={22} color="#FFF" />}
                 </View>
                 <View style={{flex: 1}}>
                     <Text style={styles.scannerTitle}>Scanner Droits Ameli</Text>
                     <Text style={styles.scannerSub}>Vérification Carte Vitale / Attestation</Text>
                 </View>
-                <View style={styles.arrowContainer}>
-                     <Ionicons name="chevron-forward" size={20} color="#2E7D32" />
-                </View>
+                <Ionicons name="chevron-forward" size={18} color={C.text3} />
             </TouchableOpacity>
 
             {/* === GRILLE NAVIGATION === */}
             <View style={styles.gridMenu}>
                 <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Agenda')}>
-                    <View style={[styles.menuIcon, {backgroundColor:'#E3F2FD'}]}><Ionicons name="calendar" size={26} color="#1565C0"/></View>
+                    <View style={[styles.menuIcon, {backgroundColor: '#3B82F6'+'22'}]}>
+                      <Ionicons name="calendar" size={26} color="#3B82F6"/>
+                    </View>
                     <Text style={styles.menuText}>Planning</Text>
                 </TouchableOpacity>
-                
+
                 <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('History')}>
-                    <View style={[styles.menuIcon, {backgroundColor:'#FFF3E0'}]}><Ionicons name="stats-chart" size={26} color="#EF6C00"/></View>
+                    <View style={[styles.menuIcon, {backgroundColor: C.brand+'22'}]}>
+                      <Ionicons name="stats-chart" size={26} color={C.brand}/>
+                    </View>
                     <Text style={styles.menuText}>Activité</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Patients')}>
-                    <View style={[styles.menuIcon, {backgroundColor:'#E8F5E9'}]}><Ionicons name="people" size={26} color="#2E7D32"/></View>
+                    <View style={[styles.menuIcon, {backgroundColor: C.green+'22'}]}>
+                      <Ionicons name="people" size={26} color={C.green}/>
+                    </View>
                     <Text style={styles.menuText}>Patients</Text>
                 </TouchableOpacity>
 
                 <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
-                    <View style={[styles.menuIcon, {backgroundColor:'#F3E5F5'}]}><Ionicons name="options" size={26} color="#6A1B9A"/></View>
+                    <View style={[styles.menuIcon, {backgroundColor: '#8B5CF6'+'22'}]}>
+                      <Ionicons name="options" size={26} color="#8B5CF6"/>
+                    </View>
                     <Text style={styles.menuText}>Réglages</Text>
                 </TouchableOpacity>
             </View>
@@ -336,92 +343,172 @@ export default function HomeScreen({ navigation }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F4F6F8' },
-  
-  scrollContent: {
-    paddingBottom: 100, 
+  container: { flex: 1, backgroundColor: C.bg },
+  scrollContent: { paddingBottom: 120 },
+
+  // ── HEADER ──
+  header: {
+    backgroundColor: C.bg,
+    paddingHorizontal: 18,
+    paddingTop: Platform.OS === 'ios' ? 62 : 50,
+    paddingBottom: 24,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  headerTop: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 22,
+  },
+  greeting: { color: C.text2, fontSize: 14, fontWeight: '500' },
+  date: { color: C.text, fontSize: 24, fontWeight: '800', textTransform: 'capitalize', letterSpacing: -0.5, marginTop: 2 },
+  avatarBtn: {
+    width: 40, height: 40,
+    backgroundColor: C.card,
+    borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
   },
 
-  header: { 
-    backgroundColor: '#FF6B00', 
-    paddingHorizontal: 20, 
-    paddingTop: Platform.OS === 'ios' ? 60 : 50, 
-    paddingBottom: 30, 
-    borderBottomLeftRadius: 35, 
-    borderBottomRightRadius: 35,
-    elevation: 8,
-    shadowColor: '#FF6B00', shadowOffset: {width:0, height:4}, shadowOpacity:0.3, shadowRadius:8
+  // ── STATS ──
+  statsContainer: { gap: 10 },
+
+  statCardRow: {
+    flexDirection: 'row',
+    gap: 10,
   },
-  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 25 },
-  greeting: { color: 'rgba(255,255,255,0.9)', fontSize: 16, fontWeight: '500' },
-  date: { color: '#FFF', fontSize: 24, fontWeight: '800', textTransform: 'capitalize' },
-  avatarBtn: { width: 44, height: 44, backgroundColor: '#FFF', borderRadius: 22, justifyContent: 'center', alignItems: 'center', elevation: 4 },
-  
-  statsContainer: { flexDirection: 'column' },
-  statCard: { 
-    backgroundColor: 'rgba(255,255,255,0.15)', 
-    borderRadius: 20, 
-    padding: 15, 
-    flexDirection: 'row', 
+  statCardHalf: {
+    flex: 1,
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+    gap: 4,
+  },
+  statIconBox: {
+    width: 34, height: 34, borderRadius: 10,
+    backgroundColor: C.card2,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 4,
+    borderWidth: 1, borderColor: C.border,
+  },
+  statLabelSmall: { color: C.text3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  statValueLarge: { color: C.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
+  monthText: { color: C.text2, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
+  billedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.green + '11',
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.green + '33',
+  },
+
+  // ── BODY ──
+  bodyContainer: { paddingHorizontal: 18, paddingTop: 24 },
+  sectionTitle: {
+    fontSize: 16, fontWeight: '800', color: C.text,
+    marginBottom: 12, marginTop: 8, letterSpacing: -0.2,
+  },
+
+  // ── NEXT RIDE CARD ──
+  nextRideCard: {
+    flexDirection: 'row',
+    backgroundColor: C.card,
+    borderRadius: 20,
+    marginBottom: 22,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.border,
+    minHeight: 110,
+  },
+  ticketLeft: {
+    width: 80,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: C.brand + '15',
+    borderRightWidth: 1,
+    borderRightColor: C.border,
+    gap: 4,
+  },
+  bigTime: { fontSize: 22, fontWeight: '900', color: C.brand },
+  timeLabel: { fontSize: 8, color: C.brand + 'AA', fontWeight: '800', letterSpacing: 1.2 },
+  ticketDivider: { width: 1, backgroundColor: C.border, marginVertical: 12 },
+  dashedLine: { flex: 1, borderLeftWidth: 1, borderLeftColor: C.border, borderStyle: 'dashed' },
+  ticketRight: { flex: 1, paddingHorizontal: 14, paddingVertical: 14, justifyContent: 'center' },
+  patientName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1, marginRight: 8 },
+  typeBadge: {
+    backgroundColor: C.brand + '22', paddingHorizontal: 8, paddingVertical: 3,
+    borderRadius: 6, borderWidth: 1, borderColor: C.brand + '44',
+  },
+  typeBadgeText: { color: C.brand, fontWeight: '700', fontSize: 10 },
+  routeMini: { gap: 6 },
+  routePoint: { flexDirection: 'row', alignItems: 'center', gap: 7 },
+  routeDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
+  routeText: { fontSize: 12, color: C.text2, flex: 1 },
+
+  // ── EMPTY ──
+  emptyCard: {
+    backgroundColor: C.card,
+    borderRadius: 20,
+    padding: 30,
+    alignItems: 'center',
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  emptyCircle: {
+    width: 68, height: 68, borderRadius: 34,
+    backgroundColor: C.brand + '15',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 14, borderWidth: 1, borderColor: C.brand + '22',
+  },
+  emptyText: { color: C.text, fontWeight: '800', fontSize: 16 },
+  emptySubText: { color: C.text2, marginTop: 4, fontSize: 13 },
+
+  // ── SCANNER ──
+  scannerCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: C.card,
+    padding: 14,
+    borderRadius: 18,
+    marginBottom: 22,
+    borderWidth: 1,
+    borderColor: C.green + '33',
+  },
+  scannerIconBox: {
+    width: 46, height: 46,
+    backgroundColor: C.green,
+    borderRadius: 14,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  scannerTitle: { fontWeight: '700', fontSize: 15, color: C.text },
+  scannerSub: { fontSize: 12, color: C.green, marginTop: 2 },
+
+  // ── MENU GRILLE ──
+  gridMenu: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
+  menuItem: {
+    width: '47.5%',
+    backgroundColor: C.card,
+    borderRadius: 20,
+    paddingVertical: 20,
+    paddingHorizontal: 16,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.3)'
+    borderColor: C.border,
   },
-  iconContainer: { width: 36, height: 36, borderRadius: 18, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
-  statValue: { color: '#FFF', fontSize: 20, fontWeight: 'bold' },
-  statLabelMain: { color: 'rgba(255,255,255,0.9)', fontSize: 13, fontWeight: '600' },
-  
-  // Styles du sélecteur de mois
-  monthSelectorRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 15 },
-  monthSelectorText: { color: '#FFF', fontSize: 16, fontWeight: '800', textTransform: 'capitalize' },
-  monthArrow: { padding: 5, backgroundColor: 'rgba(255,255,255,0.15)', borderRadius: 15 },
-
-  statLabelSmall: { color: 'rgba(255,255,255,0.8)', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  statValueLarge: { color: '#FFF', fontSize: 22, fontWeight: '900' },
-
-  bodyContainer: { padding: 20, marginTop: -10 },
-  sectionTitle: { fontSize: 17, fontWeight: '800', color: '#333', marginBottom: 15, marginLeft: 5, marginTop: 10 },
-
-  nextRideCard: { 
-    flexDirection: 'row', backgroundColor: '#FFF', borderRadius: 20, elevation: 4, marginBottom: 20,
-    shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, height: 110
+  menuIcon: {
+    width: 54, height: 54,
+    borderRadius: 16,
+    justifyContent: 'center', alignItems: 'center',
+    marginBottom: 10,
   },
-  ticketLeft: { width: 90, justifyContent: 'center', alignItems: 'center', backgroundColor: '#FFF', borderTopLeftRadius: 20, borderBottomLeftRadius: 20 },
-  timeBlock: { alignItems: 'center' },
-  bigTime: { fontSize: 22, fontWeight: '900', color: '#333' },
-  timeLabel: { fontSize: 10, color: '#999', fontWeight: 'bold', marginTop: 2 },
-  
-  ticketDivider: { width: 20, justifyContent: 'center', alignItems: 'center', overflow: 'hidden' },
-  notch: { width: 20, height: 20, borderRadius: 10, backgroundColor: '#F4F6F8', position: 'absolute', zIndex: 1 },
-  dashedLine: { width: 1, height: '80%', borderLeftWidth: 1, borderLeftColor: '#DDD', borderStyle: 'dashed' },
-
-  ticketRight: { flex: 1, padding: 15, justifyContent: 'center' },
-  patientName: { fontSize: 16, fontWeight: 'bold', color: '#333', maxWidth: '75%' },
-  typeBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  
-  routeMini: { marginTop: 10 },
-  routePoint: { flexDirection: 'row', alignItems: 'center', marginBottom: 4 },
-  dot: { width: 6, height: 6, borderRadius: 3, marginRight: 8 },
-  routeText: { fontSize: 13, color: '#555', flex: 1 },
-
-  emptyCard: { backgroundColor: '#FFF', borderRadius: 20, padding: 30, alignItems: 'center', borderStyle: 'dashed', borderWidth: 2, borderColor: '#EEE', marginBottom: 20 },
-  emptyText: { color: '#555', marginTop: 10, fontWeight: 'bold', fontSize: 16 },
-  emptySubText: { color: '#999', marginTop: 5, fontSize: 13 },
-
-  scannerCard: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#F1F8E9', 
-    padding: 12, borderRadius: 16, marginBottom: 25, borderWidth: 1, borderColor: '#C8E6C9'
-  },
-  scannerIconBox: { width: 44, height: 44, backgroundColor: '#2E7D32', borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginRight: 15, elevation: 2 },
-  scannerTitle: { fontWeight: 'bold', fontSize: 15, color: '#1B5E20' },
-  scannerSub: { fontSize: 12, color: '#388E3C', marginTop: 2 },
-  arrowContainer: { backgroundColor: '#FFF', borderRadius: 15, width: 30, height: 30, justifyContent: 'center', alignItems: 'center' },
-
-  gridMenu: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  menuItem: { 
-    width: '48%', backgroundColor: '#FFF', borderRadius: 20, padding: 15, alignItems: 'center', marginBottom: 15, 
-    elevation: 2, shadowColor: '#000', shadowOpacity: 0.03, shadowRadius: 5
-  },
-  menuIcon: { width: 55, height: 55, borderRadius: 20, justifyContent: 'center', alignItems: 'center', marginBottom: 12 },
-  menuText: { fontWeight: '700', color: '#444', fontSize: 14 }
+  menuText: { fontWeight: '700', color: C.text, fontSize: 13 },
 });

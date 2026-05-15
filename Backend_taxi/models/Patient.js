@@ -13,8 +13,11 @@ const PatientSchema = new mongoose.Schema({
   
   // Liste des collègues qui ont le droit de voir ce patient
   sharedWith: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }] 
-}, { 
-  timestamps: true // 👇 Pour ravoir createdAt et updatedAt automatiquement
+}, {
+  timestamps: true
 });
+
+PatientSchema.index({ chauffeurId: 1 });
+PatientSchema.index({ chauffeurId: 1, fullName: 1 });
 
 module.exports = mongoose.model('Patient', PatientSchema);

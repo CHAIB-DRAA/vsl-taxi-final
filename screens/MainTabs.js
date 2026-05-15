@@ -29,7 +29,7 @@ const CustomPostButton = ({ children, onPress }) => (
       borderRadius: 35, // Parfaitement rond
       backgroundColor: '#FF6B00', // Orange vibrant
       borderWidth: 4,
-      borderColor: '#F8F9FA', // ⚠️ DOIT MATCH L'ARRIÈRE PLAN DE TES ÉCRANS (Gris clair)
+      borderColor: '#F1F5F9',
     }}>
       {children}
     </View>
@@ -48,24 +48,20 @@ export default function MainTabs() {
         
         // 💎 LE STYLE "FLOTTANT" PROFESSIONNEL
         tabBarStyle: {
-          position: 'absolute', 
-          bottom: 20, // Décollé du bas
-          left: 20,   // Marge gauche
-          right: 20,  // Marge droite
-          
+          position: 'absolute',
+          bottom: 18,
+          left: 16,
+          right: 16,
           backgroundColor: '#FFFFFF',
-          borderRadius: 25, // Coins très arrondis (Style iOS/Samsung OneUI)
-          height: 70,       // Hauteur confortable
-          borderTopWidth: 0, // Pas de bordure moche
-          
-          // Ombres Premium (Android + iOS)
-          elevation: 10, 
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 5 },
-          shadowOpacity: 0.1,
-          shadowRadius: 10,
-          
-          zIndex: 999, // Reste au-dessus de tout
+          borderRadius: 26,
+          height: 68,
+          borderTopWidth: 0,
+          elevation: 14,
+          shadowColor: '#1E293B',
+          shadowOffset: { width: 0, height: 6 },
+          shadowOpacity: 0.12,
+          shadowRadius: 16,
+          zIndex: 999,
         }
       }}
     >

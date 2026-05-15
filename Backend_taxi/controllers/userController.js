@@ -1,114 +1,112 @@
-// controllers/userController.js
 const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-// Temps d'expiration du token
-const TOKEN_EXPIRATION = '7d';
+const TOKEN_EXPIRATION = '30d';
+
+const PROFILE_WHITELIST = ['fullName', 'phone', 'pushToken'];
 
 // ==========================================
-// 1. AUTHENTIFICATION
+// AUTHENTIFICATION
 // ==========================================
 
-// Inscription
 exports.signupUser = async (req, res) => {
   try {
     const { email, fullName, password } = req.body;
-    
-    // Validation stricte
-    if (!email || !password) return res.status(400).json({ error: 'Email et mot de passe requis' });
 
-    const existingUser = await User.findOne({ email });
+    if (!email || !password || !fullName) {
+      return res.status(400).json({ error: 'Email, nom et mot de passe requis' });
+    }
+
+    if (password.length < 8) {
+      return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
+    }
+
+    const existingUser = await User.findOne({ email: email.toLowerCase().trim() });
     if (existingUser) return res.status(400).json({ error: 'Email déjà utilisé' });
 
-    // Hachage manuel (Compatible avec ton modèle User simple)
-    const hashedPassword = await bcrypt.hash(password, 10);
-    
-    const user = new User({ 
-        email, 
-        fullName, 
-        password: hashedPassword 
-    });
-    
+    const hashedPassword = await bcrypt.hash(password, 12);
+    const user = new User({ email: email.toLowerCase().trim(), fullName: fullName.trim(), password: hashedPassword });
     await user.save();
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
 
-    res.status(201).json({ 
-      message: 'Utilisateur créé', 
+    res.status(201).json({
+      message: 'Compte créé avec succès',
       user: { id: user._id, email: user.email, fullName: user.fullName },
       token
     });
   } catch (err) {
     console.error("Erreur Signup:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 };
 
-// Connexion
 exports.loginUser = async (req, res) => {
   try {
     const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user) return res.status(404).json({ error: 'Utilisateur non trouvé' });
+
+    if (!email || !password) {
+      return res.status(400).json({ error: 'Email et mot de passe requis' });
+    }
+
+    const user = await User.findOne({ email: email.toLowerCase().trim() });
+    // Message générique pour éviter l'énumération de comptes
+    if (!user) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
 
     const match = await bcrypt.compare(password, user.password);
-    if (!match) return res.status(401).json({ error: 'Mot de passe incorrect' });
+    if (!match) return res.status(401).json({ error: 'Email ou mot de passe incorrect' });
 
     const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET, { expiresIn: TOKEN_EXPIRATION });
 
-    res.json({ 
-      message: 'Connexion réussie', 
+    res.json({
+      message: 'Connexion réussie',
       user: { id: user._id, email: user.email, fullName: user.fullName },
       token
     });
   } catch (err) {
     console.error("Erreur Login:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 };
 
 // ==========================================
-// 2. GESTION DES CONTACTS (C'est ici que tu avais le bug)
+// CONTACTS
 // ==========================================
 
-// Ajouter un contact
 exports.addContact = async (req, res) => {
   try {
-    // Note : Idéalement, on utilise req.user.id venant du token pour identifier "moi"
-    // Mais je garde ta logique actuelle pour ne pas tout casser.
-    const { userId, contactId } = req.body;
+    const myId = req.user.id;
+    const { contactId } = req.body;
 
-    const user = await User.findById(userId);
-    const contact = await User.findById(contactId);
+    if (!contactId) return res.status(400).json({ message: 'contactId requis' });
+    if (contactId === myId) return res.status(400).json({ message: 'Vous ne pouvez pas vous ajouter vous-même' });
 
-    if (!user || !contact) return res.status(404).json({ message: 'Utilisateur introuvable' });
+    const [me, contact] = await Promise.all([
+      User.findById(myId),
+      User.findById(contactId)
+    ]);
 
-    // On évite les doublons
-    if (!user.contacts.includes(contact._id)) {
-      user.contacts.push(contact._id);
-      await user.save();
+    if (!me || !contact) return res.status(404).json({ message: 'Utilisateur introuvable' });
+
+    if (!me.contacts.some(id => id.toString() === contactId)) {
+      me.contacts.push(contact._id);
+      await me.save();
     }
 
-    // On renvoie la liste à jour
-    res.json({ message: 'Contact ajouté', contacts: user.contacts });
+    res.json({ message: 'Contact ajouté' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 };
 
-// 👇 LA FONCTION QUI MANQUAIT (Celle qui corrige l'erreur 404)
 exports.getMyContacts = async (req, res) => {
   try {
-    // req.user.id est injecté par le middleware d'authentification
     const user = await User.findById(req.user.id)
-      .populate('contacts', 'fullName email phone pushToken'); // On récupère les infos utiles
+      .populate('contacts', 'fullName email pushToken');
 
-    if (!user) {
-      return res.status(404).json({ message: "Utilisateur introuvable" });
-    }
+    if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
-    // On renvoie le tableau, ou un tableau vide si null
     res.json(user.contacts || []);
   } catch (err) {
     console.error("Erreur getMyContacts:", err);
@@ -117,12 +115,12 @@ exports.getMyContacts = async (req, res) => {
 };
 
 // ==========================================
-// 3. UTILITAIRES & PROFIL
+// PROFIL & RECHERCHE
 // ==========================================
 
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find({}, 'fullName email'); 
+    const users = await User.find({}, 'fullName email');
     res.json(users);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -136,13 +134,10 @@ exports.searchUsers = async (req, res) => {
 
     const regex = new RegExp(query, 'i');
     const users = await User.find({
-      $or: [
-        { email: regex },
-        { fullName: regex }
-      ]
+      $or: [{ email: regex }, { fullName: regex }]
     })
-    .limit(10)
-    .select('_id fullName email');
+      .limit(10)
+      .select('_id fullName email');
 
     res.json(users);
   } catch (err) {
@@ -152,7 +147,7 @@ exports.searchUsers = async (req, res) => {
 
 exports.getProfile = async (req, res) => {
   try {
-    const user = await User.findById(req.user.id).select('-password');
+    const user = await User.findById(req.user.id).select('-password -resetPasswordToken -resetPasswordExpires');
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
     res.json(user);
   } catch (err) {
@@ -162,14 +157,16 @@ exports.getProfile = async (req, res) => {
 
 exports.updateProfile = async (req, res) => {
   try {
-    const updates = req.body;
-    delete updates.password; // Sécurité
+    const updates = {};
+    for (const key of PROFILE_WHITELIST) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
 
     const user = await User.findByIdAndUpdate(
       req.user.id,
       { $set: updates },
       { new: true, runValidators: true }
-    ).select('-password');
+    ).select('-password -resetPasswordToken -resetPasswordExpires');
 
     res.json(user);
   } catch (err) {

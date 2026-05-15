@@ -1,64 +1,102 @@
-import React, { createContext, useState, useEffect, useContext, useCallback } from 'react';
-import api, { getRides, getContacts } from '../services/api'; // Assure-toi d'importer getContacts
+import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
+import api, { getRides, cancelRideById } from '../services/api';
 import { Alert } from 'react-native';
+
+const REFRESH_THROTTLE_MS = 30_000; // 30s minimum entre deux rechargements automatiques
 
 const DataContext = createContext();
 
 export const DataProvider = ({ children }) => {
   const [allRides, setAllRides] = useState([]);
-  const [contacts, setContacts] = useState([]); // 👇 C'est ici que sont stockés les contacts
+  const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const lastLoadRef = useRef(0);
+  const isLoadingRef = useRef(false); // garde contre les appels concurrents
 
-  // --- FONCTION DE CHARGEMENT GLOBALE ---
   const loadData = useCallback(async (showLoading = true) => {
+    const now = Date.now();
+    // Throttle : si ce n'est pas un rechargement explicite (showLoading=false)
+    // et qu'on a chargé il y a moins de 30s, on ignore
+    if (!showLoading && now - lastLoadRef.current < REFRESH_THROTTLE_MS) return;
+    // Garde contre les appels parallèles
+    if (isLoadingRef.current) return;
+
+    isLoadingRef.current = true;
+    lastLoadRef.current = now;
     if (showLoading) setLoading(true);
     try {
-      console.log("🔄 Chargement des données...");
+      // Les deux requêtes en parallèle
+      const [ridesRes, contactsRes] = await Promise.allSettled([
+        getRides(),
+        api.get('/contacts'),
+      ]);
 
-      // 1. Charger les Courses
-      const ridesRes = await getRides();
-      setAllRides(ridesRes);
-
-      // 2. Charger les Contacts (C'est ce qui te manquait peut-être)
-      try {
-        const contactsRes = await api.get('/contacts'); // Appel direct à la route
-        console.log("✅ Contacts chargés :", contactsRes.data.length);
-        setContacts(contactsRes.data);
-      } catch (err) {
-        console.log("⚠️ Erreur chargement contacts :", err);
-        // On ne bloque pas l'app si les contacts échouent, on met juste un tableau vide
-        setContacts([]);
-      }
-
+      if (ridesRes.status === 'fulfilled') setAllRides(ridesRes.value);
+      setContacts(contactsRes.status === 'fulfilled' ? contactsRes.value.data : []);
     } catch (error) {
-      console.error("❌ Erreur chargement global :", error);
+      console.error("Erreur chargement global :", error);
     } finally {
+      isLoadingRef.current = false;
       if (showLoading) setLoading(false);
     }
   }, []);
 
-  // --- ACTIONS ---
-  const handleGlobalRespond = async (rideId, status) => {
+  // Ajout optimiste d'une course
+  const addLocalRide = useCallback((newRide) => {
+    setAllRides(prev => [...prev, newRide]);
+  }, []);
+
+  // Mise à jour optimiste d'une course dans la liste locale
+  const updateLocalRide = useCallback((updatedRide) => {
+    setAllRides(prev => prev.map(r => r._id === updatedRide._id ? updatedRide : r));
+  }, []);
+
+  // Suppression optimiste d'une course
+  const removeLocalRide = useCallback((rideId) => {
+    setAllRides(prev => prev.filter(r => r._id !== rideId));
+  }, []);
+
+  // Répondre à une invitation de partage (accepter/refuser)
+  const handleGlobalRespond = async (rideId, action) => {
     try {
-      await api.put(`/rides/${rideId}/respond`, { status });
-      await loadData(false); // Recharge sans spinner
-    } catch (e) {
-      Alert.alert("Erreur", "Impossible de répondre.");
+      await api.post('/rides/respond-share', { rideId, action });
+      await loadData(false);
+    } catch {
+      Alert.alert("Erreur", "Impossible de répondre à l'invitation.");
     }
   };
 
-  // Chargement initial au lancement de l'app
+  // Annuler une course
+  const handleCancelRide = async (rideId, reason = '') => {
+    try {
+      const updated = await cancelRideById(rideId, reason);
+      updateLocalRide(updated);
+    } catch {
+      Alert.alert("Erreur", "Impossible d'annuler la course.");
+    }
+  };
+
   useEffect(() => {
     loadData();
   }, [loadData]);
 
+  // Première invitation en attente de réponse
+  const pendingInvitation = allRides.find(
+    r => r.isShared && (r.shareStatus === 'pending' || r.statusPartage === 'pending')
+  ) || null;
+
   return (
-    <DataContext.Provider value={{ 
-      allRides, 
-      contacts, // On partage les contacts avec toute l'app
-      loading, 
-      loadData, 
-      handleGlobalRespond 
+    <DataContext.Provider value={{
+      allRides,
+      contacts,
+      loading,
+      loadData,
+      addLocalRide,
+      updateLocalRide,
+      removeLocalRide,
+      handleGlobalRespond,
+      handleCancelRide,
+      pendingInvitation,
     }}>
       {children}
     </DataContext.Provider>

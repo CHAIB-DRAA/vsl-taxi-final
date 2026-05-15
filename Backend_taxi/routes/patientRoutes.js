@@ -12,55 +12,43 @@ router.use(authMiddleware);
 // 1. ROUTE SEARCH (Doit être AVANT /:id)
 // ==========================================
 router.get('/search', async (req, res) => {
-    try {
-      const { query } = req.query;
-      console.log("🔍 Recherche Patient reçue :", query); 
-  
-      if (!query || query.length < 2) {
-          return res.json([]);
-      }
-  
-      const patients = await Patient.find({
-        fullName: { $regex: query, $options: 'i' }
-      })
-      .select('fullName phone address email') 
-      .limit(10); 
-  
-      res.json(patients);
-  
-    } catch (error) {
-      console.error("❌ Erreur Search:", error);
-      res.status(500).json({ message: "Erreur lors de la recherche" });
-    }
+  try {
+    const { query } = req.query;
+    if (!query || query.length < 2) return res.json([]);
+    if (query.length > 100) return res.status(400).json({ message: 'Requête trop longue' });
+
+    const patients = await Patient.find({
+      chauffeurId: req.user.id,
+      fullName: { $regex: query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), $options: 'i' },
+    })
+      .select('fullName phone address')
+      .limit(10);
+
+    res.json(patients);
+  } catch (error) {
+    res.status(500).json({ message: 'Erreur lors de la recherche' });
+  }
 });
-  
+
 // ==========================================
-// 2. ROUTE GET ALL (Chargement de la liste)
+// 2. ROUTE GET ALL
 // ==========================================
-// 👇 C'est celle-ci que l'on garde (avec les logs pour debug)
-router.get('/', async (req, res) => {
-    try {
-      console.log("📥 Chargement liste patients...");
-      const patients = await Patient.find().sort({ fullName: 1 });
-      console.log(`✅ ${patients.length} patients trouvés.`);
-      res.json(patients);
-    } catch (error) {
-      console.error("❌ Erreur chargement patients:", error);
-      res.status(500).json({ message: error.message });
-    }
-});
-  
+router.get('/', patientController.getPatients);
+
 // ==========================================
 // 3. ROUTE GET ONE (Par ID)
 // ==========================================
 router.get('/:id', async (req, res) => {
-    try {
-      const patient = await Patient.findById(req.params.id);
-      if (!patient) return res.status(404).json({ message: 'Patient introuvable' });
-      res.json(patient);
-    } catch (error) {
-      res.status(500).json({ message: error.message });
-    }
+  try {
+    const patient = await Patient.findOne({
+      _id: req.params.id,
+      $or: [{ chauffeurId: req.user.id }, { sharedWith: req.user.id }],
+    });
+    if (!patient) return res.status(404).json({ message: 'Patient introuvable' });
+    res.json(patient);
+  } catch (error) {
+    res.status(500).json({ message: error.message });
+  }
 });
 
 // ==========================================

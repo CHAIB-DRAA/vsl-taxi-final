@@ -1,132 +1,234 @@
 import React from 'react';
-import { View, Text, Modal, TouchableOpacity, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Modal, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import 'moment/locale/fr';
 
-export default function RideOptionsModal({ 
-  visible, 
-  onClose, 
-  ride, 
-  onEdit, 
-  onCreateReturn, 
-  onAddToCalendar, 
-  onOpenDocs, 
-  onShare, 
-  onDelete,
-  onDispatch,
-  onSendSMS // 👈 NOUVEAU PROP REÇU
+const C = {
+  bg:     '#F2F3F7',
+  card:   '#FFFFFF',
+  card2:  '#F5F7FB',
+  border: '#E2E5EC',
+  text:   '#111827',
+  text2:  '#6B7280',
+  brand:  '#FF6B00',
+};
+
+const ACTIONS = [
+  { key: 'edit',       label: 'Modifier',  icon: 'create-outline',             bg: '#F5F7FB', color: '#111827' },
+  { key: 'return',     label: 'Retour',    icon: 'swap-horizontal-outline',     bg: '#F5F7FB', color: '#111827' },
+  { key: 'sms',        label: 'SMS',       icon: 'chatbubble-ellipses-outline', bg: '#F5F7FB', color: '#111827' },
+  { key: 'calendar',   label: 'Agenda',    icon: 'calendar-outline',            bg: '#F5F7FB', color: '#111827' },
+  { key: 'dispatch',   label: 'Envoyer',   icon: 'paper-plane-outline',         bg: '#F5F7FB', color: '#111827' },
+  { key: 'docs',       label: 'Dossier',   icon: 'folder-open-outline',         bg: '#F5F7FB', color: '#111827' },
+  { key: 'share',      label: 'Partager',  icon: 'share-social-outline',        bg: '#F5F7FB', color: '#111827' },
+  { key: 'delete',     label: 'Supprimer', icon: 'trash-outline',               bg: '#FFF1F2', color: '#EF4444' },
+];
+
+export default function RideOptionsModal({
+  visible, onClose, ride,
+  onEdit, onCreateReturn, onAddToCalendar, onOpenDocs, onShare, onDelete, onDispatch, onSendSMS,
 }) {
-  
-  if (!ride) return null;
+  const handlerMap = {
+    edit:     onEdit,
+    return:   onCreateReturn,
+    sms:      onSendSMS,
+    calendar: onAddToCalendar,
+    dispatch: onDispatch,
+    docs:     onOpenDocs,
+    share:    onShare,
+    delete:   onDelete,
+  };
+
+  const isFinished  = ride?.status === 'Terminée';
+  const isCancelled = ride?.status === 'Annulée';
+
+  const statusColor = isFinished ? '#9CA3AF'
+    : isCancelled  ? '#EF4444'
+    : ride?.status === 'En cours' ? '#16A34A'
+    : C.brand;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent>
+    <Modal visible={visible} animationType="slide" transparent statusBarTranslucent>
       <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-        <View style={styles.modalContent}>
-          
-          {/* HEADER */}
-          <View style={styles.header}>
-            <View>
-                <Text style={styles.patientName}>{ride.patientName}</Text>
-                <Text style={styles.rideInfo}>
-                    {moment(ride.date).format('HH:mm')} • {ride.startLocation?.split(',')[0]} ➔ {ride.endLocation?.split(',')[0]}
-                </Text>
-            </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
-                <Ionicons name="close" size={24} color="#666" />
-            </TouchableOpacity>
-          </View>
+        <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={() => {}}>
 
-          {/* GRILLE D'OPTIONS */}
-          <View style={styles.optionsGrid}>
+          {ride ? (
+            <>
+              {/* ── POIGNÉE ── */}
+              <View style={styles.handle} />
 
-            {/* --- LIGNE 1 --- */}
-            <View style={styles.row}>
-                <TouchableOpacity style={styles.optionItem} onPress={onEdit}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#FFF3E0' }]}>
-                        <Ionicons name="create-outline" size={24} color="#FF9800" />
-                    </View>
-                    <Text style={styles.optionText}>Modifier</Text>
+              {/* ── HEADER COURSE ── */}
+              <View style={styles.header}>
+                <View style={styles.headerLeft}>
+                  <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+                  <View>
+                    <Text style={styles.patientName} numberOfLines={1}>{ride.patientName}</Text>
+                    <Text style={styles.rideInfo}>
+                      {moment(ride.date).format('HH:mm')}
+                      {'  ·  '}
+                      {ride.startLocation?.split(',')[0]}
+                      {' → '}
+                      {ride.endLocation?.split(',')[0]}
+                    </Text>
+                  </View>
+                </View>
+                <TouchableOpacity onPress={onClose} style={styles.closeBtn} hitSlop={{ top: 10, right: 10, bottom: 10, left: 10 }}>
+                  <Ionicons name="close" size={20} color={C.text2} />
                 </TouchableOpacity>
+              </View>
 
-                <TouchableOpacity style={styles.optionItem} onPress={onCreateReturn}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#E3F2FD' }]}>
-                        <Ionicons name="swap-horizontal-outline" size={24} color="#2196F3" />
+              {/* ── STATUT ── */}
+              <View style={[styles.statusBar, { borderColor: statusColor + '33', backgroundColor: statusColor + '11' }]}>
+                <Text style={[styles.statusText, { color: statusColor }]}>{ride.status || 'À venir'}</Text>
+                <Text style={styles.statusDate}>{moment(ride.date).format('dddd D MMMM')}</Text>
+              </View>
+
+              {/* ── GRILLE ACTIONS ── */}
+              <View style={styles.grid}>
+                {ACTIONS.map((a) => (
+                  <TouchableOpacity
+                    key={a.key}
+                    style={[styles.actionItem, { backgroundColor: a.bg }]}
+                    onPress={() => { handlerMap[a.key]?.(); }}
+                    activeOpacity={0.7}
+                  >
+                    <View style={[styles.actionIconBox, { borderColor: a.color + '30' }]}>
+                      <Ionicons name={a.icon} size={22} color={a.color} />
                     </View>
-                    <Text style={styles.optionText}>Retour</Text>
-                </TouchableOpacity>
+                    <Text style={[styles.actionLabel, { color: a.color }]}>
+                      {a.label}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
 
-                {/* 👇 LE BOUTON SMS RESTAURÉ ICI 👇 */}
-                <TouchableOpacity style={styles.optionItem} onPress={onSendSMS}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#E0F7FA' }]}>
-                        <Ionicons name="chatbubble-ellipses-outline" size={24} color="#00BCD4" />
-                    </View>
-                    <Text style={styles.optionText}>SMS</Text>
-                </TouchableOpacity>
-            </View>
+              <View style={{ height: Platform.OS === 'ios' ? 20 : 8 }} />
+            </>
+          ) : null}
 
-            {/* --- LIGNE 2 --- */}
-            <View style={styles.row}>
-                <TouchableOpacity style={styles.optionItem} onPress={onDispatch}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#E8F5E9' }]}>
-                        <Ionicons name="paper-plane-outline" size={24} color="#4CAF50" />
-                    </View>
-                    <Text style={styles.optionText}>Envoyer</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={onAddToCalendar}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#FFF8E1' }]}>
-                        <Ionicons name="logo-google" size={24} color="#FFC107" />
-                    </View>
-                    <Text style={styles.optionText}>Agenda</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={onOpenDocs}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#E0F2F1' }]}>
-                        <Ionicons name="folder-open-outline" size={24} color="#009688" />
-                    </View>
-                    <Text style={styles.optionText}>Dossier</Text>
-                </TouchableOpacity>
-            </View>
-
-            {/* --- LIGNE 3 (Partage + Suppr) --- */}
-            <View style={styles.row}>
-                 <TouchableOpacity style={styles.optionItem} onPress={onShare}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#F3E5F5' }]}>
-                        <Ionicons name="share-social-outline" size={24} color="#9C27B0" />
-                    </View>
-                    <Text style={styles.optionText}>Partager</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity style={styles.optionItem} onPress={onDelete}>
-                    <View style={[styles.iconContainer, { backgroundColor: '#FFEBEE' }]}>
-                        <Ionicons name="trash-outline" size={24} color="#D32F2F" />
-                    </View>
-                    <Text style={[styles.optionText, { color: '#D32F2F' }]}>Suppr.</Text>
-                </TouchableOpacity>
-                 
-                 {/* Item vide pour alignement */}
-                 <View style={styles.optionItem} /> 
-            </View>
-
-          </View>
-        </View>
+        </TouchableOpacity>
       </TouchableOpacity>
     </Modal>
   );
 }
 
 const styles = StyleSheet.create({
-  overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-  modalContent: { backgroundColor: '#FFF', borderTopLeftRadius: 25, borderTopRightRadius: 25, padding: 20, paddingBottom: 40 },
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20, borderBottomWidth: 1, borderColor: '#F0F0F0', paddingBottom: 15 },
-  patientName: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  rideInfo: { fontSize: 14, color: '#666', marginTop: 4 },
-  closeBtn: { padding: 5, backgroundColor: '#F5F5F5', borderRadius: 20 },
-  optionsGrid: { gap: 15 },
-  row: { flexDirection: 'row', justifyContent: 'space-between' },
-  optionItem: { alignItems: 'center', width: '30%' }, // 3 items par ligne
-  iconContainer: { width: 50, height: 50, borderRadius: 15, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
-  optionText: { fontSize: 13, fontWeight: '600', color: '#333', textAlign:'center' },
+  overlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.75)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    paddingTop: 12,
+    paddingHorizontal: 20,
+    paddingBottom: 16,
+    borderTopWidth: 1,
+    borderColor: C.border,
+  },
+  handle: {
+    width: 40,
+    height: 4,
+    backgroundColor: '#D1D5DB',
+    borderRadius: 2,
+    alignSelf: 'center',
+    marginBottom: 20,
+  },
+
+  // HEADER
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 14,
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flex: 1,
+    gap: 12,
+  },
+  statusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    flexShrink: 0,
+  },
+  patientName: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.text,
+    letterSpacing: -0.3,
+  },
+  rideInfo: {
+    fontSize: 13,
+    color: C.text2,
+    marginTop: 2,
+  },
+  closeBtn: {
+    width: 34,
+    height: 34,
+    backgroundColor: C.card2,
+    borderRadius: 17,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+
+  // STATUS BAR
+  statusBar: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    marginBottom: 20,
+  },
+  statusText: {
+    fontWeight: '700',
+    fontSize: 13,
+  },
+  statusDate: {
+    color: C.text2,
+    fontSize: 13,
+    textTransform: 'capitalize',
+  },
+
+  // GRID
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 10,
+  },
+  actionItem: {
+    width: '22%',
+    aspectRatio: 0.85,
+    borderRadius: 16,
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 6,
+    borderWidth: 1,
+    borderColor: C.border,
+    flexGrow: 1,
+  },
+  actionIconBox: {
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: C.card2,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+  },
+  actionLabel: {
+    fontSize: 11,
+    fontWeight: '700',
+    textAlign: 'center',
+  },
 });
