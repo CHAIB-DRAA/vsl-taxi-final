@@ -1,6 +1,7 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import api, { getRides, cancelRideById } from '../services/api';
 import { Alert } from 'react-native';
+import * as Notifications from 'expo-notifications';
 
 const REFRESH_THROTTLE_MS = 30_000; // 30s minimum entre deux rechargements automatiques
 
@@ -78,6 +79,19 @@ export const DataProvider = ({ children }) => {
 
   useEffect(() => {
     loadData();
+  }, [loadData]);
+
+  // Listener push : recharge immédiatement quand une nouvelle demande web arrive
+  useEffect(() => {
+    const sub = Notifications.addNotificationReceivedListener(notification => {
+      const type = notification.request.content.data?.type;
+      if (type === 'new_web_booking') {
+        // Force le rechargement même si throttle pas encore expiré
+        lastLoadRef.current = 0;
+        loadData(false);
+      }
+    });
+    return () => sub.remove();
   }, [loadData]);
 
   // Première invitation en attente de réponse
