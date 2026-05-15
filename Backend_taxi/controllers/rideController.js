@@ -234,24 +234,20 @@ exports.createWebBooking = async (req, res) => {
   try {
     const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes } = req.body;
 
-    if (!patientName || !startLocation || !endLocation || !date || !time) {
+    if (!patientName || !startLocation || !date || !time) {
       return res.status(400).json({ error: "Veuillez remplir tous les champs obligatoires." });
     }
 
-    // Validation de la date : pas dans le passé
     const combinedDateTime = new Date(`${date}T${time}:00`);
     if (isNaN(combinedDateTime.getTime())) {
       return res.status(400).json({ error: "Date ou heure invalide." });
-    }
-    if (combinedDateTime < new Date()) {
-      return res.status(400).json({ error: "La date de la course ne peut pas être dans le passé." });
     }
 
     const newRide = new Ride({
       patientName,
       patientPhone,
       startLocation,
-      endLocation,
+      endLocation: endLocation || 'À préciser',
       date: combinedDateTime,
       type: type || 'Aller',
       notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
