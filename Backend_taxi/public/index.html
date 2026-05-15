@@ -22,741 +22,383 @@
       "@type": "TaxiService",
       "name": "Taxi 31 Toulouse",
       "url": "https://www.taxi-31-toulouse.fr/",
+      "description": "Service de taxi conventionné VSL agréé CPAM pour transport médical assis à Toulouse et en Haute-Garonne.",
       "telephone": "+33772339892",
-      "areaServed": { "@type": "City", "name": "Toulouse" }
+      "areaServed": { "@type": "City", "name": "Toulouse" },
+      "priceRange": "Prise en charge CPAM"
     }
     </script>
 
+    <script src="https://cdn.tailwindcss.com"></script>
+
     <style>
-        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        * { font-family: 'Inter', sans-serif; }
 
         :root {
-            --navy:    #0f172a;
-            --navy2:   #1a2744;
-            --navy3:   #243357;
-            --yellow:  #facc15;
-            --amber:   #f59e0b;
-            --green:   #22c55e;
-            --red:     #ef4444;
-            --white:   #ffffff;
-            --light:   #e2e8f0;
-            --muted:   #94a3b8;
-            --border:  #2d4070;
+            --navy:   #0f172a;
+            --navy2:  #1e293b;
+            --navy3:  #334155;
+            --yellow: #facc15;
+            --amber:  #f59e0b;
+            --border: rgba(255,255,255,0.08);
+            --text:   #f1f5f9;
+            --muted:  #94a3b8;
         }
 
-        html { font-size: 18px; }
+        body { background-color: var(--navy); color: var(--text); }
 
-        body {
-            font-family: 'Inter', sans-serif;
-            background-color: var(--navy);
-            color: var(--white);
-            min-height: 100vh;
-            line-height: 1.5;
-        }
-
-        /* ── scrollbar ── */
-        ::-webkit-scrollbar { width: 8px; }
+        /* --- scrollbar slim --- */
+        ::-webkit-scrollbar { width: 6px; }
         ::-webkit-scrollbar-track { background: var(--navy); }
-        ::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 4px; }
+        ::-webkit-scrollbar-thumb { background: var(--navy3); border-radius: 3px; }
 
-        /* ══ NAV ══ */
-        .nav {
-            background: rgba(15,23,42,0.97);
-            border-bottom: 2px solid var(--border);
-            padding: 0 20px;
-            position: sticky; top: 0; z-index: 100;
+        /* --- nav --- */
+        nav {
+            position: sticky; top: 0; z-index: 50;
+            background: rgba(15,23,42,0.85);
+            backdrop-filter: blur(16px);
+            border-bottom: 1px solid var(--border);
         }
-        .nav-inner {
-            max-width: 680px;
-            margin: 0 auto;
-            height: 68px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
+
+        /* --- hero gradient blob --- */
+        .hero-blob {
+            position: absolute; top: -80px; left: 50%; transform: translateX(-50%);
+            width: 700px; height: 400px;
+            background: radial-gradient(ellipse at center, rgba(250,204,21,0.12) 0%, transparent 70%);
+            pointer-events: none;
         }
-        .nav-logo {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            text-decoration: none;
-        }
-        .nav-logo-icon {
-            width: 44px; height: 44px;
-            background: var(--yellow);
-            border-radius: 12px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .nav-logo-text {
-            font-size: 1.1rem;
-            font-weight: 800;
-            color: var(--white);
-            letter-spacing: -0.3px;
-        }
-        .nav-logo-text span { color: var(--yellow); }
-        .nav-tel {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--yellow);
-            color: var(--navy);
-            font-weight: 800;
-            font-size: 0.85rem;
-            padding: 10px 18px;
-            border-radius: 50px;
-            text-decoration: none;
+
+        /* --- trust badge --- */
+        .trust-badge {
+            display: inline-flex; align-items: center; gap: 8px;
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
+            border-radius: 9999px;
+            padding: 8px 16px;
+            font-size: 13px; font-weight: 600;
             white-space: nowrap;
-            transition: background 0.2s;
+            transition: border-color 0.2s;
         }
-        .nav-tel:hover { background: #fde047; }
+        .trust-badge:hover { border-color: rgba(250,204,21,0.3); }
+        .trust-badge .icon { font-size: 16px; }
 
-        /* ══ HERO ══ */
-        .hero {
-            padding: 48px 20px 36px;
-            text-align: center;
-            max-width: 680px;
-            margin: 0 auto;
-        }
-        .hero-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: rgba(250,204,21,0.12);
-            border: 1.5px solid rgba(250,204,21,0.35);
-            border-radius: 50px;
-            padding: 8px 20px;
-            font-size: 0.78rem;
-            font-weight: 700;
-            color: var(--yellow);
-            letter-spacing: 0.05em;
-            text-transform: uppercase;
-            margin-bottom: 22px;
-        }
-        .hero h1 {
-            font-size: clamp(1.7rem, 5vw, 2.4rem);
-            font-weight: 900;
-            line-height: 1.15;
-            color: var(--white);
-            margin-bottom: 14px;
-        }
-        .hero h1 span { color: var(--yellow); }
-        .hero-sub {
-            font-size: 1rem;
-            color: var(--light);
-            margin-bottom: 32px;
-            line-height: 1.7;
-        }
-
-        /* trust row */
-        .trust-row {
-            display: flex;
-            flex-wrap: wrap;
-            justify-content: center;
-            gap: 10px;
-        }
-        .trust-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            background: var(--navy2);
-            border: 1.5px solid var(--border);
-            border-radius: 50px;
-            padding: 9px 18px;
-            font-size: 0.85rem;
-            font-weight: 600;
-            color: var(--light);
-            white-space: nowrap;
-        }
-        .trust-pill .dot-green { width: 9px; height: 9px; background: var(--green); border-radius: 50%; flex-shrink: 0; }
-        .trust-pill .dot-yellow { width: 9px; height: 9px; background: var(--yellow); border-radius: 50%; flex-shrink: 0; }
-        .stars { color: var(--yellow); font-size: 1rem; letter-spacing: 1px; }
-
-        /* ══ FORM SECTION ══ */
-        .form-section {
-            max-width: 680px;
-            margin: 0 auto;
-            padding: 0 16px 60px;
-        }
-
-        /* card */
+        /* --- form card --- */
         .form-card {
             background: var(--navy2);
-            border: 2px solid var(--border);
+            border: 1px solid var(--border);
             border-radius: 24px;
             overflow: hidden;
         }
 
-        /* card header */
-        .card-header {
-            background: linear-gradient(135deg, rgba(250,204,21,0.14), rgba(245,158,11,0.05));
-            border-bottom: 2px solid var(--border);
-            padding: 22px 28px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-        }
-        .card-header-icon {
-            width: 50px; height: 50px;
-            background: rgba(250,204,21,0.18);
-            border: 2px solid rgba(250,204,21,0.35);
-            border-radius: 14px;
-            display: flex; align-items: center; justify-content: center;
-            flex-shrink: 0;
-        }
-        .card-header-title {
-            font-size: 1.15rem;
-            font-weight: 800;
-            color: var(--white);
-        }
-        .card-header-sub {
-            font-size: 0.85rem;
-            color: var(--muted);
-            margin-top: 3px;
-        }
-
-        /* form body */
-        .form-body {
-            padding: 32px 28px;
-        }
-
-        /* step block */
-        .step {
-            margin-bottom: 32px;
-        }
-        .step-header {
-            display: flex;
-            align-items: center;
-            gap: 14px;
-            margin-bottom: 20px;
-        }
-        .step-num {
-            width: 36px; height: 36px;
-            background: var(--yellow);
-            color: var(--navy);
-            border-radius: 50%;
-            display: flex; align-items: center; justify-content: center;
-            font-size: 1rem;
-            font-weight: 900;
-            flex-shrink: 0;
-        }
-        .step-title {
-            font-size: 1.05rem;
-            font-weight: 800;
-            color: var(--white);
-        }
-        .step-sep {
-            height: 2px;
-            background: var(--border);
-            margin-bottom: 32px;
-            border-radius: 1px;
-        }
-
-        /* field */
-        .field { margin-bottom: 20px; }
-        .field:last-child { margin-bottom: 0; }
-
-        .field-label {
-            display: block;
-            font-size: 0.9rem;
-            font-weight: 700;
-            color: var(--light);
-            margin-bottom: 10px;
-        }
-        .field-label .req {
-            color: var(--yellow);
-            margin-left: 3px;
-        }
-        .field-label .opt {
-            font-weight: 500;
-            color: var(--muted);
-            font-size: 0.8rem;
-        }
-
-        .field-wrap {
-            position: relative;
-        }
+        /* --- inputs --- */
+        .field-group { position: relative; }
         .field-icon {
-            position: absolute;
-            left: 18px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--muted);
-            pointer-events: none;
-            display: flex;
-            align-items: center;
+            position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+            color: var(--muted); font-size: 18px; pointer-events: none;
         }
         .field-icon-top {
-            position: absolute;
-            left: 18px;
-            top: 20px;
-            color: var(--muted);
-            pointer-events: none;
+            position: absolute; left: 16px; top: 18px;
+            color: var(--muted); font-size: 18px; pointer-events: none;
         }
-
-        input[type="text"],
-        input[type="tel"],
-        input[type="date"],
-        input[type="time"],
-        select,
-        textarea {
+        input, select, textarea {
             width: 100%;
-            background: var(--navy3);
-            border: 2px solid var(--border);
+            background: rgba(255,255,255,0.04);
+            border: 1px solid var(--border);
             border-radius: 14px;
-            padding: 18px 18px 18px 54px;
-            color: var(--white);
-            font-size: 1rem;
-            font-family: 'Inter', sans-serif;
-            font-weight: 500;
+            padding: 14px 16px 14px 48px;
+            color: var(--text);
+            font-size: 15px;
             outline: none;
             transition: border-color 0.2s, box-shadow 0.2s;
             -webkit-appearance: none;
-            appearance: none;
         }
-        input[type="text"]:focus,
-        input[type="tel"]:focus,
-        input[type="date"]:focus,
-        input[type="time"]:focus,
-        select:focus,
-        textarea:focus {
+        input:focus, select:focus, textarea:focus {
             border-color: var(--yellow);
-            box-shadow: 0 0 0 4px rgba(250,204,21,0.15);
+            box-shadow: 0 0 0 3px rgba(250,204,21,0.12);
         }
-        input::placeholder, textarea::placeholder {
-            color: var(--muted);
-            font-weight: 400;
-        }
+        input::placeholder, textarea::placeholder { color: var(--muted); }
         input[type="date"]::-webkit-calendar-picker-indicator,
         input[type="time"]::-webkit-calendar-picker-indicator {
-            filter: invert(0.65) sepia(0) brightness(1.2);
-            cursor: pointer;
-            scale: 1.3;
+            filter: invert(0.6);
         }
-        select { cursor: pointer; }
-        select option { background: var(--navy2); color: var(--white); }
-        textarea { resize: none; padding-top: 18px; line-height: 1.6; }
+        select { padding-left: 48px; cursor: pointer; }
+        select option { background: var(--navy2); }
+        textarea { resize: none; padding-top: 14px; }
 
-        /* two-col for date+time only, falls back to 1 col on small screens */
-        .row-2 {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 16px;
-        }
-        @media (max-width: 440px) {
-            .row-2 { grid-template-columns: 1fr; }
-        }
-
-        /* ── hospital quick-select ── */
-        .hosp-label {
-            font-size: 0.82rem;
-            font-weight: 700;
-            color: var(--muted);
-            text-transform: uppercase;
-            letter-spacing: 0.06em;
-            margin-top: 14px;
-            margin-bottom: 10px;
-        }
-        .hosp-grid {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-        }
-        @media (max-width: 420px) {
-            .hosp-grid { grid-template-columns: 1fr; }
-        }
-        .hosp-btn {
-            display: flex;
-            align-items: center;
-            gap: 10px;
-            background: var(--navy3);
-            border: 2px solid var(--border);
-            border-radius: 12px;
-            padding: 13px 15px;
+        /* --- hospital chips --- */
+        .chip-wrap { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
+        .chip {
             cursor: pointer;
-            transition: border-color 0.15s, background 0.15s;
-            text-align: left;
-        }
-        .hosp-btn:hover {
-            border-color: rgba(250,204,21,0.45);
+            padding: 6px 14px;
+            border-radius: 9999px;
+            font-size: 12px; font-weight: 600;
+            border: 1px solid rgba(250,204,21,0.25);
+            color: #fde68a;
             background: rgba(250,204,21,0.07);
+            transition: background 0.15s, border-color 0.15s;
+            user-select: none;
         }
-        .hosp-btn.active {
-            border-color: var(--yellow);
-            background: rgba(250,204,21,0.12);
-        }
-        .hosp-icon {
-            font-size: 1.3rem;
-            line-height: 1;
-            flex-shrink: 0;
-        }
-        .hosp-name {
-            font-size: 0.88rem;
-            font-weight: 700;
-            color: var(--white);
-            line-height: 1.3;
-        }
-        .hosp-city {
-            font-size: 0.75rem;
-            color: var(--muted);
-            margin-top: 2px;
-        }
+        .chip:hover { background: rgba(250,204,21,0.15); border-color: rgba(250,204,21,0.5); }
+        .chip.active { background: rgba(250,204,21,0.25); border-color: var(--yellow); color: var(--yellow); }
 
-        /* ── submit button ── */
+        /* --- submit btn --- */
         .btn-submit {
             width: 100%;
             background: var(--yellow);
             color: var(--navy);
-            font-family: 'Inter', sans-serif;
-            font-weight: 900;
-            font-size: 1.15rem;
-            border: none;
-            border-radius: 16px;
-            padding: 22px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 12px;
-            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
-            box-shadow: 0 8px 32px rgba(250,204,21,0.25);
-            margin-bottom: 24px;
-        }
-        .btn-submit:hover {
-            background: #fde047;
-            transform: translateY(-2px);
-            box-shadow: 0 14px 40px rgba(250,204,21,0.35);
-        }
-        .btn-submit:active { transform: translateY(0); }
-        .btn-submit:disabled { opacity: 0.65; cursor: not-allowed; transform: none; }
-
-        /* ── status messages ── */
-        .status-box {
-            display: none;
-            border-radius: 14px;
-            padding: 18px 20px;
-            font-size: 0.95rem;
-            font-weight: 600;
-            text-align: center;
-            line-height: 1.6;
-            margin-bottom: 20px;
-        }
-        .status-box.success {
-            display: block;
-            background: rgba(34,197,94,0.1);
-            border: 2px solid rgba(34,197,94,0.35);
-            color: #86efac;
-        }
-        .status-box.error {
-            display: block;
-            background: rgba(239,68,68,0.1);
-            border: 2px solid rgba(239,68,68,0.35);
-            color: #fca5a5;
-        }
-
-        /* ── call block ── */
-        .call-block {
-            background: var(--navy3);
-            border: 2px solid var(--border);
-            border-radius: 16px;
-            padding: 20px 24px;
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            flex-wrap: wrap;
-            gap: 14px;
-        }
-        .call-block-left {
-            font-size: 0.88rem;
-            color: var(--muted);
-            font-weight: 500;
-            line-height: 1.5;
-        }
-        .call-block-left strong {
-            display: block;
-            font-size: 0.95rem;
-            color: var(--light);
-            font-weight: 700;
-            margin-bottom: 2px;
-        }
-        .btn-call {
-            display: inline-flex;
-            align-items: center;
-            gap: 10px;
-            background: transparent;
-            border: 2px solid var(--yellow);
-            border-radius: 50px;
-            padding: 12px 22px;
-            color: var(--yellow);
             font-weight: 800;
-            font-size: 1.05rem;
+            font-size: 16px;
+            letter-spacing: 0.5px;
+            border-radius: 14px;
+            padding: 17px;
+            border: none;
+            cursor: pointer;
+            display: flex; align-items: center; justify-content: center; gap: 10px;
+            transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+            box-shadow: 0 8px 32px rgba(250,204,21,0.2);
+        }
+        .btn-submit:hover { background: #fde047; transform: translateY(-1px); box-shadow: 0 12px 40px rgba(250,204,21,0.3); }
+        .btn-submit:active { transform: translateY(0); }
+        .btn-submit:disabled { opacity: 0.7; cursor: not-allowed; transform: none; }
+
+        /* --- tel link --- */
+        .tel-link {
+            display: inline-flex; align-items: center; gap: 8px;
+            color: var(--yellow); font-weight: 700;
             text-decoration: none;
-            transition: background 0.2s, color 0.2s;
-            white-space: nowrap;
+            font-size: 20px;
+            letter-spacing: 0.5px;
         }
-        .btn-call:hover {
-            background: var(--yellow);
-            color: var(--navy);
-        }
+        .tel-link:hover { color: #fde047; }
 
-        /* ── footer note ── */
-        .footer-note {
-            text-align: center;
-            margin-top: 24px;
-            font-size: 0.8rem;
+        /* --- star rating --- */
+        .stars { color: #facc15; letter-spacing: -1px; }
+
+        /* --- label --- */
+        label {
+            display: block;
+            font-size: 11px; font-weight: 700;
             color: var(--muted);
-            line-height: 1.7;
+            text-transform: uppercase;
+            letter-spacing: 0.08em;
+            margin-bottom: 8px;
         }
 
-        /* ── spinner ── */
+        /* --- divider --- */
+        .divider {
+            height: 1px;
+            background: var(--border);
+            margin: 0 -32px;
+        }
+
+        /* --- status messages --- */
+        #statusMessage { display: none; }
+        #statusMessage.success {
+            display: block;
+            background: rgba(34,197,94,0.08);
+            border: 1px solid rgba(34,197,94,0.25);
+            border-radius: 14px;
+            padding: 16px;
+            color: #4ade80;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+        }
+        #statusMessage.error {
+            display: block;
+            background: rgba(239,68,68,0.08);
+            border: 1px solid rgba(239,68,68,0.25);
+            border-radius: 14px;
+            padding: 16px;
+            color: #f87171;
+            font-weight: 600;
+            font-size: 14px;
+            text-align: center;
+        }
+
+        /* --- spinner --- */
         .spinner {
-            width: 22px; height: 22px;
-            border: 3px solid rgba(15,23,42,0.35);
+            width: 20px; height: 20px;
+            border: 3px solid rgba(15,23,42,0.3);
             border-top-color: var(--navy);
             border-radius: 50%;
             animation: spin 0.7s linear infinite;
-            flex-shrink: 0;
         }
         @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* ── mobile padding ── */
-        @media (max-width: 440px) {
-            .form-body { padding: 24px 18px; }
-            .card-header { padding: 18px 18px; }
-            .hero { padding: 36px 16px 28px; }
+        /* --- scrollable trust bar on mobile --- */
+        .trust-scroll {
+            overflow-x: auto;
+            scrollbar-width: none;
+            -ms-overflow-style: none;
+        }
+        .trust-scroll::-webkit-scrollbar { display: none; }
+        .trust-row { display: flex; gap: 10px; width: max-content; padding: 0 20px; margin: 0 -20px; }
+        @media (min-width: 640px) { .trust-row { width: auto; flex-wrap: wrap; justify-content: center; padding: 0; margin: 0; } }
+
+        /* --- mobile tweaks --- */
+        @media (max-width: 480px) {
+            .form-inner { padding: 24px 20px !important; }
+            .divider { margin: 0 -20px !important; }
         }
     </style>
 </head>
 <body>
 
-<!-- ═══════════════════════════════ NAV ═══════════════════════════════ -->
-<nav class="nav">
-    <div class="nav-inner">
-        <a href="https://www.taxi-31-toulouse.fr/" class="nav-logo">
-            <div class="nav-logo-icon">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                    <path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/>
-                    <circle cx="12" cy="10" r="3"/>
-                </svg>
-            </div>
-            <span class="nav-logo-text">Taxi<span>31</span>Toulouse</span>
-        </a>
-        <a href="tel:+33772339892" class="nav-tel">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/>
-            </svg>
-            07&nbsp;72&nbsp;33&nbsp;98&nbsp;92
-        </a>
-    </div>
-</nav>
-
-<!-- ═══════════════════════════════ HERO ═══════════════════════════════ -->
-<div class="hero">
-    <div class="hero-badge">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
-        Toulouse &amp; Haute-Garonne
-    </div>
-
-    <h1>Réservez votre<br><span>Transport Médical</span></h1>
-    <p class="hero-sub">
-        Taxi conventionné CPAM &nbsp;·&nbsp; Tiers payant intégral &nbsp;·&nbsp; <strong>Zéro avance de frais</strong>
-    </p>
-
-    <div class="trust-row">
-        <div class="trust-pill">
-            <span class="stars">★★★★★</span>
-            <span>5.0 Google</span>
-        </div>
-        <div class="trust-pill">
-            <span class="dot-yellow"></span>
-            Agréé CPAM 31
-        </div>
-        <div class="trust-pill">
-            <span class="dot-green"></span>
-            0 € d'avance
-        </div>
-        <div class="trust-pill">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-            24h / 7j
-        </div>
-    </div>
-</div>
-
-<!-- ═══════════════════════════════ FORM ═══════════════════════════════ -->
-<div class="form-section">
-    <div class="form-card">
-
-        <!-- card header -->
-        <div class="card-header">
-            <div class="card-header-icon">
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/>
-                    <line x1="16" y1="2" x2="16" y2="6"/>
-                    <line x1="8" y1="2" x2="8" y2="6"/>
-                    <line x1="3" y1="10" x2="21" y2="10"/>
-                </svg>
-            </div>
-            <div>
-                <div class="card-header-title">Formulaire de réservation</div>
-                <div class="card-header-sub">Remplissez les champs ci-dessous &bull; Confirmation par SMS</div>
-            </div>
-        </div>
-
-        <!-- form -->
-        <form id="bookingForm" class="form-body" novalidate>
-            <input type="hidden" id="chauffeurId" value="TON_ID_MONGO_ICI">
-
-            <!-- ── ÉTAPE 1 : Vos coordonnées ── -->
-            <div class="step">
-                <div class="step-header">
-                    <div class="step-num">1</div>
-                    <div class="step-title">Vos coordonnées</div>
+    <!-- ══════════════ NAV ══════════════ -->
+    <nav>
+        <div style="max-width:960px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:60px;">
+            <a href="https://www.taxi-31-toulouse.fr/" style="display:inline-flex;align-items:center;gap:10px;text-decoration:none;">
+                <div style="width:36px;height:36px;background:var(--yellow);border-radius:10px;display:flex;align-items:center;justify-content:center;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/><circle cx="12" cy="10" r="3"/></svg>
                 </div>
+                <span style="font-size:17px;font-weight:800;color:#fff;letter-spacing:-0.3px;">Taxi<span style="color:var(--yellow);">31</span>Toulouse</span>
+            </a>
+            <a href="tel:+33772339892" style="display:inline-flex;align-items:center;gap:8px;background:var(--yellow);color:var(--navy);font-weight:700;font-size:13px;padding:8px 16px;border-radius:9999px;text-decoration:none;transition:background 0.2s;"
+               onmouseover="this.style.background='#fde047'" onmouseout="this.style.background='var(--yellow)'">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                07 72 33 98 92
+            </a>
+        </div>
+    </nav>
 
-                <div class="field">
-                    <label class="field-label" for="patientName">
-                        Votre nom et prénom <span class="req">*</span>
-                    </label>
-                    <div class="field-wrap">
-                        <span class="field-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-                        </span>
-                        <input type="text" id="patientName" name="patientName" required
-                               placeholder="ex : Marie Dupont"
-                               autocomplete="name">
+    <!-- ══════════════ HERO ══════════════ -->
+    <section style="position:relative;overflow:hidden;padding:56px 24px 40px;">
+        <div class="hero-blob"></div>
+        <div style="max-width:640px;margin:0 auto;text-align:center;position:relative;z-index:1;">
+
+            <!-- pill -->
+            <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(250,204,21,0.1);border:1px solid rgba(250,204,21,0.25);border-radius:9999px;padding:6px 16px;font-size:12px;font-weight:700;color:var(--yellow);letter-spacing:0.05em;margin-bottom:20px;">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s-8-4.5-8-11.8A8 8 0 0 1 12 2a8 8 0 0 1 8 8.2c0 7.3-8 11.8-8 11.8z"/></svg>
+                Toulouse & Haute-Garonne
+            </div>
+
+            <h1 style="font-size:clamp(26px,5vw,40px);font-weight:900;line-height:1.15;letter-spacing:-0.5px;color:#fff;margin-bottom:14px;">
+                Réservez votre<br>
+                <span style="color:var(--yellow);">Transport Médical</span>
+            </h1>
+            <p style="color:var(--muted);font-size:15px;line-height:1.6;margin-bottom:32px;">
+                Taxi conventionné CPAM · Tiers payant intégral · Zéro avance de frais
+            </p>
+
+            <!-- trust badges -->
+            <div class="trust-scroll">
+                <div class="trust-row">
+                    <div class="trust-badge">
+                        <span class="stars">★★★★★</span>
+                        <span style="color:var(--text);">5.0 Google</span>
                     </div>
-                </div>
-
-                <div class="field">
-                    <label class="field-label" for="patientPhone">
-                        Votre numéro de téléphone <span class="req">*</span>
-                    </label>
-                    <div class="field-wrap">
-                        <span class="field-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                        </span>
-                        <input type="tel" id="patientPhone" name="patientPhone" required
-                               placeholder="ex : 06 12 34 56 78"
-                               autocomplete="tel">
+                    <div class="trust-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        <span>Agréé CPAM 31</span>
+                    </div>
+                    <div class="trust-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>0€ d'avance</span>
+                    </div>
+                    <div class="trust-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                        <span>24h/7j</span>
+                    </div>
+                    <div class="trust-badge">
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--muted)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="7" width="20" height="14" rx="2" ry="2"/><path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"/></svg>
+                        <span>10+ ans d'expérience</span>
                     </div>
                 </div>
             </div>
+        </div>
+    </section>
 
-            <div class="step-sep"></div>
+    <!-- ══════════════ FORM ══════════════ -->
+    <section style="padding:0 16px 64px;max-width:640px;margin:0 auto;">
+        <div class="form-card">
 
-            <!-- ── ÉTAPE 2 : Adresses ── -->
-            <div class="step">
-                <div class="step-header">
-                    <div class="step-num">2</div>
-                    <div class="step-title">Adresses du trajet</div>
+            <!-- header strip -->
+            <div style="background:linear-gradient(135deg,rgba(250,204,21,0.12),rgba(245,158,11,0.06));border-bottom:1px solid var(--border);padding:18px 32px;display:flex;align-items:center;gap:12px;">
+                <div style="width:38px;height:38px;background:rgba(250,204,21,0.15);border:1px solid rgba(250,204,21,0.25);border-radius:10px;display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                 </div>
-
-                <div class="field">
-                    <label class="field-label" for="startLocation">
-                        Adresse de départ <span class="req">*</span>
-                    </label>
-                    <div class="field-wrap">
-                        <span class="field-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
-                        </span>
-                        <input type="text" id="startLocation" name="startLocation" required
-                               placeholder="ex : 12 rue des Violettes, Toulouse"
-                               autocomplete="street-address">
-                    </div>
-                </div>
-
-                <div class="field">
-                    <label class="field-label" for="endLocation">
-                        Destination (hôpital, clinique…) <span class="req">*</span>
-                    </label>
-                    <div class="field-wrap">
-                        <span class="field-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#facc15" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
-                        </span>
-                        <input type="text" id="endLocation" name="endLocation" required
-                               placeholder="ex : CHU Purpan, Toulouse">
-                    </div>
-
-                    <!-- Raccourcis hôpitaux -->
-                    <p class="hosp-label">Raccourcis hôpitaux &amp; cliniques :</p>
-                    <div class="hosp-grid" id="hospitalChips">
-                        <button type="button" class="hosp-btn" data-value="CHU Purpan, Place du Docteur Baylac, 31300 Toulouse">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">CHU Purpan</div><div class="hosp-city">Toulouse</div></span>
-                        </button>
-                        <button type="button" class="hosp-btn" data-value="CHU Rangueil, 1 Avenue du Professeur Jean Poulhès, 31400 Toulouse">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">CHU Rangueil</div><div class="hosp-city">Toulouse</div></span>
-                        </button>
-                        <button type="button" class="hosp-btn" data-value="Institut Universitaire du Cancer - Oncopole, 1 Avenue Irène Joliot-Curie, 31100 Toulouse">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">Oncopole</div><div class="hosp-city">Toulouse</div></span>
-                        </button>
-                        <button type="button" class="hosp-btn" data-value="Clinique Pasteur, 45 Avenue de Lombez, 31300 Toulouse">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">Clinique Pasteur</div><div class="hosp-city">Toulouse</div></span>
-                        </button>
-                        <button type="button" class="hosp-btn" data-value="Hôpital Joseph Ducuing, 15 Rue de Varsovie, 31300 Toulouse">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">H. Ducuing</div><div class="hosp-city">Toulouse</div></span>
-                        </button>
-                        <button type="button" class="hosp-btn" data-value="Clinique de l'Union, Boulevard Ratalens, 31240 Saint-Jean">
-                            <span class="hosp-icon">🏥</span>
-                            <span><div class="hosp-name">Clinique de l'Union</div><div class="hosp-city">Saint-Jean</div></span>
-                        </button>
-                    </div>
+                <div>
+                    <div style="font-weight:800;font-size:16px;color:#fff;">Demande de Réservation</div>
+                    <div style="font-size:12px;color:var(--muted);margin-top:2px;">Confirmation par SMS · Réponse sous 30 min</div>
                 </div>
             </div>
 
-            <div class="step-sep"></div>
+            <form id="bookingForm" class="form-inner" style="padding:32px;">
+                <input type="hidden" id="chauffeurId" value="TON_ID_MONGO_ICI">
 
-            <!-- ── ÉTAPE 3 : Date & heure ── -->
-            <div class="step">
-                <div class="step-header">
-                    <div class="step-num">3</div>
-                    <div class="step-title">Date et heure du rendez-vous</div>
+                <!-- patient info -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" class="grid-2">
+                    <div>
+                        <label for="patientName">Nom du patient</label>
+                        <div class="field-group">
+                            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+                            <input type="text" id="patientName" name="patientName" required placeholder="Nom complet">
+                        </div>
+                    </div>
+                    <div>
+                        <label for="patientPhone">Téléphone</label>
+                        <div class="field-group">
+                            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                            <input type="tel" id="patientPhone" name="patientPhone" required placeholder="06 00 00 00 00">
+                        </div>
+                    </div>
                 </div>
 
-                <div class="row-2">
-                    <div class="field">
-                        <label class="field-label" for="date">
-                            Date <span class="req">*</span>
-                        </label>
-                        <div class="field-wrap">
-                            <span class="field-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-                            </span>
+                <div class="divider" style="margin-bottom:20px;"></div>
+
+                <!-- départ -->
+                <div style="margin-bottom:20px;">
+                    <label for="startLocation">Lieu de prise en charge</label>
+                    <div class="field-group">
+                        <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="10" r="3"/><path d="M12 2a8 8 0 0 0-8 8c0 5.4 7.05 11.5 7.35 11.76a1 1 0 0 0 1.3 0C13 21.5 20 15.4 20 10a8 8 0 0 0-8-8z"/></svg>
+                        <input type="text" id="startLocation" name="startLocation" required placeholder="Adresse de départ (domicile, clinique…)">
+                    </div>
+                </div>
+
+                <!-- destination + chips -->
+                <div style="margin-bottom:20px;">
+                    <label for="endLocation">Destination</label>
+                    <div class="field-group">
+                        <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--yellow)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+                        <input type="text" id="endLocation" name="endLocation" required placeholder="Hôpital, clinique…">
+                    </div>
+                    <!-- quick-select hospital chips -->
+                    <div class="chip-wrap" id="hospitalChips">
+                        <div class="chip" data-value="CHU Purpan, Place du Docteur Baylac, 31300 Toulouse">🏥 CHU Purpan</div>
+                        <div class="chip" data-value="CHU Rangueil, 1 Avenue du Professeur Jean Poulhès, 31400 Toulouse">🏥 CHU Rangueil</div>
+                        <div class="chip" data-value="Institut Universitaire du Cancer Toulouse Oncopole, 1 Avenue Irène Joliot-Curie, 31100 Toulouse">🏥 Oncopole</div>
+                        <div class="chip" data-value="Clinique Pasteur, 45 Avenue de Lombez, 31300 Toulouse">🏥 Pasteur</div>
+                        <div class="chip" data-value="Hôpital Joseph Ducuing, 15 Rue de Varsovie, 31300 Toulouse">🏥 Ducuing</div>
+                        <div class="chip" data-value="Clinique de l'Union, Boulevard Ratalens, 31240 Saint-Jean">🏥 Clinique de l'Union</div>
+                    </div>
+                </div>
+
+                <div class="divider" style="margin-bottom:20px;"></div>
+
+                <!-- date + time -->
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:20px;" class="grid-2">
+                    <div>
+                        <label for="date">Date du trajet</label>
+                        <div class="field-group">
+                            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
                             <input type="date" id="date" name="date" required>
                         </div>
                     </div>
-                    <div class="field">
-                        <label class="field-label" for="time">
-                            Heure du RDV <span class="req">*</span>
-                        </label>
-                        <div class="field-wrap">
-                            <span class="field-icon">
-                                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
-                            </span>
+                    <div>
+                        <label for="time">Heure du RDV</label>
+                        <div class="field-group">
+                            <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
                             <input type="time" id="time" name="time" required>
                         </div>
                     </div>
                 </div>
-            </div>
 
-            <div class="step-sep"></div>
-
-            <!-- ── ÉTAPE 4 : Type de transport ── -->
-            <div class="step">
-                <div class="step-header">
-                    <div class="step-num">4</div>
-                    <div class="step-title">Type de transport</div>
-                </div>
-
-                <div class="field">
-                    <label class="field-label" for="type">Choisissez votre type de trajet <span class="req">*</span></label>
-                    <div class="field-wrap">
-                        <span class="field-icon">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
-                        </span>
+                <!-- type de course -->
+                <div style="margin-bottom:20px;">
+                    <label for="type">Type de transport</label>
+                    <div class="field-group">
+                        <svg class="field-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13" rx="2"/><path d="M16 8h4l3 5v3h-7V8z"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
                         <select id="type" name="type">
                             <option value="Aller">Aller simple</option>
                             <option value="Retour">Retour simple</option>
@@ -767,196 +409,124 @@
                     </div>
                 </div>
 
-                <div class="field">
-                    <label class="field-label" for="notes">
-                        Informations utiles pour le chauffeur
-                        <span class="opt">&nbsp;(optionnel)</span>
-                    </label>
-                    <div class="field-wrap">
-                        <span class="field-icon-top">
-                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
-                        </span>
-                        <textarea id="notes" name="notes" rows="3"
-                                  placeholder="Ex : fauteuil roulant, code interphone, accompagnant, étage…"></textarea>
+                <!-- notes -->
+                <div style="margin-bottom:24px;">
+                    <label for="notes">Notes ou besoins spécifiques <span style="color:var(--muted);font-style:normal;">(optionnel)</span></label>
+                    <div class="field-group">
+                        <svg class="field-icon-top" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+                        <textarea id="notes" name="notes" rows="2" placeholder="Code porte, fauteuil roulant, étage, accompagnant…"></textarea>
                     </div>
                 </div>
-            </div>
 
-            <!-- ── STATUS ── -->
-            <div id="statusMessage" class="status-box" aria-live="polite"></div>
+                <!-- status -->
+                <div id="statusMessage" aria-live="polite" style="margin-bottom:16px;"></div>
 
-            <!-- ── BOUTON ENVOYER ── -->
-            <button type="submit" id="submitBtn" class="btn-submit">
-                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-                Envoyer ma demande de réservation
-            </button>
+                <!-- submit -->
+                <button type="submit" id="submitBtn" class="btn-submit">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+                    Confirmer ma réservation
+                </button>
 
-            <!-- ── BLOC APPEL ── -->
-            <div class="call-block">
-                <div class="call-block-left">
-                    <strong>Vous préférez appeler ?</strong>
-                    Disponible 24h/24 et 7j/7 &bull; Réponse immédiate
+                <!-- bottom info -->
+                <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                    <a href="tel:+33772339892" class="tel-link" style="font-size:16px;">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                        07 72 33 98 92
+                    </a>
+                    <div style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);">
+                        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                        Tiers payant · 0€ d'avance · Agréé CPAM 31
+                    </div>
                 </div>
-                <a href="tel:+33772339892" class="btn-call">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 12 19.79 19.79 0 0 1 1.62 3.41 2 2 0 0 1 3.61 1.22h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 8.96a16 16 0 0 0 6.13 6.13l.96-.96a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
-                    07&nbsp;72&nbsp;33&nbsp;98&nbsp;92
-                </a>
-            </div>
 
-        </form>
-    </div>
+            </form>
+        </div>
 
-    <p class="footer-note">
-        Taxi conventionné Haute-Garonne &nbsp;·&nbsp; Agréé CPAM &nbsp;·&nbsp; Tiers payant intégral — 0 € d'avance<br>
-        Plus qu'un simple taxi, votre partenaire santé &amp; mobilité
-    </p>
-</div>
+        <!-- bottom tagline -->
+        <p style="text-align:center;margin-top:24px;font-size:12px;color:var(--muted);line-height:1.6;">
+            Plus qu'un simple taxi, votre partenaire santé &amp; mobilité · Toulouse &amp; alentours
+        </p>
+    </section>
 
-<script>
-    // ── Lecture des paramètres URL → pré-remplissage + auto-envoi
-    (function() {
-        var params = new URLSearchParams(window.location.search);
-        if (!params.toString()) return;
-
-        // Remplir les champs depuis l'URL
-        ['patientName','patientPhone','startLocation','endLocation','date','time','type','notes'].forEach(function(field) {
-            var val = params.get(field);
-            if (val !== null) {
-                var el = document.getElementById(field);
-                if (el) el.value = val;
-            }
+    <script>
+        // ── Hospital chips
+        const endInput = document.getElementById('endLocation');
+        document.querySelectorAll('#hospitalChips .chip').forEach(chip => {
+            chip.addEventListener('click', () => {
+                const val = chip.dataset.value;
+                endInput.value = val;
+                endInput.focus();
+                document.querySelectorAll('#hospitalChips .chip').forEach(c => c.classList.remove('active'));
+                chip.classList.add('active');
+            });
+        });
+        endInput.addEventListener('input', () => {
+            document.querySelectorAll('#hospitalChips .chip').forEach(c => c.classList.remove('active'));
         });
 
-        // Nettoyer l'URL sans recharger (évite le double-envoi au refresh)
-        window.history.replaceState({}, '', window.location.pathname);
+        // ── Responsive 2-col → 1-col on narrow screens
+        function applyGridBreakpoint() {
+            document.querySelectorAll('.grid-2').forEach(el => {
+                el.style.gridTemplateColumns = window.innerWidth < 500 ? '1fr' : '1fr 1fr';
+            });
+        }
+        applyGridBreakpoint();
+        window.addEventListener('resize', applyGridBreakpoint);
 
-        // Auto-envoi si les champs requis sont tous présents
-        var name  = (params.get('patientName') || '').trim();
-        var start = (params.get('startLocation') || '').trim();
-        var date  = (params.get('date') || '').trim();
-        var time  = (params.get('time') || '').trim();
+        // ── Form submission
+        document.getElementById('bookingForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
 
-        if (name && start && date && time) {
-            // Feedback visuel immédiat
-            var btn = document.getElementById('submitBtn');
-            var statusMsg = document.getElementById('statusMessage');
+            const btn       = document.getElementById('submitBtn');
+            const statusMsg = document.getElementById('statusMessage');
+
             btn.disabled = true;
-            btn.innerHTML = '<div class="spinner"></div> Envoi automatique en cours…';
-            statusMsg.className = 'status-box';
-            statusMsg.innerHTML = '';
-            window.scrollTo({ top: 0, behavior: 'smooth' });
+            btn.innerHTML = `<div class="spinner"></div> Envoi en cours…`;
+            statusMsg.className = '';
+            statusMsg.innerText = '';
 
-            // Envoi direct via fetch sans passer par l'event submit
-            var dateVal = params.get('date') || '';
-            var timeVal = params.get('time') || '';
-            var localDate = new Date(dateVal + 'T' + timeVal);
-            var utcH = String(localDate.getUTCHours()).padStart(2,'0');
-            var utcM = String(localDate.getUTCMinutes()).padStart(2,'0');
+            const dateInput = document.getElementById('date').value;
+            const timeInput = document.getElementById('time').value;
+            const localDate = new Date(`${dateInput}T${timeInput}`);
+            const utcTime   = `${String(localDate.getUTCHours()).padStart(2,'0')}:${String(localDate.getUTCMinutes()).padStart(2,'0')}`;
 
-            fetch('/api/rides/web-booking', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    patientName:   name,
-                    patientPhone:  (params.get('patientPhone') || '').trim(),
-                    startLocation: start,
-                    endLocation:   (params.get('endLocation') || '').trim(),
-                    date:          dateVal,
-                    time:          utcH + ':' + utcM,
-                    type:          params.get('type') || 'Aller',
-                    notes:         (params.get('notes') || '').trim(),
-                    source:        'Web VSL Form',
-                    chauffeurId:   document.getElementById('chauffeurId').value,
-                })
-            })
-            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
-            .then(function(res) {
-                if (res.ok) {
-                    statusMsg.className = 'status-box success';
-                    statusMsg.innerHTML = '✅ Demande bien reçue !<br>Votre chauffeur vous confirmera le trajet par SMS.';
-                    btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Demande envoyée';
+            const payload = {
+                patientName:   document.getElementById('patientName').value,
+                patientPhone:  document.getElementById('patientPhone').value,
+                startLocation: document.getElementById('startLocation').value,
+                endLocation:   document.getElementById('endLocation').value,
+                date:  dateInput,
+                time:  utcTime,
+                type:  document.getElementById('type').value,
+                notes: document.getElementById('notes').value,
+                source: 'Web VSL Form',
+                chauffeurId: document.getElementById('chauffeurId').value,
+            };
+
+            try {
+                const response = await fetch('/api/rides/web-booking', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload),
+                });
+                const data = await response.json();
+
+                if (response.ok) {
+                    statusMsg.className = 'success';
+                    statusMsg.innerHTML = '✅ Demande reçue ! Votre chauffeur vous confirmera le trajet par SMS.';
+                    document.getElementById('bookingForm').reset();
+                    document.querySelectorAll('#hospitalChips .chip').forEach(c => c.classList.remove('active'));
+                    btn.innerHTML = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Demande envoyée`;
                 } else {
-                    throw new Error(res.data.error || 'Erreur serveur');
+                    throw new Error(data.error || 'Erreur serveur');
                 }
-            })
-            .catch(function(err) {
-                statusMsg.className = 'status-box error';
-                statusMsg.innerHTML = '❌ Erreur : ' + err.message + '<br>Appelez-nous au <a href="tel:+33772339892" style="color:inherit;font-weight:800;">07 72 33 98 92</a>';
+            } catch (err) {
+                statusMsg.className = 'error';
+                statusMsg.innerHTML = '❌ Une erreur est survenue. Merci de nous appeler au <a href="tel:+33772339892" style="color:inherit;font-weight:800;">07 72 33 98 92</a>.';
                 btn.disabled = false;
-                btn.innerHTML = 'Réessayer';
-            });
-        }
-    })();
-
-    // ── Hospital quick-select
-    const endInput = document.getElementById('endLocation');
-    document.querySelectorAll('#hospitalChips .hosp-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            endInput.value = btn.dataset.value;
-            document.querySelectorAll('#hospitalChips .hosp-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            endInput.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-        });
-    });
-    endInput.addEventListener('input', () => {
-        document.querySelectorAll('#hospitalChips .hosp-btn').forEach(b => b.classList.remove('active'));
-    });
-
-    // ── Form submit
-    document.getElementById('bookingForm').addEventListener('submit', async (e) => {
-        e.preventDefault();
-
-        const btn       = document.getElementById('submitBtn');
-        const statusMsg = document.getElementById('statusMessage');
-
-        btn.disabled = true;
-        btn.innerHTML = `<div class="spinner"></div> Envoi en cours…`;
-        statusMsg.className = 'status-box';
-        statusMsg.innerHTML = '';
-
-        const dateInput = document.getElementById('date').value;
-        const timeInput = document.getElementById('time').value;
-        const localDate = new Date(`${dateInput}T${timeInput}`);
-        const utcTime   = String(localDate.getUTCHours()).padStart(2,'0') + ':' + String(localDate.getUTCMinutes()).padStart(2,'0');
-
-        const payload = {
-            patientName:   document.getElementById('patientName').value.trim(),
-            patientPhone:  document.getElementById('patientPhone').value.trim(),
-            startLocation: document.getElementById('startLocation').value.trim(),
-            endLocation:   document.getElementById('endLocation').value.trim(),
-            date:          dateInput,
-            time:          utcTime,
-            type:          document.getElementById('type').value,
-            notes:         document.getElementById('notes').value.trim(),
-            source:        'Web VSL Form',
-            chauffeurId:   document.getElementById('chauffeurId').value,
-        };
-
-        try {
-            const response = await fetch('/api/rides/web-booking', {
-                method:  'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body:    JSON.stringify(payload),
-            });
-            const data = await response.json();
-
-            if (response.ok) {
-                statusMsg.className = 'status-box success';
-                statusMsg.innerHTML = '✅ Demande bien reçue !<br>Votre chauffeur vous confirmera le trajet par SMS.';
-                document.getElementById('bookingForm').reset();
-                document.querySelectorAll('#hospitalChips .hosp-btn').forEach(b => b.classList.remove('active'));
-                btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Demande envoyée`;
-                window.scrollTo({ top: 0, behavior: 'smooth' });
-            } else {
-                throw new Error(data.error || 'Erreur serveur');
+                btn.innerHTML = `<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Réessayer`;
             }
-        } catch (err) {
-            statusMsg.className = 'status-box error';
-            statusMsg.innerHTML = '❌ Une erreur est survenue.<br>Merci de nous appeler directement au <a href="tel:+33772339892" style="color:inherit;font-weight:800;text-decoration:underline;">07 72 33 98 92</a>';
-            btn.disabled = false;
-            btn.innerHTML = `<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg> Réessayer`;
-        }
-    });
-</script>
+        });
+    </script>
 </body>
 </html>
