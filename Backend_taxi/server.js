@@ -39,9 +39,19 @@ app.use(cors({
 
 app.use(express.json({ limit: '10mb' }));
 
-// Fichiers statiques (portail web patient)
+// Fichiers statiques (portail web patient) — no-cache sur les HTML
 const publicPath = path.join(__dirname, 'public');
-app.use(express.static(publicPath));
+app.use(express.static(publicPath, {
+  etag: false,
+  lastModified: false,
+  setHeaders: (res, filePath) => {
+    if (filePath.endsWith('.html')) {
+      res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+      res.setHeader('Pragma', 'no-cache');
+      res.setHeader('Expires', '0');
+    }
+  }
+}));
 
 // ==========================================
 // ROUTES API
@@ -78,9 +88,15 @@ app.use('/api/documentsTaxi', documentsRoutes);
 // ==========================================
 
 app.get('/ping',    (_req, res) => res.status(200).send('Pong!'));
-app.get('/',        (_req, res) => res.sendFile(path.join(publicPath, 'index.html')));
-app.get('/admin',   (_req, res) => res.sendFile(path.join(publicPath, 'admin.html')));
-app.get('/portail', (_req, res) => res.sendFile(path.join(publicPath, 'portail.html')));
+const noCache = (_req, res, next) => {
+  res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+  res.setHeader('Pragma', 'no-cache');
+  res.setHeader('Expires', '0');
+  next();
+};
+app.get('/',        noCache, (_req, res) => res.sendFile(path.join(publicPath, 'index.html')));
+app.get('/admin',   noCache, (_req, res) => res.sendFile(path.join(publicPath, 'admin.html')));
+app.get('/portail', noCache, (_req, res) => res.sendFile(path.join(publicPath, 'portail.html')));
 
 // ==========================================
 // DÉMARRAGE

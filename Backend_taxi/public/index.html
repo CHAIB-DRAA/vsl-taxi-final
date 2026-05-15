@@ -815,7 +815,7 @@
 <script>
     // ── Lecture des paramètres URL → pré-remplissage + auto-envoi
     (function() {
-        const params = new URLSearchParams(window.location.search);
+        var params = new URLSearchParams(window.location.search);
         if (!params.toString()) return;
 
         // Remplir les champs depuis l'URL
@@ -837,11 +837,54 @@
         var time  = (params.get('time') || '').trim();
 
         if (name && start && date && time) {
-            setTimeout(function() {
-                document.getElementById('bookingForm').dispatchEvent(
-                    new Event('submit', { cancelable: true, bubbles: true })
-                );
-            }, 400);
+            // Feedback visuel immédiat
+            var btn = document.getElementById('submitBtn');
+            var statusMsg = document.getElementById('statusMessage');
+            btn.disabled = true;
+            btn.innerHTML = '<div class="spinner"></div> Envoi automatique en cours…';
+            statusMsg.className = 'status-box';
+            statusMsg.innerHTML = '';
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+
+            // Envoi direct via fetch sans passer par l'event submit
+            var dateVal = params.get('date') || '';
+            var timeVal = params.get('time') || '';
+            var localDate = new Date(dateVal + 'T' + timeVal);
+            var utcH = String(localDate.getUTCHours()).padStart(2,'0');
+            var utcM = String(localDate.getUTCMinutes()).padStart(2,'0');
+
+            fetch('/api/rides/web-booking', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    patientName:   name,
+                    patientPhone:  (params.get('patientPhone') || '').trim(),
+                    startLocation: start,
+                    endLocation:   (params.get('endLocation') || '').trim(),
+                    date:          dateVal,
+                    time:          utcH + ':' + utcM,
+                    type:          params.get('type') || 'Aller',
+                    notes:         (params.get('notes') || '').trim(),
+                    source:        'Web VSL Form',
+                    chauffeurId:   document.getElementById('chauffeurId').value,
+                })
+            })
+            .then(function(r) { return r.json().then(function(d) { return { ok: r.ok, data: d }; }); })
+            .then(function(res) {
+                if (res.ok) {
+                    statusMsg.className = 'status-box success';
+                    statusMsg.innerHTML = '✅ Demande bien reçue !<br>Votre chauffeur vous confirmera le trajet par SMS.';
+                    btn.innerHTML = '<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg> Demande envoyée';
+                } else {
+                    throw new Error(res.data.error || 'Erreur serveur');
+                }
+            })
+            .catch(function(err) {
+                statusMsg.className = 'status-box error';
+                statusMsg.innerHTML = '❌ Erreur : ' + err.message + '<br>Appelez-nous au <a href="tel:+33772339892" style="color:inherit;font-weight:800;">07 72 33 98 92</a>';
+                btn.disabled = false;
+                btn.innerHTML = 'Réessayer';
+            });
         }
     })();
 
