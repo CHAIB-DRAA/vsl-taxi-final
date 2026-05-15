@@ -232,7 +232,8 @@ exports.updateRideFacturation = async (req, res) => {
 // --- 8. RÉSERVATION WEB ---
 exports.createWebBooking = async (req, res) => {
   try {
-    const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes } = req.body;
+    // 1. AJOUT DE btStatus DANS LA RÉCUPÉRATION DES DONNÉES
+    const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes, btStatus } = req.body;
 
     if (!patientName || !startLocation || !date || !time) {
       return res.status(400).json({ error: "Veuillez remplir tous les champs obligatoires." });
@@ -243,6 +244,10 @@ exports.createWebBooking = async (req, res) => {
       return res.status(400).json({ error: "Date ou heure invalide." });
     }
 
+    // 2. INJECTION DE TON ID MONGODB
+    // Le serveur lit la variable Render, ou utilise ton ID par défaut en sécurité
+    const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID || "69557bbc48dc1447f5f5140e";
+
     const newRide = new Ride({
       patientName,
       patientPhone,
@@ -250,6 +255,11 @@ exports.createWebBooking = async (req, res) => {
       endLocation: endLocation || 'À préciser',
       date: combinedDateTime,
       type: type || 'Aller',
+      
+      // 3. SAUVEGARDE DU PMT ET DU CHAUFFEUR
+      btStatus: btStatus || 'Non renseigné',
+      chauffeurId: chauffeurId, 
+
       notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
       status: 'En attente', 
       source: 'Web',        
