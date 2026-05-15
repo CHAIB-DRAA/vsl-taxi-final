@@ -14,7 +14,7 @@ const rideSchema = mongoose.Schema({
   type: { 
     type: String, 
     // J'ajoute 'VSL' et 'Ambulance' si jamais tu les utilises depuis le web ou l'app
-    enum: ['Aller', 'Retour', 'Consultation', 'Hospit', 'HDJ', 'VSL', 'Ambulance'], 
+    enum: ['Aller', 'Retour', 'Consultation', 'Hospit', 'HDJ', 'Dialyse', 'VSL', 'Ambulance'],
     default: 'Aller' 
   },
   isRoundTrip: { type: Boolean, default: false },
