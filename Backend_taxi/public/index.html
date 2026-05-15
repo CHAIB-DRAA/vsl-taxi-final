@@ -813,6 +813,38 @@
 </div>
 
 <script>
+    // ── Lecture des paramètres URL → pré-remplissage + auto-envoi
+    (function() {
+        const params = new URLSearchParams(window.location.search);
+        if (!params.toString()) return;
+
+        // Remplir les champs depuis l'URL
+        ['patientName','patientPhone','startLocation','endLocation','date','time','type','notes'].forEach(function(field) {
+            var val = params.get(field);
+            if (val !== null) {
+                var el = document.getElementById(field);
+                if (el) el.value = val;
+            }
+        });
+
+        // Nettoyer l'URL sans recharger (évite le double-envoi au refresh)
+        window.history.replaceState({}, '', window.location.pathname);
+
+        // Auto-envoi si les champs requis sont tous présents
+        var name  = (params.get('patientName') || '').trim();
+        var start = (params.get('startLocation') || '').trim();
+        var date  = (params.get('date') || '').trim();
+        var time  = (params.get('time') || '').trim();
+
+        if (name && start && date && time) {
+            setTimeout(function() {
+                document.getElementById('bookingForm').dispatchEvent(
+                    new Event('submit', { cancelable: true, bubbles: true })
+                );
+            }, 400);
+        }
+    })();
+
     // ── Hospital quick-select
     const endInput = document.getElementById('endLocation');
     document.querySelectorAll('#hospitalChips .hosp-btn').forEach(btn => {
