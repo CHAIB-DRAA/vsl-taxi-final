@@ -2,7 +2,50 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import { calculatePrice } from '../utils/pricing';
+import { calculatePrice, calculatePriceDetailed } from '../utils/pricing';
+
+// ─── Composants internes du détail de tarification ───────────────────────────
+
+const C_LOCAL = {
+  brand: '#FF6B00', green: '#16A34A', text: '#111827',
+  text2: '#6B7280', text3: '#9CA3AF', border: '#E2E5EC',
+};
+
+function BLine({ label, value, bold, sub, color, negative }) {
+  const fmtVal = (negative ? '−' : '+') + ' ' + Math.abs(value).toFixed(2) + ' €';
+  const isBase = !negative && label.startsWith('Forfait');
+  const displayVal = isBase ? value.toFixed(2) + ' €' : fmtVal;
+  return (
+    <View style={bStyles.row}>
+      <Text style={[bStyles.label, bold && bStyles.bold, sub && bStyles.sub]}>
+        {label}
+      </Text>
+      <Text style={[
+        bStyles.value,
+        bold  && bStyles.bold,
+        color && { color },
+        negative && { color: C_LOCAL.green },
+      ]}>
+        {displayVal}
+      </Text>
+    </View>
+  );
+}
+
+function BSep({ light }) {
+  return <View style={[bStyles.sep, light && { opacity: 0.4 }]} />;
+}
+
+const bStyles = StyleSheet.create({
+  row:   { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 5 },
+  label: { flex: 1, fontSize: 13, color: C_LOCAL.text2, paddingRight: 8 },
+  value: { fontSize: 13, fontWeight: '600', color: C_LOCAL.text, minWidth: 80, textAlign: 'right' },
+  bold:  { fontWeight: '800', color: C_LOCAL.text },
+  sub:   { fontSize: 12, paddingLeft: 10 },
+  sep:   { height: 1, backgroundColor: C_LOCAL.border, marginVertical: 6 },
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
 
 export default function RideDetailsModal({ visible, selectedRide, onClose, onSave, onDelete, onToggleBilling, hasConflict }) {
   const [isEditing, setIsEditing] = useState(false);
@@ -25,6 +68,8 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
   }, [selectedRide, visible]);
 
   if (!selectedRide) return null;
+
+  const priceDetail = calculatePriceDetailed(selectedRide);
 
   // --- ACTIONS ---
 
@@ -124,6 +169,104 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
               <Text style={styles.priceBig}>{calculatePrice(selectedRide)} €</Text>
               {isEditing && <Text style={{color:'red', fontSize:10, marginTop:5}}>Mode Édition Activé</Text>}
           </View>
+
+          {/* DÉTAIL DE LA TARIFICATION */}
+          {priceDetail ? (
+            <View style={styles.breakdownCard}>
+              <View style={styles.breakdownHeader}>
+                <Ionicons name="receipt-outline" size={15} color={C.brand} />
+                <Text style={styles.breakdownTitle}>DÉTAIL DE LA TARIFICATION</Text>
+              </View>
+
+              {/* ── Forfait de base ── */}
+              <BLine label="Forfait de base  (4 km inclus)" value={13.00} />
+
+              {/* ── Grande Ville ── */}
+              {priceDetail.metropole && (
+                <BLine label="+ Supplément Grande Ville (Toulouse)" value={priceDetail.metropoleCost} color="#7C3AED" />
+              )}
+
+              {/* ── Kilométrage ── */}
+              {priceDetail.billableKm > 0 && (
+                <BLine
+                  label={`+ ${priceDetail.billableKm} km × 1,10 €`}
+                  value={priceDetail.kmCost}
+                />
+              )}
+
+              {/* ── Retour à vide ── */}
+              {priceDetail.retourVide && priceDetail.retourCost > 0 && (
+                <BLine
+                  label={`+ Retour à vide (${priceDetail.tauxRetour * 100}%)`}
+                  sub
+                  value={priceDetail.retourCost}
+                />
+              )}
+
+              <BSep />
+              <BLine label="Sous-total" value={priceDetail.socle} bold />
+
+              {/* ── Majoration nuit/WE ── */}
+              {priceDetail.nuit && (
+                <BLine
+                  label="× Nuit / Week-end / Férié  (+50%)"
+                  value={priceDetail.socleAvecNuit - priceDetail.socle}
+                  color="#D97706"
+                />
+              )}
+
+              {/* ── Tarif socle après nuit ── */}
+              {priceDetail.nuit && (
+                <>
+                  <BSep light />
+                  <BLine label="= Tarif socle majoré" value={priceDetail.socleAvecNuit} bold />
+                </>
+              )}
+
+              {/* ── Abattement partage ── */}
+              {priceDetail.multiplicateurAbattement < 1 && (
+                <BLine
+                  label={
+                    priceDetail.longuePortionSeule
+                      ? `× Longue portion seul (abat. 5%)`
+                      : `× Abattement  ${priceDetail.nbPass} patients  (−${Math.round((1 - priceDetail.multiplicateurAbattement) * 100)}%)`
+                  }
+                  value={priceDetail.socleApresAbattement - priceDetail.socleAvecNuit}
+                  color={C.green}
+                  negative
+                />
+              )}
+
+              {/* ── TPMR ── */}
+              {priceDetail.isTpmr && (
+                <BLine label="+ Supplément TPMR" value={priceDetail.tpmrCost} color="#7C3AED" />
+              )}
+
+              {/* ── Péages ── */}
+              {priceDetail.tollsParPatient > 0 && (
+                <BLine
+                  label={priceDetail.nbPass > 1
+                    ? `+ Péages  (÷ ${priceDetail.nbPass} patients)`
+                    : '+ Péages'}
+                  value={priceDetail.tollsParPatient}
+                />
+              )}
+
+              {/* ── Total ── */}
+              <View style={styles.breakdownTotal}>
+                <Text style={styles.breakdownTotalLabel}>TOTAL CONVENTION</Text>
+                <Text style={styles.breakdownTotalValue}>{priceDetail.total.toFixed(2)} €</Text>
+              </View>
+            </View>
+          ) : (
+            /* Pas de distance → invite à en saisir une */
+            <View style={styles.breakdownEmpty}>
+              <Ionicons name="calculator-outline" size={20} color={C.text3} />
+              <Text style={styles.breakdownEmptyText}>
+                Renseigne la distance pour voir le détail du calcul
+              </Text>
+            </View>
+          )}
 
           {/* PATIENT INFO */}
           <View style={styles.sectionCard}>
@@ -317,4 +460,68 @@ const styles = StyleSheet.create({
   billBtnDone: { backgroundColor: C.green },
   billBtnTodo: { backgroundColor: '#374151' },
   billBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+
+  // ── Détail tarification ──
+  breakdownCard: {
+    backgroundColor: C.card,
+    borderRadius: 16,
+    padding: 18,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  breakdownHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginBottom: 14,
+    paddingBottom: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  breakdownTitle: {
+    fontSize: 12,
+    fontWeight: '800',
+    color: C.brand,
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  breakdownTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 12,
+    borderTopWidth: 2,
+    borderTopColor: C.brand,
+  },
+  breakdownTotalLabel: {
+    fontSize: 13,
+    fontWeight: '900',
+    color: C.text,
+    letterSpacing: 0.5,
+    textTransform: 'uppercase',
+  },
+  breakdownTotalValue: {
+    fontSize: 22,
+    fontWeight: '900',
+    color: '#EA580C',
+  },
+  breakdownEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: C.card2,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 14,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  breakdownEmptyText: {
+    flex: 1,
+    fontSize: 13,
+    color: C.text3,
+    fontStyle: 'italic',
+  },
 });
