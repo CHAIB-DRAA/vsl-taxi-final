@@ -135,6 +135,11 @@ export const getContacts = async () => {
   return response.data;
 };
 
+export const importMassRides = async (rides) => {
+  const response = await api.post('/rides/mass-import', { rides });
+  return response.data;
+};
+
 // --- IA (MAGIC PASTE) ---
 export const parseRideWithAI = async (text) => {
   // Note: Pas besoin de token ici techniquement, mais ça ne gêne pas

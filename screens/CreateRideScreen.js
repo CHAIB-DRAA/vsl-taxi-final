@@ -11,9 +11,14 @@ import 'moment/locale/fr';
 // Composants & Services
 import AddressAutocomplete from '../components/AddressAutocomplete'; 
 // 👈 AJOUT DE updateRide ICI
-import { createRide, updateRide, getPatients, createPatient } from '../services/api';
+import { createRide, updateRide, getPatients, createPatient, importMassRides } from '../services/api';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useData } from '../contexts/DataContext'; 
+
+const DAYS = [
+  { label: 'Lu', day: 1 }, { label: 'Ma', day: 2 }, { label: 'Me', day: 3 },
+  { label: 'Je', day: 4 }, { label: 'Ve', day: 5 }, { label: 'Sa', day: 6 }, { label: 'Di', day: 0 },
+];
 
 const TOULOUSE_HOSPITALS = [
   "Purpan", "Rangueil", "Oncopole", 
@@ -49,9 +54,16 @@ export default function CreateRideScreen({ navigation, route }) {
   const [motif, setMotif] = useState('Consultation');
   const [isRoundTrip, setIsRoundTrip] = useState(false);
   
-  const [loading, setLoading] = useState(false); 
-  const [patientsLoading, setPatientsLoading] = useState(false); 
-  const [errorLoading, setErrorLoading] = useState(false); 
+  const [loading, setLoading] = useState(false);
+  const [patientsLoading, setPatientsLoading] = useState(false);
+  const [errorLoading, setErrorLoading] = useState(false);
+
+  // Récurrences
+  const [isRecurring, setIsRecurring]     = useState(false);
+  const [recurDays, setRecurDays]         = useState([]);
+  const [recurEndDate, setRecurEndDate]   = useState(() => {
+    const d = new Date(); d.setMonth(d.getMonth() + 1); return d;
+  });
 
   const [allPatients, setAllPatients] = useState([]);
   const [filteredPatients, setFilteredPatients] = useState([]);
@@ -157,28 +169,47 @@ export default function CreateRideScreen({ navigation, route }) {
 
   const openDatePicker = (target) => {
     setDateMode(target);
-    if (Platform.OS === 'ios') setPickerMode('datetime');
+    if (Platform.OS === 'ios') setPickerMode(target === 'recurEnd' ? 'date' : 'datetime');
     else setPickerMode('date');
     setShowDatePicker(true);
   };
 
   const onChangeDate = (event, selectedDate) => {
     if (event.type === 'dismissed') { setShowDatePicker(false); return; }
-    const currentDate = selectedDate || (dateMode === 'start' ? date : returnDate);
+    const fallback = dateMode === 'start' ? date : dateMode === 'recurEnd' ? recurEndDate : returnDate;
+    const currentDate = selectedDate || fallback;
     if (Platform.OS === 'android') setShowDatePicker(false);
 
     if (dateMode === 'start') {
       setDate(currentDate);
       if (currentDate > returnDate) setReturnDate(currentDate);
+      if (currentDate > recurEndDate) setRecurEndDate(currentDate);
+    } else if (dateMode === 'recurEnd') {
+      if (currentDate < date) Alert.alert('Erreur', 'La date de fin doit être après la date de début.');
+      else setRecurEndDate(currentDate);
     } else {
-      if (currentDate < date) Alert.alert("Erreur", "Le retour ne peut pas être avant l'aller.");
+      if (currentDate < date) Alert.alert('Erreur', "Le retour ne peut pas être avant l'aller.");
       else setReturnDate(currentDate);
     }
 
-    if (Platform.OS === 'android' && pickerMode === 'date') {
+    if (Platform.OS === 'android' && pickerMode === 'date' && dateMode !== 'recurEnd') {
       setPickerMode('time');
       setTimeout(() => setShowDatePicker(true), 100);
     }
+  };
+
+  // Calcule toutes les dates récurrentes (max 90)
+  const getRecurringDates = () => {
+    if (recurDays.length === 0) return [];
+    const dates = [];
+    const end = new Date(recurEndDate);
+    end.setHours(23, 59, 59);
+    const current = new Date(date);
+    while (current <= end && dates.length < 90) {
+      if (recurDays.includes(current.getDay())) dates.push(new Date(current));
+      current.setDate(current.getDate() + 1);
+    }
+    return dates;
   };
 
   const saveNewPatient = async () => {
@@ -193,33 +224,71 @@ export default function CreateRideScreen({ navigation, route }) {
     } catch (err) { Alert.alert("Erreur", "Impossible de créer le patient"); }
   };
 
-  // 👈 MODIFICATION : Prise en charge de l'Update vs Create
+  const resetForm = () => {
+    setPatientName(''); setPatientPhone(''); setPatientAddressMem('');
+    setStartLocation(''); setEndLocation(''); setIsRoundTrip(false); setNotes('');
+    setEditingRideId(null); setIsRecurring(false); setRecurDays([]);
+  };
+
   const handleSave = async () => {
-    if (!patientName || !startLocation || !endLocation) return Alert.alert('Attention', 'Veuillez remplir le patient et les adresses.');
+    if (!patientName || !startLocation || !endLocation)
+      return Alert.alert('Attention', 'Veuillez remplir le patient et les adresses.');
+
+    if (isRecurring && !editingRideId) {
+      if (recurDays.length === 0) return Alert.alert('Erreur', 'Sélectionne au moins un jour de la semaine.');
+      const dates = getRecurringDates();
+      if (dates.length === 0) return Alert.alert('Erreur', 'Aucune date dans cette période pour les jours sélectionnés.');
+
+      Alert.alert(
+        `Créer ${dates.length} courses ?`,
+        `${patientName}\n${startLocation} → ${endLocation}\nDe ${moment(date).format('DD/MM')} au ${moment(recurEndDate).format('DD/MM/YYYY')}`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          {
+            text: `Créer ${dates.length} courses`, onPress: async () => {
+              setLoading(true);
+              try {
+                const rides = dates.map(d => ({
+                  patientName, patientPhone, startLocation, endLocation,
+                  date: d.toISOString(), type, motif, isRoundTrip: false, notes,
+                }));
+                const res = await importMassRides(rides);
+                Alert.alert('Série créée ✓', `${res.addedRidesCount} course${res.addedRidesCount > 1 ? 's' : ''} ajoutée${res.addedRidesCount > 1 ? 's' : ''} au planning.`);
+                resetForm();
+                navigation.goBack();
+              } catch {
+                Alert.alert('Erreur', 'Impossible de créer la série.');
+              } finally {
+                setLoading(false);
+              }
+            }
+          }
+        ]
+      );
+      return;
+    }
+
     try {
       setLoading(true);
       const rideData = {
         patientName, patientPhone, startLocation, endLocation,
         date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null,
-        type, motif, isRoundTrip, notes
+        type, motif, isRoundTrip, notes,
       };
-      
       if (editingRideId) {
-         await updateRide(editingRideId, rideData);
-         Alert.alert('Succès', 'Course mise à jour avec succès.');
+        await updateRide(editingRideId, rideData);
+        Alert.alert('Succès', 'Course mise à jour avec succès.');
       } else {
-         await createRide(rideData);
-         Alert.alert('Succès', 'Course ajoutée au planning.');
+        await createRide(rideData);
+        Alert.alert('Succès', 'Course ajoutée au planning.');
       }
-      
-      // Reset form
-      setPatientName(''); setPatientPhone(''); setPatientAddressMem(''); 
-      setStartLocation(''); setEndLocation(''); setIsRoundTrip(false); setNotes('');
-      setEditingRideId(null);
-      
+      resetForm();
       navigation.goBack();
-        } catch (error) { Alert.alert('Erreur', "Echec de l'enregistrement."); } 
-    finally { setLoading(false); }
+    } catch {
+      Alert.alert('Erreur', "Échec de l'enregistrement.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -450,10 +519,94 @@ export default function CreateRideScreen({ navigation, route }) {
             </View>
           </View>
 
+          {/* === 6. RÉCURRENCES === */}
+          {!editingRideId && (
+            <View style={[styles.sectionContainer, { zIndex: 1 }]}>
+              <View style={styles.sectionHeader}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="repeat" size={14} color={isRecurring ? '#FF6B00' : '#B0BEC5'} />
+                  <Text style={[styles.sectionTitle, isRecurring && { color: '#FF6B00' }]}>
+                    6. SÉRIE RÉCURRENTE
+                  </Text>
+                </View>
+                <Switch
+                  value={isRecurring}
+                  onValueChange={v => { setIsRecurring(v); if (!v) setRecurDays([]); }}
+                  trackColor={{ false: '#EEE', true: '#FF6B00' }}
+                  thumbColor="#FFF"
+                />
+              </View>
+
+              {isRecurring && (
+                <>
+                  <Text style={styles.recurLabel}>Jours de la semaine</Text>
+                  <View style={styles.daysRow}>
+                    {DAYS.map(({ label, day }) => {
+                      const active = recurDays.includes(day);
+                      return (
+                        <TouchableOpacity
+                          key={day}
+                          style={[styles.dayBtn, active && styles.dayBtnActive]}
+                          onPress={() => setRecurDays(prev =>
+                            prev.includes(day) ? prev.filter(d => d !== day) : [...prev, day]
+                          )}
+                        >
+                          <Text style={[styles.dayBtnText, active && styles.dayBtnTextActive]}>{label}</Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+
+                  <Text style={[styles.recurLabel, { marginTop: 16 }]}>Jusqu'au</Text>
+                  <TouchableOpacity style={styles.recurDateBtn} onPress={() => openDatePicker('recurEnd')}>
+                    <Ionicons name="calendar-outline" size={16} color="#FF6B00" />
+                    <Text style={styles.recurDateText}>{moment(recurEndDate).format('DD MMMM YYYY')}</Text>
+                  </TouchableOpacity>
+
+                  {recurDays.length > 0 && (() => {
+                    const dates = getRecurringDates();
+                    if (dates.length === 0) return null;
+                    return (
+                      <View style={styles.previewBox}>
+                        <Ionicons name="information-circle-outline" size={15} color="#FF6B00" />
+                        <View style={{ flex: 1 }}>
+                          <Text style={styles.previewCount}>
+                            {dates.length} course{dates.length > 1 ? 's' : ''} seront créées
+                          </Text>
+                          <Text style={styles.previewDates} numberOfLines={2}>
+                            {dates.slice(0, 6).map(d => moment(d).format('DD/MM')).join(' · ')}
+                            {dates.length > 6 ? ` ... +${dates.length - 6}` : ''}
+                          </Text>
+                        </View>
+                      </View>
+                    );
+                  })()}
+                </>
+              )}
+            </View>
+          )}
+
           {/* FOOTER */}
           <View style={styles.footer}>
-            <TouchableOpacity style={styles.mainButton} onPress={handleSave} disabled={loading}>
-              {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.mainButtonText}>{editingRideId ? 'METTRE À JOUR LA COURSE' : 'VALIDER LA COURSE'}</Text>}
+            <TouchableOpacity
+              style={[styles.mainButton, isRecurring && recurDays.length > 0 && { backgroundColor: '#7C3AED' }]}
+              onPress={handleSave}
+              disabled={loading}
+            >
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : isRecurring && recurDays.length > 0 ? (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <Ionicons name="repeat" size={18} color="#FFF" />
+                  <Text style={styles.mainButtonText}>
+                    CRÉER {getRecurringDates().length} COURSES
+                  </Text>
+                </View>
+              ) : (
+                <Text style={styles.mainButtonText}>
+                  {editingRideId ? 'METTRE À JOUR LA COURSE' : 'VALIDER LA COURSE'}
+                </Text>
+              )}
             </TouchableOpacity>
           </View>
 
@@ -583,6 +736,19 @@ const styles = StyleSheet.create({
   footer: { padding: 20 },
   mainButton: { backgroundColor: '#111', borderRadius: 16, height: 60, justifyContent: 'center', alignItems: 'center', shadowColor: "#FF6B00", shadowOpacity: 0.3, shadowRadius: 10, elevation: 5 },
   mainButtonText: { color: '#FFF', fontWeight: '800', fontSize: 16, letterSpacing: 1 },
+
+  // Récurrences
+  recurLabel: { fontSize: 12, fontWeight: '700', color: '#B0BEC5', letterSpacing: 0.5, marginBottom: 10 },
+  daysRow: { flexDirection: 'row', gap: 6 },
+  dayBtn: { flex: 1, paddingVertical: 11, borderRadius: 10, backgroundColor: '#F3F4F6', alignItems: 'center', borderWidth: 1, borderColor: '#EEE' },
+  dayBtnActive: { backgroundColor: '#FF6B00', borderColor: '#FF6B00' },
+  dayBtnText: { fontSize: 12, fontWeight: '700', color: '#9CA3AF' },
+  dayBtnTextActive: { color: '#FFF' },
+  recurDateBtn: { flexDirection: 'row', alignItems: 'center', gap: 10, backgroundColor: '#FFF3E0', padding: 14, borderRadius: 12, borderWidth: 1, borderColor: '#FED7AA' },
+  recurDateText: { fontSize: 15, fontWeight: '700', color: '#111' },
+  previewBox: { flexDirection: 'row', alignItems: 'flex-start', gap: 8, marginTop: 14, backgroundColor: '#F5F3FF', padding: 12, borderRadius: 10, borderWidth: 1, borderColor: '#DDD6FE' },
+  previewCount: { fontSize: 14, fontWeight: '800', color: '#7C3AED' },
+  previewDates: { fontSize: 12, color: '#6B7280', marginTop: 2 },
 
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', padding: 25 },
   modalCard: { backgroundColor: '#FFF', borderRadius: 24, padding: 25 },
