@@ -50,28 +50,33 @@ router.post('/parse-ride', async (req, res) => {
     tomorrow.setDate(today.getDate() + 1);
     const tomorrowStr = tomorrow.toISOString().split('T')[0]; // Format YYYY-MM-DD
 
-    // A. PROMPT SPÉCIAL FORMAT "PEC HDJ"
     const prompt = `
       Tu es un assistant dispatch. Analyse ce message de courses VSL/Taxi.
-      
+
       TEXTE REÇU : "${text}"
-      
+
       CONTEXTE TEMPOREL :
       - Nous sommes le : ${today.toISOString()}
-      - Par défaut, les courses sont pour DEMAIN (${tomorrowStr}), sauf si une date précise est écrite.
+      - Si une date est explicitement écrite dans le texte, utilise-la. Sinon, utilise DEMAIN (${tomorrowStr}).
 
-      FORMAT A DÉCODER ("Pec Hdj..."):
-      1. "Pec Hdj" ou "Pec" = Début de course.
-      2. L'heure suit immédiatement (ex: 9h15).
-      3. "Me" = Madame / "Mr" = Monsieur. LE MOT QUI SUIT EST LE NOM DU PATIENT.
-      4. Le symbole ">" sépare le Départ de l'Arrivée (Départ > Arrivée).
-      5. Si pas de ">", c'est une adresse simple.
+      FORMATS POSSIBLES :
+      A) Format simple adresse : "Départ >>> Arrivée DD/MM/YYYY HH:MM" ou "Départ > Arrivée"
+         - ">" ou ">>>" sépare le Départ de l'Arrivée.
+         - La date peut être en format DD/MM/YYYY (ex: 12/06/2026) ou DD/MM (ex: 12/06).
+         - L'heure peut être HH:MM (ex: 10:00) ou HHhMM (ex: 10h00).
+         - Le patientName peut être vide si non mentionné.
+      B) Format "Pec Hdj..." :
+         - "Pec Hdj" ou "Pec" = Début de course.
+         - L'heure suit immédiatement (ex: 9h15).
+         - "Me" = Madame / "Mr" = Monsieur. LE MOT QUI SUIT EST LE NOM DU PATIENT.
 
       RÈGLES CRUCIALES :
       - "Hdj" signifie Hôpital de Jour -> CE N'EST PAS UN NOM DE FAMILLE.
-      - "Estela", "Basso", "Candy", "SMR" -> CE SONT DES LIEUX, pas des patients.
+      - "Estela", "Basso", "Candy", "SMR", "Purpan", "Rangueil", "Oncopole" -> CE SONT DES LIEUX, pas des patients.
       - Si tu vois "Me Bouteraa", le patient est "Mme Bouteraa".
       - Ne confonds jamais le chauffeur (toi) avec le patient.
+      - Si aucun nom de patient n'est présent, laisse patientName à "".
+      - Pour la date : convertis DD/MM/YYYY en ISOString. Si seul DD/MM est écrit, utilise l'année en cours (${today.getFullYear()}).
 
       Réponds JSON : { "rides": [ { "patientName": "...", "patientPhone": "...", "startLocation": "...", "endLocation": "...", "date": "ISOString", "type": "Aller" } ] }
     `;
@@ -135,11 +140,11 @@ router.post('/parse-ride', async (req, res) => {
         };
     }));
 
-    res.json(enrichedRides);
+    res.json({ rides: enrichedRides });
 
   } catch (error) {
     console.error("⚠️ Erreur IA:", error.message);
-    res.json([]);
+    res.json({ rides: [] });
   }
 });
 

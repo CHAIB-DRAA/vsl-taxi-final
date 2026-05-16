@@ -60,16 +60,17 @@ export default function AgendaScreen({ navigation }) {
         return Alert.alert('Rien à coller', 'Copie d\'abord un SMS de course.');
       }
       const response = await api.post('/ai/parse-ride', { text: text.trim() });
-      const data = response.data.rides ? response.data.rides[0] : response.data;
-      if (data?.patientName) {
+      const raw = response.data;
+      const data = raw?.rides ? raw.rides[0] : (Array.isArray(raw) ? raw[0] : raw);
+      if (data?.startLocation || data?.endLocation || data?.patientName) {
         Vibration.vibrate([0, 70, 50, 70]);
         navigation.navigate('AddRide', { importedData: data });
       } else {
         throw new Error('Non reconnu');
       }
-    } catch {
+    } catch (err) {
       Vibration.vibrate(200);
-      Alert.alert('Échec IA', "Impossible de lire ce message. Vérifie le texte.");
+      Alert.alert('Échec IA', "Impossible de lire ce message. Vérifie que le texte contient un départ, une arrivée ou un patient.");
     } finally {
       setAnalyzing(false);
     }
