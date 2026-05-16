@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import moment from 'moment';
 import 'moment/locale/fr';
 import * as Clipboard from 'expo-clipboard';
+import { calculatePrice } from '../utils/pricing';
 
 const C = {
   bg:     '#F2F3F7',
@@ -187,8 +188,8 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
             {duration !== null ? ` · ${duration} min` : ''}
             {ride.realDistance ? ` · ${ride.realDistance} km` : ''}
           </Text>
-          {ride.price > 0 && (
-            <Text style={styles.priceTag}>{ride.price.toFixed(2)} €</Text>
+          {ride.realDistance > 0 && (
+            <Text style={styles.priceTag}>{calculatePrice(ride)} €</Text>
           )}
           {ride.statuFacturation === 'Facturé' ? (
             <View style={styles.billedBadge}>
