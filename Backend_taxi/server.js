@@ -25,7 +25,20 @@ const app = express();
 // SÉCURITÉ & MIDDLEWARES
 // ==========================================
 
-app.use(helmet());
+app.use(helmet({
+  contentSecurityPolicy: {
+    directives: {
+      defaultSrc:     ["'self'"],
+      scriptSrc:      ["'self'", "'unsafe-inline'"],
+      styleSrc:       ["'self'", "'unsafe-inline'", "https:"],
+      fontSrc:        ["'self'", "https:", "data:"],
+      imgSrc:         ["'self'", "data:"],
+      connectSrc:     ["'self'", "https:"],
+      formAction:     ["'self'"],
+      frameAncestors: ["'self'", "https://www.taxi-31-toulouse.fr"],
+    },
+  },
+}));
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
