@@ -2,6 +2,7 @@ import React, { createContext, useState, useEffect, useContext, useCallback, use
 import api, { getRides, cancelRideById } from '../services/api';
 import { Alert } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { updateNextRideNotification, syncAllReminders } from '../services/notificationService';
 
 const REFRESH_THROTTLE_MS = 30_000; // 30s minimum entre deux rechargements automatiques
 
@@ -32,7 +33,12 @@ export const DataProvider = ({ children }) => {
         api.get('/contacts'),
       ]);
 
-      if (ridesRes.status === 'fulfilled') setAllRides(ridesRes.value);
+      if (ridesRes.status === 'fulfilled') {
+        setAllRides(ridesRes.value);
+        // Mise à jour notif lock screen + rappels en arrière-plan
+        updateNextRideNotification(ridesRes.value).catch(() => {});
+        syncAllReminders(ridesRes.value).catch(() => {});
+      }
       setContacts(contactsRes.status === 'fulfilled' ? contactsRes.value.data : []);
     } catch (error) {
       console.error("Erreur chargement global :", error);
@@ -47,14 +53,20 @@ export const DataProvider = ({ children }) => {
     setAllRides(prev => [...prev, newRide]);
   }, []);
 
-  // Mise à jour optimiste d'une course dans la liste locale
   const updateLocalRide = useCallback((updatedRide) => {
-    setAllRides(prev => prev.map(r => r._id === updatedRide._id ? updatedRide : r));
+    setAllRides(prev => {
+      const next = prev.map(r => r._id === updatedRide._id ? updatedRide : r);
+      updateNextRideNotification(next).catch(() => {});
+      return next;
+    });
   }, []);
 
-  // Suppression optimiste d'une course
   const removeLocalRide = useCallback((rideId) => {
-    setAllRides(prev => prev.filter(r => r._id !== rideId));
+    setAllRides(prev => {
+      const next = prev.filter(r => r._id !== rideId);
+      updateNextRideNotification(next).catch(() => {});
+      return next;
+    });
   }, []);
 
   // Répondre à une invitation de partage (accepter/refuser)

@@ -35,6 +35,7 @@ import SettingAppScreen from './screens/SettingAppScreen';
 import SettingsScreen from './screens/SettingsScreen'; 
 
 import api, { getRides } from './services/api';
+import { setupNotifications } from './services/notificationService';
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -127,6 +128,7 @@ const AppNavigator = () => {
 
   // 2. Notifs
   useEffect(() => {
+    setupNotifications().catch(() => {});
     if (session) {
       registerForPushNotificationsAsync().then(token => {
         if (token) sendTokenToBackend(token);

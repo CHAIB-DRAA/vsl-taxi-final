@@ -12,6 +12,7 @@ import 'moment/locale/fr';
 import AddressAutocomplete from '../components/AddressAutocomplete'; 
 // 👈 AJOUT DE updateRide ICI
 import { createRide, updateRide, getPatients, createPatient, importMassRides } from '../services/api';
+import { scheduleRideReminder } from '../services/notificationService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useData } from '../contexts/DataContext'; 
 
@@ -279,7 +280,8 @@ export default function CreateRideScreen({ navigation, route }) {
         await updateRide(editingRideId, rideData);
         Alert.alert('Succès', 'Course mise à jour avec succès.');
       } else {
-        await createRide(rideData);
+        const created = await createRide(rideData);
+        scheduleRideReminder(created).catch(() => {});
         Alert.alert('Succès', 'Course ajoutée au planning.');
       }
       resetForm();
