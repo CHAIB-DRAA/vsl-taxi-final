@@ -3,30 +3,104 @@ const User = require('../models/User');
 const RideShare = require('../models/RideShare');
 const { Expo } = require('expo-server-sdk');
 
-// ── Tarification taxi conventionné (tarifs moyens France, ajustables) ──
-const TARIFS = {
-  priseEnCharge: 2.60,  // Fixe au départ
-  kmTarifA: 0.99,       // Lundi-Samedi 7h00-19h00
-  kmTarifB: 1.20,       // Nuit (19h-7h), Dimanche, Jours fériés
-  minPerception: 8.50,  // Minimum de perception
+// ── Tarification CPAM convention 2025-2029 — Haute-Garonne (dept 31) ──────────
+
+const CPAM = {
+  FORFAIT_BASE:      13.00,
+  KM_INCLUS:         4,
+  PRIX_KM:           1.10,
+  FORFAIT_METROPOLE: 15.00,
+  SUPPLEMENT_TPMR:   30.00,
+  SEUIL_RETOUR_VIDE: 50,
+  TAUX_RETOUR_COURT: 0.25,
+  TAUX_RETOUR_LONG:  0.50,
+  MAJORATION_NUIT:   0.50,
 };
 
-const FERIES = new Set([
-  '2025-01-01','2025-04-21','2025-05-01','2025-05-08','2025-05-29',
-  '2025-06-09','2025-07-14','2025-08-15','2025-11-01','2025-11-11','2025-12-25',
-  '2026-01-01','2026-04-06','2026-05-01','2026-05-08','2026-05-14',
-  '2026-05-25','2026-07-14','2026-08-15','2026-11-01','2026-11-11','2026-12-25',
-]);
+const ABATTEMENT_PARTAGE = { 1: 1.00, 2: 0.77, 3: 0.65 };
 
-function calculerPrix(rideDate, km, tolls = 0) {
-  const d = new Date(rideDate);
-  const h = d.getHours();
-  const isNuit  = h >= 19 || h < 7;
-  const isDim   = d.getDay() === 0;
-  const isFerie = FERIES.has(d.toISOString().split('T')[0]);
-  const tarifKm = (isNuit || isDim || isFerie) ? TARIFS.kmTarifB : TARIFS.kmTarifA;
-  const total   = TARIFS.priseEnCharge + km * tarifKm + tolls;
-  return Math.round(Math.max(total, TARIFS.minPerception) * 100) / 100;
+// Jours fériés fixes (MM-DD)
+const FERIES_FIXES = new Set(['01-01','05-01','05-08','07-14','08-15','11-01','11-11','12-25']);
+
+function getEaster(year) {
+  const a=year%19,b=Math.floor(year/100),c=year%100,d=Math.floor(b/4),e=b%4;
+  const f=Math.floor((b+8)/25),g=Math.floor((b-f+1)/3),h=(19*a+b-d-g+15)%30;
+  const i=Math.floor(c/4),k=c%4,l=(32+2*e+2*i-h-k)%7;
+  const m=Math.floor((a+11*h+22*l)/451);
+  const month=Math.floor((h+l-7*m+114)/31), day=((h+l-7*m+114)%31)+1;
+  return new Date(year, month-1, day);
+}
+
+function isFerie(date) {
+  const d = new Date(date);
+  const mmdd = String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  if (FERIES_FIXES.has(mmdd)) return true;
+  const year = d.getFullYear();
+  const easter = getEaster(year);
+  const addDays = (dt, n) => { const r=new Date(dt); r.setDate(r.getDate()+n); return r; };
+  const mobile = [addDays(easter,1), addDays(easter,39), addDays(easter,50)]
+    .map(dt => String(dt.getMonth()+1).padStart(2,'0') + '-' + String(dt.getDate()).padStart(2,'0'));
+  return mobile.includes(mmdd);
+}
+
+function isNuitOuWE(date) {
+  const d = new Date(date);
+  const h = d.getHours(), day = d.getDay();
+  if (isFerie(d)) return true;
+  if (day === 0) return true;                 // Dimanche
+  if (day === 6 && h >= 12) return true;      // Samedi ≥ 12h
+  if (h >= 20 || h < 8) return true;          // Nuit 20h→8h (CPAM)
+  return false;
+}
+
+const TOULOUSE_MOTS = [
+  'toulouse','oncopole','purpan','rangueil','pasteur','larrey',
+  '31000','31100','31200','31300','31400','31500',
+];
+const ETABLISSEMENTS_FRONTIERES = [
+  "clinique de l'union","clinique de l union","l'union","l union","saint-jean","31240",
+  'croix du sud','quint-fonsegrives','quint fonsegrives',
+];
+
+function isMetropole(text) {
+  if (!text) return false;
+  const lower = text.toLowerCase();
+  return TOULOUSE_MOTS.some(k => lower.includes(k)) ||
+         ETABLISSEMENTS_FRONTIERES.some(k => lower.includes(k));
+}
+
+function calculerPrix(ride, km, tolls = 0) {
+  // ride peut être un objet Ride ou simplement une date (rétrocompat)
+  const rideDate     = ride instanceof Date || typeof ride === 'string' ? ride : ride.date;
+  const startLoc     = ride.startLocation || '';
+  const endLoc       = ride.endLocation   || '';
+  const isRoundTrip  = ride.isRoundTrip   || false;
+  const nbPass       = Math.max(1, parseInt(ride.nbPassengers || 1, 10));
+  const isTpmr       = Boolean(ride.isTpmr);
+  const longueSeule  = Boolean(ride.longuePortionSeule);
+
+  const billableKm = Math.max(0, km - CPAM.KM_INCLUS);
+  const kmCost     = billableKm * CPAM.PRIX_KM;
+
+  const metropole     = isMetropole(startLoc) || isMetropole(endLoc);
+  const metropoleCost = metropole ? CPAM.FORFAIT_METROPOLE : 0;
+
+  const applyRetour = !isRoundTrip;
+  const tauxRetour  = km < CPAM.SEUIL_RETOUR_VIDE ? CPAM.TAUX_RETOUR_COURT : CPAM.TAUX_RETOUR_LONG;
+  const retourCost  = applyRetour ? kmCost * tauxRetour : 0;
+
+  let socle = CPAM.FORFAIT_BASE + metropoleCost + kmCost + retourCost;
+  if (isNuitOuWE(rideDate)) socle *= (1 + CPAM.MAJORATION_NUIT);
+
+  let mult;
+  if (nbPass > 1 && longueSeule) mult = 0.95;
+  else mult = nbPass >= 4 ? 0.63 : (ABATTEMENT_PARTAGE[nbPass] || 1.00);
+  const apresAbat = socle * mult;
+
+  const tpmrCost       = isTpmr ? CPAM.SUPPLEMENT_TPMR : 0;
+  const tollsParPatient = nbPass > 1 ? tolls / nbPass : tolls;
+
+  return Math.round((apresAbat + tpmrCost + tollsParPatient) * 100) / 100;
 }
 
 const expo = new Expo();
@@ -347,7 +421,7 @@ exports.finishRide = async (req, res) => {
     const existing = await Ride.findOne({ _id: req.params.id, chauffeurId: req.user.id, status: 'En cours' });
     if (!existing) return res.status(404).json({ message: "Course introuvable ou non démarrée." });
 
-    const price = calculerPrix(existing.date, km, tls);
+    const price = calculerPrix(existing, km, tls);
 
     const ride = await Ride.findByIdAndUpdate(
       req.params.id,
