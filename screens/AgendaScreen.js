@@ -2,7 +2,8 @@ import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   StyleSheet, Alert, Vibration, View, Text,
   TouchableOpacity, ActivityIndicator, FlatList,
-  Clipboard, Modal, TextInput, Platform, StatusBar, Linking, Share
+  Clipboard, Modal, TextInput, Platform, StatusBar,
+  Linking, Share, ScrollView
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
@@ -13,9 +14,24 @@ import { useData } from '../contexts/DataContext';
 import api, { deleteRide, startRideById, finishRideById, shareRide, createRide } from '../services/api';
 import { addRideToCalendar, syncBatchRides } from '../services/calendarService';
 
+import { calculatePriceDetailed } from '../utils/pricing';
 import AgendaHeader from '../components/agenda/AgendaHeader';
 import AgendaList   from '../components/agenda/AgendaList';
 import RideOptionsModal from '../components/RideOptionsModal';
+
+// Ligne de détail tarification dans le modal "Terminer"
+function BRow({ label, value, bold, sub, color }) {
+  return (
+    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
+      <Text style={{ flex: 1, fontSize: 12, color: sub ? '#9CA3AF' : '#6B7280', paddingRight: 6, paddingLeft: sub ? 8 : 0 }}>
+        {label}
+      </Text>
+      <Text style={{ fontSize: 12, fontWeight: bold ? '800' : '600', color: color || (bold ? '#111827' : '#374151'), minWidth: 70, textAlign: 'right' }}>
+        {value}
+      </Text>
+    </View>
+  );
+}
 
 const C = {
   bg:     '#F2F3F7',
@@ -231,14 +247,6 @@ export default function AgendaScreen({ navigation }) {
     }
   };
 
-  const estimatePrice = (km, tolls, rideDate) => {
-    if (!km || km <= 0) return null;
-    const PRISE = 2.60, A = 0.99, B = 1.20, MIN = 8.50;
-    const d = new Date(rideDate);
-    const h = d.getHours();
-    const rate = (h >= 19 || h < 7 || d.getDay() === 0) ? B : A;
-    return Math.max(PRISE + km * rate + tolls, MIN).toFixed(2);
-  };
 
   const handleRespond = useCallback(async (ride, action) => {
     try {
@@ -413,42 +421,125 @@ export default function AgendaScreen({ navigation }) {
       <Modal visible={modals.finish} transparent animationType="slide">
         <View style={styles.finishOverlay}>
           <View style={styles.finishCard}>
-            <Text style={styles.finishTitle}>Terminer la course</Text>
 
-            <Text style={styles.finishLabel}>Distance réelle (km)</Text>
-            <TextInput
-              style={styles.finishInput}
-              value={finishDistance}
-              onChangeText={setFinishDistance}
-              placeholder="Ex : 12.5"
-              placeholderTextColor="#999"
-              keyboardType="decimal-pad"
-              autoFocus
-            />
+            {/* Titre + info patient */}
+            <View style={styles.finishHeader}>
+              <Text style={styles.finishTitle}>Terminer la course</Text>
+              {finishRide && (
+                <Text style={styles.finishSubtitle} numberOfLines={1}>
+                  {finishRide.patientName}  ·  {(finishRide.startLocation || '').split(',')[0]} → {(finishRide.endLocation || '').split(',')[0]}
+                </Text>
+              )}
+            </View>
 
-            <Text style={styles.finishLabel}>Péages (€)</Text>
-            <TextInput
-              style={styles.finishInput}
-              value={finishTolls}
-              onChangeText={setFinishTolls}
-              placeholder="0.00"
-              placeholderTextColor="#999"
-              keyboardType="decimal-pad"
-            />
+            <ScrollView showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
 
-            {(() => {
-              const km  = parseFloat(finishDistance);
-              const tls = parseFloat(finishTolls) || 0;
-              const price = estimatePrice(km, tls, finishRide?.date);
-              if (!price) return null;
-              return (
-                <View style={styles.pricePreview}>
-                  <Text style={styles.pricePreviewLabel}>Montant CPAM estimé</Text>
-                  <Text style={styles.pricePreviewValue}>{price} €</Text>
+              {/* Inputs */}
+              <View style={styles.finishRow}>
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.finishLabel}>Distance (km)</Text>
+                  <TextInput
+                    style={styles.finishInput}
+                    value={finishDistance}
+                    onChangeText={setFinishDistance}
+                    placeholder="Ex : 12.5"
+                    placeholderTextColor="#999"
+                    keyboardType="decimal-pad"
+                    autoFocus
+                  />
                 </View>
-              );
-            })()}
+                <View style={{ width: 12 }} />
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.finishLabel}>Péages (€)</Text>
+                  <TextInput
+                    style={styles.finishInput}
+                    value={finishTolls}
+                    onChangeText={setFinishTolls}
+                    placeholder="0.00"
+                    placeholderTextColor="#999"
+                    keyboardType="decimal-pad"
+                  />
+                </View>
+              </View>
 
+              {/* Détail du calcul live */}
+              {(() => {
+                const km  = parseFloat(finishDistance);
+                const tls = parseFloat(finishTolls) || 0;
+                if (!km || km <= 0) {
+                  return (
+                    <View style={styles.breakdownEmpty}>
+                      <Ionicons name="calculator-outline" size={16} color="#9CA3AF" />
+                      <Text style={styles.breakdownEmptyText}>Saisis la distance pour voir le calcul</Text>
+                    </View>
+                  );
+                }
+                const d = calculatePriceDetailed({
+                  ...finishRide,
+                  realDistance: km,
+                  tolls: tls,
+                });
+                if (!d) return null;
+                return (
+                  <View style={styles.breakdownBlock}>
+                    <View style={styles.breakdownHead}>
+                      <Ionicons name="receipt-outline" size={13} color="#FF6B00" />
+                      <Text style={styles.breakdownHeadText}>DÉTAIL CPAM</Text>
+                    </View>
+
+                    <BRow label="Forfait de base  (4 km inclus)" value="13,00 €" />
+                    {d.metropole && (
+                      <BRow label="+ Supplément Grande Ville" value={`+${d.metropoleCost.toFixed(2)} €`} color="#7C3AED" />
+                    )}
+                    {d.billableKm > 0 && (
+                      <BRow label={`+ ${d.billableKm} km × 1,10 €`} value={`+${d.kmCost.toFixed(2)} €`} />
+                    )}
+                    {d.retourVide && d.retourCost > 0 && (
+                      <BRow
+                        label={`  ↳ Retour à vide (${d.tauxRetour * 100}%)`}
+                        value={`+${d.retourCost.toFixed(2)} €`}
+                        sub
+                      />
+                    )}
+
+                    <View style={styles.breakdownSep} />
+                    <BRow label="Sous-total" value={`${d.socle.toFixed(2)} €`} bold />
+
+                    {d.nuit && (
+                      <BRow
+                        label="× Nuit / WE / Férié  (+50%)"
+                        value={`+${(d.socleAvecNuit - d.socle).toFixed(2)} €`}
+                        color="#D97706"
+                      />
+                    )}
+                    {d.multiplicateurAbattement < 1 && (
+                      <BRow
+                        label={`× Abattement  ${d.nbPass} patients  (−${Math.round((1 - d.multiplicateurAbattement) * 100)}%)`}
+                        value={`−${(d.socleAvecNuit - d.socleApresAbattement).toFixed(2)} €`}
+                        color="#16A34A"
+                      />
+                    )}
+                    {d.isTpmr && (
+                      <BRow label="+ Supplément TPMR" value={`+${d.tpmrCost.toFixed(2)} €`} color="#7C3AED" />
+                    )}
+                    {d.tollsParPatient > 0 && (
+                      <BRow
+                        label={d.nbPass > 1 ? `+ Péages (÷${d.nbPass})` : '+ Péages'}
+                        value={`+${d.tollsParPatient.toFixed(2)} €`}
+                      />
+                    )}
+
+                    <View style={styles.breakdownTotal}>
+                      <Text style={styles.breakdownTotalLabel}>TOTAL CONVENTION</Text>
+                      <Text style={styles.breakdownTotalValue}>{d.total.toFixed(2)} €</Text>
+                    </View>
+                  </View>
+                );
+              })()}
+
+            </ScrollView>
+
+            {/* Boutons fixes en bas */}
             <View style={styles.finishActions}>
               <TouchableOpacity
                 style={styles.finishCancel}
@@ -460,6 +551,7 @@ export default function AgendaScreen({ navigation }) {
                 <Text style={styles.finishConfirmText}>Terminer</Text>
               </TouchableOpacity>
             </View>
+
           </View>
         </View>
       </Modal>
@@ -516,24 +608,79 @@ const styles = StyleSheet.create({
     backgroundColor: '#FFFFFF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 28,
+    paddingTop: 24,
+    paddingHorizontal: 20,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 20,
     borderTopWidth: 1,
     borderColor: '#E2E5EC',
+    maxHeight: '90%',
   },
-  finishTitle: { fontSize: 20, fontWeight: '800', color: '#111827', marginBottom: 20 },
-  finishLabel: { fontSize: 12, color: '#6B7280', fontWeight: '600', marginBottom: 8, textTransform: 'uppercase', letterSpacing: 0.5 },
+  finishHeader: { marginBottom: 16 },
+  finishTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
+  finishSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  finishRow: { flexDirection: 'row', marginBottom: 16 },
+  finishLabel: { fontSize: 11, color: '#6B7280', fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
   finishInput: {
     backgroundColor: '#F5F7FB',
     color: '#111827',
     borderRadius: 12,
-    padding: 16,
+    paddingHorizontal: 14,
+    paddingVertical: 14,
     fontSize: 18,
     fontWeight: '700',
     borderWidth: 1,
     borderColor: '#E2E5EC',
-    marginBottom: 20,
   },
+
+  // Détail tarification dans modal Terminer
+  breakdownBlock: {
+    backgroundColor: '#F9FAFB',
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E5EC',
+  },
+  breakdownHead: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    marginBottom: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E2E5EC',
+  },
+  breakdownHeadText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#FF6B00',
+    letterSpacing: 1,
+    textTransform: 'uppercase',
+  },
+  breakdownSep: { height: 1, backgroundColor: '#E2E5EC', marginVertical: 6 },
+  breakdownTotal: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: 10,
+    paddingTop: 10,
+    borderTopWidth: 2,
+    borderTopColor: '#FF6B00',
+  },
+  breakdownTotalLabel: { fontSize: 12, fontWeight: '900', color: '#111827', letterSpacing: 0.5 },
+  breakdownTotalValue: { fontSize: 22, fontWeight: '900', color: '#EA580C' },
+  breakdownEmpty: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: '#F9FAFB',
+    borderRadius: 12,
+    padding: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: '#E2E5EC',
+  },
+  breakdownEmptyText: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', flex: 1 },
   dispatchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -562,7 +709,7 @@ const styles = StyleSheet.create({
     color: C.text,
   },
 
-  finishActions: { flexDirection: 'row', gap: 10 },
+  finishActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
   finishCancel: {
     flex: 1, paddingVertical: 16, borderRadius: 14,
     backgroundColor: '#F5F7FB', alignItems: 'center',
@@ -575,18 +722,4 @@ const styles = StyleSheet.create({
   },
   finishConfirmText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
 
-  pricePreview: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#FFF7ED',
-    borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    marginBottom: 20,
-    borderWidth: 1,
-    borderColor: '#FDBA74',
-  },
-  pricePreviewLabel: { fontSize: 13, color: '#92400E', fontWeight: '600' },
-  pricePreviewValue: { fontSize: 22, fontWeight: '900', color: C.brand },
 });
