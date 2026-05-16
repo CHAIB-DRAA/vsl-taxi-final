@@ -188,9 +188,6 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
             {duration !== null ? ` · ${duration} min` : ''}
             {ride.realDistance ? ` · ${ride.realDistance} km` : ''}
           </Text>
-          {ride.realDistance > 0 && (
-            <Text style={styles.priceTag}>{calculatePrice(ride)} €</Text>
-          )}
           {ride.statuFacturation === 'Facturé' ? (
             <View style={styles.billedBadge}>
               <Ionicons name="checkmark-circle" size={10} color={C.green} />
@@ -252,6 +249,17 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
           </TouchableOpacity>
         </View>
       )}
+
+      {/* ── TARIF ESTIMÉ ── */}
+      {ride.realDistance > 0 && (
+        <View style={styles.priceFooter}>
+          <View>
+            <Text style={styles.priceFooterLabel}>TARIF CONVENTION</Text>
+            <Text style={styles.priceFooterSub}>{ride.realDistance} km{ride.tolls > 0 ? ` · Péages ${ride.tolls} €` : ''}</Text>
+          </View>
+          <Text style={styles.priceFooterValue}>{calculatePrice(ride)} €</Text>
+        </View>
+      )}
     </TouchableOpacity>
   );
 }
@@ -306,8 +314,7 @@ const styles = StyleSheet.create({
   // STATES
   doneRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border, gap: 6 },
   doneText: { color: C.text3, fontSize: 12 },
-  priceTag: { fontSize: 13, fontWeight: '800', color: C.brand },
-  billedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#F0FDF4', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#BBF7D0' },
+billedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: '#F0FDF4', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#BBF7D0' },
   billedText: { fontSize: 10, fontWeight: '700', color: C.green },
   unbilledBadge: { backgroundColor: '#FFF7ED', paddingHorizontal: 7, paddingVertical: 3, borderRadius: 6, borderWidth: 1, borderColor: '#FED7AA' },
   unbilledText: { fontSize: 10, fontWeight: '700', color: '#EA580C' },
@@ -329,6 +336,19 @@ const styles = StyleSheet.create({
 
   // RESPOND
   respondRow: { flexDirection: 'row', gap: 10, marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
+
+  // PRICE FOOTER
+  priceFooter: {
+    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: 12, marginHorizontal: -16, marginBottom: -16,
+    paddingHorizontal: 16, paddingVertical: 12,
+    backgroundColor: C.brand + '11',
+    borderBottomLeftRadius: 16, borderBottomRightRadius: 16,
+    borderTopWidth: 1, borderTopColor: C.brand + '33',
+  },
+  priceFooterLabel: { fontSize: 10, fontWeight: '800', color: C.brand, letterSpacing: 1.5 },
+  priceFooterSub: { fontSize: 11, color: C.text3, marginTop: 1 },
+  priceFooterValue: { fontSize: 24, fontWeight: '800', color: C.brand },
   btnRefuse: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: C.card2, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: C.red + '44', gap: 5 },
   btnRefuseText: { color: C.red, fontWeight: '700', fontSize: 14 },
   btnAccept: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827', paddingVertical: 12, borderRadius: 12, gap: 5 },

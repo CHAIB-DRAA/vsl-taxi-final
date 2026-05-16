@@ -55,9 +55,10 @@ export default function AgendaScreen({ navigation }) {
   const [modals, setModals]                 = useState({ options: false, dispatch: false, finish: false, returnTime: false });
 
   // Modal terminer la course depuis l'agenda
-  const [finishDistance, setFinishDistance] = useState('');
-  const [finishTolls, setFinishTolls]       = useState('0');
-  const [finishRide, setFinishRide]         = useState(null);
+  const [finishDistance, setFinishDistance]         = useState('');
+  const [finishTolls, setFinishTolls]               = useState('0');
+  const [finishBonTransport, setFinishBonTransport] = useState('');
+  const [finishRide, setFinishRide]                 = useState(null);
 
   // Modal heure de retour
   const [returnTimeStr, setReturnTimeStr]   = useState('');
@@ -229,6 +230,7 @@ export default function AgendaScreen({ navigation }) {
       setFinishRide(ride);
       setFinishDistance('');
       setFinishTolls('0');
+      setFinishBonTransport('');
       setModals(m => ({ ...m, finish: true }));
     }
   };
@@ -238,7 +240,7 @@ export default function AgendaScreen({ navigation }) {
     const tls  = parseFloat(finishTolls?.trim()) || 0;
     if (!km || isNaN(km) || km <= 0) return Alert.alert('Erreur', 'Distance invalide.');
     try {
-      const updated = await finishRideById(finishRide._id, km, tls);
+      const updated = await finishRideById(finishRide._id, km, tls, finishBonTransport.trim());
       updateLocalRide(updated);
       setModals(m => ({ ...m, finish: false }));
       setFinishRide(null);
@@ -536,6 +538,19 @@ export default function AgendaScreen({ navigation }) {
                   </View>
                 );
               })()}
+
+              {/* Bon de transport */}
+              <View style={{ marginTop: 12 }}>
+                <Text style={styles.finishLabel}>Bon de transport n° (optionnel)</Text>
+                <TextInput
+                  style={styles.finishInput}
+                  value={finishBonTransport}
+                  onChangeText={setFinishBonTransport}
+                  placeholder="Ex : 2026-12345"
+                  placeholderTextColor="#999"
+                  autoCapitalize="characters"
+                />
+              </View>
 
             </ScrollView>
 

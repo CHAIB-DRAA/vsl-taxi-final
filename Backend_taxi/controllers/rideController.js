@@ -414,7 +414,7 @@ exports.startRide = async (req, res) => {
 // --- 12. TERMINER ---
 exports.finishRide = async (req, res) => {
   try {
-    const { realDistance, tolls } = req.body;
+    const { realDistance, tolls, bonTransport } = req.body;
     const km  = parseFloat(realDistance) || 0;
     const tls = parseFloat(tolls) || 0;
 
@@ -425,7 +425,7 @@ exports.finishRide = async (req, res) => {
 
     const ride = await Ride.findByIdAndUpdate(
       req.params.id,
-      { $set: { endTime: new Date(), status: 'Terminée', realDistance: km, tolls: tls, price } },
+      { $set: { endTime: new Date(), status: 'Terminée', realDistance: km, tolls: tls, price, ...(bonTransport ? { bonTransport } : {}) } },
       { new: true }
     );
     res.json(ride);

@@ -1,17 +1,18 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, StatusBar, Platform,
+  ActivityIndicator, Alert, StatusBar, TextInput,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native';
 import moment from 'moment';
 import 'moment/locale/fr';
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
+import * as Clipboard from 'expo-clipboard';
 
 import { useData } from '../contexts/DataContext';
 import api from '../services/api';
+import { calculatePrice } from '../utils/pricing';
 
 const C = {
   bg:    '#F2F3F7',
@@ -20,6 +21,7 @@ const C = {
   border:'#E2E5EC',
   text:  '#111827',
   text2: '#6B7280',
+  text3: '#9CA3AF',
   brand: '#FF6B00',
   green: '#16A34A',
   red:   '#EF4444',
@@ -42,11 +44,30 @@ const MOTIF_COLOR = {
   Autre:          '#6B7280',
 };
 
+// Texte formaté pour Cofidoc (copier-coller)
+function buildFicheCofidoc(r) {
+  const price = calculatePrice(r);
+  return [
+    `TRANSPORT CPAM — ${moment(r.date).format('DD/MM/YYYY [à] HH:mm')}`,
+    `Patient    : ${r.patientName}`,
+    `Départ     : ${r.startLocation}`,
+    `Arrivée    : ${r.endLocation}`,
+    r.realDistance ? `Distance   : ${r.realDistance} km` : null,
+    r.tolls > 0   ? `Péages     : ${parseFloat(r.tolls).toFixed(2)} €` : null,
+    `Tarif CPAM : ${price} €`,
+    r.motif       ? `Motif      : ${r.motif}` : null,
+    r.bonTransport ? `BT n°      : ${r.bonTransport}` : null,
+  ].filter(Boolean).join('\n');
+}
+
 export default function FacturationScreen() {
   const { allRides, updateLocalRide } = useData();
   const [activeTab, setActiveTab]     = useState('unbilled');
   const [markingId, setMarkingId]     = useState(null);
   const [generating, setGenerating]   = useState(false);
+  // BT inline editing
+  const [editingBtId, setEditingBtId] = useState(null);
+  const [editingBtVal, setEditingBtVal] = useState('');
 
   const completed = useMemo(() =>
     allRides
@@ -59,7 +80,7 @@ export default function FacturationScreen() {
   const billed   = useMemo(() => completed.filter(r => r.statuFacturation === 'Facturé'),  [completed]);
   const display  = activeTab === 'unbilled' ? unbilled : billed;
 
-  // Groupement par période CPAM
+  // Groupement par période CPAM avec prix CPAM recalculés
   const groups = useMemo(() => {
     const map = {};
     display.forEach(r => {
@@ -67,17 +88,17 @@ export default function FacturationScreen() {
       if (!map[k]) map[k] = { key: k, rides: [], km: 0, amount: 0, tolls: 0 };
       map[k].rides.push(r);
       map[k].km     += r.realDistance || 0;
-      map[k].amount += r.price || 0;
+      map[k].amount += parseFloat(calculatePrice(r));
       map[k].tolls  += r.tolls || 0;
     });
     return Object.values(map);
   }, [display]);
 
-  // Totaux (onglet "À facturer")
+  // Totaux (onglet "À facturer") avec prix CPAM
   const totals = useMemo(() => ({
     count:  unbilled.length,
     km:     Math.round(unbilled.reduce((s, r) => s + (r.realDistance || 0), 0) * 10) / 10,
-    amount: Math.round(unbilled.reduce((s, r) => s + (r.price || 0), 0) * 100) / 100,
+    amount: Math.round(unbilled.reduce((s, r) => s + parseFloat(calculatePrice(r)), 0) * 100) / 100,
     tolls:  Math.round(unbilled.reduce((s, r) => s + (r.tolls || 0), 0) * 100) / 100,
   }), [unbilled]);
 
@@ -98,7 +119,7 @@ export default function FacturationScreen() {
   const markGroupBilled = useCallback((group) => {
     Alert.alert(
       'Facturer la période',
-      `Marquer ${group.rides.length} courses comme facturées ?`,
+      `Marquer ${group.rides.length} course${group.rides.length > 1 ? 's' : ''} comme facturées ?`,
       [
         { text: 'Annuler', style: 'cancel' },
         {
@@ -115,6 +136,28 @@ export default function FacturationScreen() {
     );
   }, [updateLocalRide]);
 
+  // ── Copier tout un groupe ──
+  const copyGroup = useCallback(async (group) => {
+    const lines = group.rides.map((r, i) =>
+      `${i + 1}. ${buildFicheCofidoc(r)}`
+    ).join('\n\n---\n\n');
+    const header = `PÉRIODE : ${group.key}\n${group.rides.length} courses — ${group.amount.toFixed(2)} €\n\n`;
+    await Clipboard.setStringAsync(header + lines);
+    Alert.alert('Copié ✓', `${group.rides.length} fiche${group.rides.length > 1 ? 's' : ''} copiée${group.rides.length > 1 ? 's' : ''}`);
+  }, []);
+
+  // ── Sauvegarder bon de transport inline ──
+  const saveBonTransport = useCallback(async (rideId) => {
+    try {
+      const res = await api.patch(`/rides/${rideId}`, { bonTransport: editingBtVal.trim() });
+      updateLocalRide(res.data);
+    } catch {
+      Alert.alert('Erreur', 'Impossible de sauvegarder.');
+    } finally {
+      setEditingBtId(null);
+    }
+  }, [editingBtVal, updateLocalRide]);
+
   // ── Générer PDF bordereau ──
   const generatePDF = useCallback(async (rides, label) => {
     if (rides.length === 0) return;
@@ -122,18 +165,21 @@ export default function FacturationScreen() {
     try {
       const totalKm     = rides.reduce((s, r) => s + (r.realDistance || 0), 0);
       const totalTolls  = rides.reduce((s, r) => s + (r.tolls || 0), 0);
-      const totalAmount = rides.reduce((s, r) => s + (r.price || 0), 0);
+      const totalAmount = rides.reduce((s, r) => s + parseFloat(calculatePrice(r)), 0);
 
-      const rows = rides.map(r => `
+      const rows = rides.map(r => {
+        const price = parseFloat(calculatePrice(r));
+        return `
         <tr>
           <td>${moment(r.date).format('DD/MM/YY HH:mm')}</td>
-          <td>${r.patientName}</td>
+          <td><strong>${r.patientName}</strong>${r.bonTransport ? `<br><span class="bt">BT n° ${r.bonTransport}</span>` : ''}</td>
           <td>${r.motif || r.type || '—'}</td>
-          <td>${(r.startLocation || '').split(',')[0]} → ${(r.endLocation || '').split(',')[0]}</td>
+          <td>${r.startLocation || '—'}<br><span class="arr">▸ ${r.endLocation || '—'}</span></td>
           <td style="text-align:right">${r.realDistance ? r.realDistance + ' km' : '—'}</td>
           <td style="text-align:right">${r.tolls ? r.tolls.toFixed(2) + ' €' : '—'}</td>
-          <td style="text-align:right;font-weight:700;color:#FF6B00">${r.price ? r.price.toFixed(2) + ' €' : '—'}</td>
-        </tr>`).join('');
+          <td style="text-align:right;font-weight:700;color:#FF6B00">${price.toFixed(2)} €</td>
+        </tr>`;
+      }).join('');
 
       const html = `<html><head><meta charset="utf-8">
         <style>
@@ -145,23 +191,25 @@ export default function FacturationScreen() {
           td{padding:7px 6px;border-bottom:1px solid #EEE;vertical-align:top}
           tr:nth-child(even) td{background:#F9FAFB}
           .foot td{font-weight:700;background:#FFF3E0;border-top:2px solid #FF6B00}
+          .bt{font-size:9px;color:#999;font-style:italic}
+          .arr{color:#888;font-size:10px}
           .note{margin-top:24px;font-size:9px;color:#999;text-align:center}
         </style></head><body>
         <h1>BORDEREAU DE TRANSPORT — CPAM</h1>
         <p>Période : <strong>${label}</strong> &nbsp;·&nbsp; Généré le ${moment().format('DD/MM/YYYY à HH:mm')}</p>
         <table>
-          <thead><tr><th>Date</th><th>Patient</th><th>Motif</th><th>Trajet</th><th>Km</th><th>Péages</th><th>Montant</th></tr></thead>
+          <thead><tr><th>Date</th><th>Patient / BT</th><th>Motif</th><th>Trajet</th><th>Km</th><th>Péages</th><th>Montant</th></tr></thead>
           <tbody>
             ${rows}
             <tr class="foot">
-              <td colspan="4">TOTAL — ${rides.length} courses</td>
-              <td style="text-align:right">${Math.round(totalKm*10)/10} km</td>
+              <td colspan="4">TOTAL — ${rides.length} course${rides.length > 1 ? 's' : ''}</td>
+              <td style="text-align:right">${Math.round(totalKm * 10) / 10} km</td>
               <td style="text-align:right">${totalTolls.toFixed(2)} €</td>
               <td style="text-align:right">${totalAmount.toFixed(2)} €</td>
             </tr>
           </tbody>
         </table>
-        <div class="note">Tarification conventionnée CPAM — Taxi App</div>
+        <div class="note">Tarification conventionnée CPAM 2025-2029 — Taxi App · Dept 31</div>
         </body></html>`;
 
       const { uri } = await Print.printToFileAsync({ html });
@@ -175,10 +223,25 @@ export default function FacturationScreen() {
 
   // ── Rendu d'une course ──
   const RideRow = useCallback(({ r }) => {
-    const mc = MOTIF_COLOR[r.motif] || C.text2;
+    const mc    = MOTIF_COLOR[r.motif] || C.text2;
+    const price = calculatePrice(r);
+    const isEditingBt = editingBtId === r._id;
+
+    const copyAddr = async (text, label) => {
+      await Clipboard.setStringAsync(text);
+      Alert.alert('Copié ✓', label);
+    };
+
+    const copyFiche = async () => {
+      await Clipboard.setStringAsync(buildFicheCofidoc(r));
+      Alert.alert('Copié ✓', 'Fiche Cofidoc dans le presse-papier');
+    };
+
     return (
       <View style={styles.rideRow}>
-        <View style={{ flex: 1 }}>
+
+        {/* ── En-tête : date · motif · patient ── */}
+        <View style={styles.rideHeader}>
           <View style={styles.rideTopLine}>
             <Text style={styles.rideTime}>{moment(r.date).format('DD/MM HH:mm')}</Text>
             {r.motif && (
@@ -186,21 +249,108 @@ export default function FacturationScreen() {
                 <Text style={[styles.motifText, { color: mc }]}>{r.motif}</Text>
               </View>
             )}
+            {r.isRoundTrip && (
+              <View style={styles.rtBadge}>
+                <Ionicons name="repeat" size={9} color={C.text3} />
+                <Text style={styles.rtText}>A/R</Text>
+              </View>
+            )}
           </View>
           <Text style={styles.rideName} numberOfLines={1}>{r.patientName}</Text>
-          <Text style={styles.rideRoute} numberOfLines={1}>
-            {(r.startLocation || '').split(',')[0]} → {(r.endLocation || '').split(',')[0]}
-          </Text>
+
+          {/* Bon de transport */}
+          {isEditingBt ? (
+            <View style={styles.btEditRow}>
+              <Ionicons name="document-text-outline" size={12} color={C.brand} />
+              <TextInput
+                style={styles.btInput}
+                value={editingBtVal}
+                onChangeText={setEditingBtVal}
+                placeholder="N° du bon de transport"
+                placeholderTextColor={C.text3}
+                autoFocus
+                autoCapitalize="characters"
+                returnKeyType="done"
+                onSubmitEditing={() => saveBonTransport(r._id)}
+              />
+              <TouchableOpacity onPress={() => saveBonTransport(r._id)} style={styles.btSaveBtn}>
+                <Ionicons name="checkmark" size={14} color={C.green} />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => setEditingBtId(null)} style={styles.btCancelBtn}>
+                <Ionicons name="close" size={14} color={C.red} />
+              </TouchableOpacity>
+            </View>
+          ) : r.bonTransport ? (
+            <TouchableOpacity
+              style={styles.btRow}
+              onPress={() => { setEditingBtId(r._id); setEditingBtVal(r.bonTransport); }}
+            >
+              <Ionicons name="document-text-outline" size={11} color={C.text3} />
+              <Text style={styles.btText}>BT n° {r.bonTransport}</Text>
+              <Ionicons name="create-outline" size={11} color={C.text3} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={styles.btAddRow}
+              onPress={() => { setEditingBtId(r._id); setEditingBtVal(''); }}
+            >
+              <Ionicons name="add-circle-outline" size={11} color={C.text3} />
+              <Text style={styles.btAddText}>Ajouter n° bon de transport</Text>
+            </TouchableOpacity>
+          )}
+        </View>
+
+        {/* ── Adresses cliquables ── */}
+        <View style={styles.addrBlock}>
+          <TouchableOpacity
+            style={styles.addrRow}
+            onPress={() => copyAddr(r.startLocation, 'Adresse de départ copiée')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.addrDot, { backgroundColor: C.green }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.addrLabel}>DÉPART</Text>
+              <Text style={styles.addrText}>{r.startLocation}</Text>
+            </View>
+            <Ionicons name="copy-outline" size={13} color={C.text3} />
+          </TouchableOpacity>
+
+          <View style={styles.addrDivider} />
+
+          <TouchableOpacity
+            style={styles.addrRow}
+            onPress={() => copyAddr(r.endLocation, 'Adresse d\'arrivée copiée')}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.addrDot, styles.addrDotSquare, { backgroundColor: C.brand }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.addrLabel}>ARRIVÉE</Text>
+              <Text style={styles.addrText}>{r.endLocation}</Text>
+            </View>
+            <Ionicons name="copy-outline" size={13} color={C.text3} />
+          </TouchableOpacity>
+        </View>
+
+        {/* ── Méta + Prix ── */}
+        <View style={styles.rideFooter}>
           <View style={styles.rideMeta}>
             {r.realDistance ? <Text style={styles.metaChip}>{r.realDistance} km</Text> : null}
-            {r.tolls > 0   ? <Text style={styles.metaChip}>Péage {r.tolls.toFixed(2)} €</Text> : null}
+            {r.tolls > 0   ? <Text style={styles.metaChip}>Péage {parseFloat(r.tolls).toFixed(2)} €</Text> : null}
+            {r.nuit        ? <Text style={[styles.metaChip, { color: '#D97706' }]}>🌙 Nuit</Text> : null}
           </View>
+          <Text style={styles.ridePrice}>{price} €</Text>
         </View>
-        <View style={styles.rideRight}>
-          <Text style={styles.ridePrice}>{r.price ? `${r.price.toFixed(2)} €` : '—'}</Text>
+
+        {/* ── Actions ── */}
+        <View style={styles.rideActions}>
+          <TouchableOpacity style={styles.cofidocBtn} onPress={copyFiche} activeOpacity={0.8}>
+            <Ionicons name="clipboard-outline" size={12} color={C.brand} />
+            <Text style={styles.cofidocBtnText}>Copier fiche</Text>
+          </TouchableOpacity>
+
           {activeTab === 'unbilled' && (
             markingId === r._id
-              ? <ActivityIndicator size="small" color={C.brand} style={{ marginTop: 8 }} />
+              ? <ActivityIndicator size="small" color={C.brand} />
               : (
                 <TouchableOpacity style={styles.factBtn} onPress={() => markBilled(r._id)}>
                   <Ionicons name="checkmark" size={13} color={C.green} />
@@ -217,19 +367,25 @@ export default function FacturationScreen() {
         </View>
       </View>
     );
-  }, [activeTab, markingId, markBilled]);
+  }, [activeTab, markingId, markBilled, editingBtId, editingBtVal, saveBonTransport]);
 
   const renderGroup = ({ item: g }) => (
     <View style={styles.group}>
       <View style={styles.groupHeader}>
-        <View>
+        <View style={{ flex: 1 }}>
           <Text style={styles.groupTitle}>{g.key}</Text>
           <Text style={styles.groupSub}>
-            {g.rides.length} courses · {Math.round(g.km * 10) / 10} km · {g.amount.toFixed(2)} €
+            {g.rides.length} course{g.rides.length > 1 ? 's' : ''} · {Math.round(g.km * 10) / 10} km · {g.amount.toFixed(2)} €
             {g.tolls > 0 ? ` · péages ${g.tolls.toFixed(2)} €` : ''}
           </Text>
         </View>
         <View style={styles.groupActions}>
+          <TouchableOpacity
+            style={styles.groupCopyBtn}
+            onPress={() => copyGroup(g)}
+          >
+            <Ionicons name="copy-outline" size={14} color={C.text2} />
+          </TouchableOpacity>
           <TouchableOpacity
             style={styles.groupPdfBtn}
             onPress={() => generatePDF(g.rides, g.key)}
@@ -257,9 +413,9 @@ export default function FacturationScreen() {
       <View style={styles.summary}>
         <View style={styles.summaryRow}>
           {[
-            { val: totals.count,                label: 'À facturer' },
-            { val: `${totals.km} km`,           label: 'Distance' },
-            { val: `${totals.amount.toFixed(2)} €`, label: 'Montant', highlight: true },
+            { val: totals.count,                    label: 'À facturer' },
+            { val: `${totals.km} km`,               label: 'Distance' },
+            { val: `${totals.amount.toFixed(2)} €`, label: 'Montant CPAM', highlight: true },
           ].map((s, i) => (
             <React.Fragment key={i}>
               {i > 0 && <View style={styles.summarySep} />}
@@ -345,7 +501,7 @@ const styles = StyleSheet.create({
   },
   summaryRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
   summaryItem: { alignItems: 'center' },
-  summaryVal: { fontSize: 24, fontWeight: '900', color: C.text },
+  summaryVal: { fontSize: 22, fontWeight: '900', color: C.text },
   summaryLabel: { fontSize: 11, color: C.text2, fontWeight: '600', marginTop: 2 },
   summarySep: { width: 1, backgroundColor: C.border },
   summaryTolls: { fontSize: 12, color: C.text2, textAlign: 'center', marginBottom: 12 },
@@ -393,6 +549,11 @@ const styles = StyleSheet.create({
   groupTitle: { fontSize: 15, fontWeight: '800', color: C.text, textTransform: 'capitalize' },
   groupSub:   { fontSize: 12, color: C.text2, marginTop: 2 },
   groupActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
+  groupCopyBtn: {
+    backgroundColor: C.card2, width: 32, height: 32, borderRadius: 8,
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
   groupPdfBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
     backgroundColor: C.brand + '15', paddingHorizontal: 10, paddingVertical: 6,
@@ -407,31 +568,70 @@ const styles = StyleSheet.create({
 
   // RIDE ROW
   rideRow: {
-    flexDirection: 'row',
     padding: 14,
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
-  rideTopLine: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 3 },
-  rideTime:  { fontSize: 12, fontWeight: '700', color: C.text2 },
+
+  // Header
+  rideHeader: { marginBottom: 10 },
+  rideTopLine: { flexDirection: 'row', alignItems: 'center', gap: 7, marginBottom: 4 },
+  rideTime: { fontSize: 12, fontWeight: '700', color: C.text2 },
   motifPill: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
   motifText: { fontSize: 10, fontWeight: '700' },
-  rideName:  { fontSize: 15, fontWeight: '700', color: C.text, marginBottom: 2 },
-  rideRoute: { fontSize: 12, color: C.text2, marginBottom: 6 },
-  rideMeta:  { flexDirection: 'row', gap: 6 },
-  metaChip:  { fontSize: 11, color: C.text2, backgroundColor: C.card2, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  rtBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundColor: C.card2, paddingHorizontal: 5, paddingVertical: 2, borderRadius: 5 },
+  rtText: { fontSize: 9, fontWeight: '700', color: C.text3 },
+  rideName: { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 6 },
 
-  rideRight: { alignItems: 'flex-end', justifyContent: 'center', marginLeft: 12, minWidth: 72 },
-  ridePrice: { fontSize: 18, fontWeight: '900', color: C.brand, marginBottom: 6 },
+  // Bon de transport
+  btRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  btText: { fontSize: 11, color: C.text3, fontWeight: '600' },
+  btAddRow: { flexDirection: 'row', alignItems: 'center', gap: 5 },
+  btAddText: { fontSize: 11, color: C.text3, fontStyle: 'italic' },
+  btEditRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
+  btInput: {
+    flex: 1, fontSize: 12, color: C.text,
+    borderBottomWidth: 1, borderBottomColor: C.brand,
+    paddingVertical: 3, paddingHorizontal: 4,
+  },
+  btSaveBtn: { padding: 4, backgroundColor: '#F0FDF4', borderRadius: 6 },
+  btCancelBtn: { padding: 4, backgroundColor: '#FEF2F2', borderRadius: 6 },
+
+  // Adresses
+  addrBlock: {
+    backgroundColor: C.card2, borderRadius: 10, padding: 10,
+    borderWidth: 1, borderColor: C.border, marginBottom: 10,
+  },
+  addrRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
+  addrDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0, marginTop: 2 },
+  addrDotSquare: { borderRadius: 2 },
+  addrLabel: { fontSize: 9, color: C.text3, fontWeight: '800', letterSpacing: 0.5, textTransform: 'uppercase' },
+  addrText: { fontSize: 13, color: C.text, fontWeight: '500', marginTop: 1, lineHeight: 17 },
+  addrDivider: { height: 1, backgroundColor: C.border, marginLeft: 18, marginVertical: 2 },
+
+  // Footer méta + prix
+  rideFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
+  rideMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
+  metaChip: { fontSize: 11, color: C.text2, backgroundColor: C.card2, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  ridePrice: { fontSize: 22, fontWeight: '900', color: C.brand },
+
+  // Actions
+  rideActions: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', gap: 8 },
+  cofidocBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    backgroundColor: C.brand + '12', paddingHorizontal: 11, paddingVertical: 7,
+    borderRadius: 8, borderWidth: 1, borderColor: C.brand + '33',
+  },
+  cofidocBtnText: { fontSize: 11, fontWeight: '700', color: C.brand },
   factBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 5,
+    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 7,
     borderRadius: 8, borderWidth: 1, borderColor: '#BBF7D0',
   },
   factBtnText: { fontSize: 11, fontWeight: '700', color: C.green },
   billedChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#F0FDF4', paddingHorizontal: 7, paddingVertical: 3,
+    backgroundColor: '#F0FDF4', paddingHorizontal: 7, paddingVertical: 4,
     borderRadius: 6, borderWidth: 1, borderColor: '#BBF7D0',
   },
   billedChipText: { fontSize: 10, fontWeight: '700', color: C.green },

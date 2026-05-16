@@ -41,9 +41,12 @@ const rideSchema = mongoose.Schema({
   price: { type: Number, default: 0 },
 
   // --- DONNÉES CPAM (Facturation) ---
-  realDistance: { type: Number }, 
-  tolls: { type: Number, default: 0 }, 
+  realDistance: { type: Number },
+  tolls: { type: Number, default: 0 },
   statuFacturation: { type: String, enum: ['Non facturé', 'Facturé'], default: 'Non facturé' },
+  bonTransport: { type: String, default: '' },
+  nbPassengers: { type: Number, default: 1 },
+  isTpmr: { type: Boolean, default: false },
 
   // --- GESTION DU PARTAGE ---
   isShared: { type: Boolean, default: false }, 

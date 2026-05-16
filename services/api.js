@@ -68,8 +68,8 @@ export const startRideById = async (id) => {
   return response.data;
 };
 
-export const finishRideById = async (id, realDistance, tolls = 0) => {
-  const response = await api.patch(`/rides/${id}/finish`, { realDistance, tolls });
+export const finishRideById = async (id, realDistance, tolls = 0, bonTransport = '') => {
+  const response = await api.patch(`/rides/${id}/finish`, { realDistance, tolls, bonTransport });
   return response.data;
 };
 
