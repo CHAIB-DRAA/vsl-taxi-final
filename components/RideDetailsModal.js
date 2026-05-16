@@ -1,7 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput, Linking, Alert, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import * as Clipboard from 'expo-clipboard';
 import dayjs from 'dayjs';
+import moment from 'moment';
+import 'moment/locale/fr';
 import { calculatePrice, calculatePriceDetailed } from '../utils/pricing';
 
 // ─── Composants internes du détail de tarification ───────────────────────────
@@ -141,6 +144,30 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
   const handleSave = () => {
     onSave(selectedRide, editData);
     setIsEditing(false);
+  };
+
+  // 4. Copier une adresse
+  const copyAddr = async (text, label) => {
+    await Clipboard.setStringAsync(text);
+    Alert.alert('Copié ✓', label);
+  };
+
+  // 5. Copier fiche Cofidoc complète
+  const copyFiche = async () => {
+    const price = calculatePrice(selectedRide);
+    const lines = [
+      `TRANSPORT CPAM — ${moment(selectedRide.date).format('DD/MM/YYYY [à] HH:mm')}`,
+      `Patient    : ${selectedRide.patientName}`,
+      `Départ     : ${selectedRide.startLocation}`,
+      `Arrivée    : ${selectedRide.endLocation}`,
+      selectedRide.realDistance ? `Distance   : ${selectedRide.realDistance} km` : null,
+      selectedRide.tolls > 0   ? `Péages     : ${parseFloat(selectedRide.tolls).toFixed(2)} €` : null,
+      `Tarif CPAM : ${price} €`,
+      selectedRide.motif        ? `Motif      : ${selectedRide.motif}` : null,
+      selectedRide.bonTransport ? `BT n°      : ${selectedRide.bonTransport}` : null,
+    ].filter(Boolean).join('\n');
+    await Clipboard.setStringAsync(lines);
+    Alert.alert('Copié ✓', 'Fiche Cofidoc dans le presse-papier');
   };
 
   return (
@@ -286,34 +313,70 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
 
           {/* ITINÉRAIRE & HORAIRES */}
           <View style={styles.sectionCard}>
-            <Text style={styles.sectionHeader}>📍 Itinéraire & Horaires</Text>
-            <View style={styles.timelineItem}>
-                <View style={[styles.dot, {backgroundColor:'#4CAF50'}]} />
-                <View style={{flex:1}}>
-                    <Text style={styles.addrLabel}>DÉPART ({selectedRide.startLocation})</Text>
-                    {isEditing ? (
-                        <TextInput style={styles.inputTime} value={editData.startTime} placeholder="HH:MM" onChangeText={t => setEditData({...editData, startTime: t})} />
-                    ) : (
-                        <Text style={styles.timeText}>{selectedRide.startTime ? dayjs(selectedRide.startTime).format('HH:mm') : '--:--'}</Text>
-                    )}
-                </View>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeader}>📍 Itinéraire & Horaires</Text>
+              <TouchableOpacity style={styles.cofidocBtn} onPress={copyFiche}>
+                <Ionicons name="clipboard-outline" size={12} color={C.brand} />
+                <Text style={styles.cofidocBtnText}>Copier fiche</Text>
+              </TouchableOpacity>
             </View>
+
+            {/* Départ */}
+            <View style={styles.timelineItem}>
+              <View style={[styles.dot, { backgroundColor: '#4CAF50' }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addrLabel}>DÉPART</Text>
+                <TouchableOpacity
+                  style={styles.addrCopyRow}
+                  onPress={() => copyAddr(selectedRide.startLocation, 'Adresse de départ copiée')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.addrCopyText}>{selectedRide.startLocation}</Text>
+                  <Ionicons name="copy-outline" size={13} color={C.text3} />
+                </TouchableOpacity>
+                {isEditing ? (
+                  <TextInput style={styles.inputTime} value={editData.startTime} placeholder="HH:MM" onChangeText={t => setEditData({ ...editData, startTime: t })} />
+                ) : (
+                  <Text style={styles.timeText}>{selectedRide.startTime ? dayjs(selectedRide.startTime).format('HH:mm') : '--:--'}</Text>
+                )}
+              </View>
+            </View>
+
             <View style={styles.line} />
+
+            {/* Arrivée */}
             <View style={styles.timelineItem}>
-                <View style={[styles.dot, {backgroundColor:'#FF6B00'}]} />
-                <View style={{flex:1}}>
-                    <Text style={styles.addrLabel}>ARRIVÉE ({selectedRide.endLocation})</Text>
-                    {isEditing ? (
-                        <TextInput style={styles.inputTime} value={editData.endTime} placeholder="HH:MM" onChangeText={t => setEditData({...editData, endTime: t})} />
-                    ) : (
-                        <Text style={styles.timeText}>{selectedRide.endTime ? dayjs(selectedRide.endTime).format('HH:mm') : '--:--'}</Text>
-                    )}
-                </View>
+              <View style={[styles.dot, { backgroundColor: '#FF6B00' }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addrLabel}>ARRIVÉE</Text>
+                <TouchableOpacity
+                  style={styles.addrCopyRow}
+                  onPress={() => copyAddr(selectedRide.endLocation, 'Adresse d\'arrivée copiée')}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.addrCopyText}>{selectedRide.endLocation}</Text>
+                  <Ionicons name="copy-outline" size={13} color={C.text3} />
+                </TouchableOpacity>
+                {isEditing ? (
+                  <TextInput style={styles.inputTime} value={editData.endTime} placeholder="HH:MM" onChangeText={t => setEditData({ ...editData, endTime: t })} />
+                ) : (
+                  <Text style={styles.timeText}>{selectedRide.endTime ? dayjs(selectedRide.endTime).format('HH:mm') : '--:--'}</Text>
+                )}
+              </View>
             </View>
+
+            {/* Bon de transport */}
+            {selectedRide.bonTransport ? (
+              <View style={styles.btBox}>
+                <Ionicons name="document-text-outline" size={13} color={C.brand} />
+                <Text style={styles.btBoxText}>Bon de transport n° <Text style={{ fontWeight: '800', color: C.text }}>{selectedRide.bonTransport}</Text></Text>
+              </View>
+            ) : null}
+
             {hasConflict && !isEditing && (
-                <View style={styles.conflictAlert}>
-                    <Text style={styles.conflictText}>⚠️ Attention : Écart &lt; 10 min avec une autre course.</Text>
-                </View>
+              <View style={styles.conflictAlert}>
+                <Text style={styles.conflictText}>⚠️ Attention : Écart &lt; 10 min avec une autre course.</Text>
+              </View>
             )}
           </View>
 
@@ -409,7 +472,22 @@ const styles = StyleSheet.create({
     backgroundColor: C.card, borderRadius: 16, padding: 18, marginBottom: 14,
     borderWidth: 1, borderColor: C.border,
   },
-  sectionHeader: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 14 },
+  sectionHeaderRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 },
+  sectionHeader: { fontSize: 14, fontWeight: '800', color: C.text },
+  cofidocBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: C.brand + '12', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 8, borderWidth: 1, borderColor: C.brand + '33',
+  },
+  cofidocBtnText: { fontSize: 11, fontWeight: '700', color: C.brand },
+  addrCopyRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 6, marginBottom: 4 },
+  addrCopyText: { flex: 1, fontSize: 13, color: C.text2, fontWeight: '500', lineHeight: 18 },
+  btBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 7, marginTop: 12,
+    backgroundColor: C.brand + '0D', padding: 10, borderRadius: 10,
+    borderWidth: 1, borderColor: C.brand + '33',
+  },
+  btBoxText: { fontSize: 13, color: C.text2, fontWeight: '600' },
   patientBig: { fontSize: 22, fontWeight: '800', color: C.text },
   detailTypeBox: {
     flexDirection: 'row', alignItems: 'center',
