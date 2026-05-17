@@ -262,7 +262,7 @@ export default function AgendaScreen({ navigation }) {
   // ── DONNÉES ──
   const dailyRides = useMemo(() =>
     allRides
-      .filter(r => moment(r.date).format('YYYY-MM-DD') === selectedDate && r.status !== 'Annulée')
+      .filter(r => moment(r.date).format('YYYY-MM-DD') === selectedDate && r.status !== 'Annulée' && !(r.source === 'Web' && r.status === 'En attente'))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
     [allRides, selectedDate]
   );
