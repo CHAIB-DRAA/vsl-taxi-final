@@ -78,7 +78,7 @@ export default function LoginScreen({ navigation }) {
       // 3. On envoie le Push Token au serveur (Le JWT doit déjà être dans les headers via 'api')
       if (pushToken) {
         try {
-          await api.put('/user/push-token', { pushToken });
+          await api.put('/auth/push-token', { pushToken });
           console.log("✅ Token Push enregistré sur le serveur :", pushToken);
         } catch (tokenErr) {
           console.error("⚠️ Impossible d'envoyer le Push Token au serveur :", tokenErr);

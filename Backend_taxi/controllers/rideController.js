@@ -140,12 +140,10 @@ exports.getRides = async (req, res) => {
   try {
     const myId = req.user.id;
 
-    // A. Récupérer MES courses OU les demandes WEB en attente
-    const myRides = await Ride.find({ 
-      $or: [
-        { chauffeurId: myId }, 
-        { source: 'Web', status: 'En attente' }
-      ] 
+    // A. Récupérer MES courses — les demandes web 'En attente' sont exclues (gérées dans TodayRides)
+    const myRides = await Ride.find({
+      chauffeurId: myId,
+      $nor: [{ source: 'Web', status: 'En attente' }]
     }).lean();
 
     // B. Récupérer les courses PARTAGÉES avec moi
@@ -319,9 +317,6 @@ exports.createWebBooking = async (req, res) => {
     }
 
     // 2. INJECTION DE TON ID MONGODB
-    // Le serveur lit la variable Render, ou utilise ton ID par défaut en sécurité
-    const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID || "69557bbc48dc1447f5f5140e";
-
     const newRide = new Ride({
       patientName,
       patientPhone,
@@ -329,14 +324,11 @@ exports.createWebBooking = async (req, res) => {
       endLocation: endLocation || 'À préciser',
       date: combinedDateTime,
       type: type || 'Aller',
-      
-      // 3. SAUVEGARDE DU PMT ET DU CHAUFFEUR
       btStatus: btStatus || 'Non renseigné',
-      chauffeurId: chauffeurId, 
-
+      // chauffeurId intentionnellement absent : assigné lors de l'acceptation
       notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
-      status: 'En attente', 
-      source: 'Web',        
+      status: 'En attente',
+      source: 'Web',
       statuFacturation: 'Non facturé',
       isRoundTrip: false
     });
