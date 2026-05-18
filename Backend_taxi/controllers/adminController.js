@@ -21,8 +21,8 @@ exports.getStatus = async (req, res) => {
 exports.setup = async (req, res) => {
   try {
     const existing = await AdminConfig.findOne().lean();
-    if (existing || process.env.ADMIN_PASSWORD) {
-      return res.status(403).json({ message: 'Un compte admin existe déjà.' });
+    if (existing) {
+      return res.status(403).json({ message: 'Un compte admin existe déjà en base.' });
     }
 
     const { password } = req.body;
