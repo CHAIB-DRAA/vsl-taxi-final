@@ -3,6 +3,26 @@ const User = require('../models/User');
 const RideShare = require('../models/RideShare');
 const { Expo } = require('expo-server-sdk');
 
+// SMS via Twilio (optionnel — requiert TWILIO_SID, TWILIO_TOKEN, TWILIO_FROM dans les variables Render)
+let twilioClient = null;
+if (process.env.TWILIO_SID && process.env.TWILIO_TOKEN) {
+  try { twilioClient = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_TOKEN); } catch {}
+}
+
+async function sendSmsConfirmation(phone, patientName, date, time) {
+  if (!twilioClient || !phone || !process.env.TWILIO_FROM) return;
+  const cleaned = phone.replace(/\s/g, '');
+  const normalized = cleaned.startsWith('0') ? '+33' + cleaned.slice(1) : cleaned;
+  const msg =
+    `Bonjour ${patientName}, votre demande de transport a bien été reçue pour le ${date} à ${time}. ` +
+    `Le chauffeur vous confirme l'horaire par retour de SMS. — Occitanie Médi Mobility 07 72 33 98 92`;
+  try {
+    await twilioClient.messages.create({ body: msg, from: process.env.TWILIO_FROM, to: normalized });
+  } catch (e) {
+    console.error('SMS Twilio error:', e.message);
+  }
+}
+
 // ── Tarification CPAM convention 2025-2029 — Haute-Garonne (dept 31) ──────────
 
 const CPAM = {
@@ -304,8 +324,7 @@ exports.updateRideFacturation = async (req, res) => {
 // --- 8. RÉSERVATION WEB ---
 exports.createWebBooking = async (req, res) => {
   try {
-    // 1. AJOUT DE btStatus DANS LA RÉCUPÉRATION DES DONNÉES
-    const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes, btStatus } = req.body;
+    const { patientName, patientPhone, startLocation, endLocation, date, time, type, notes, btStatus, isRoundTrip, returnDate, returnTime } = req.body;
 
     if (!patientName || !startLocation || !date || !time) {
       return res.status(400).json({ error: "Veuillez remplir tous les champs obligatoires." });
@@ -316,8 +335,18 @@ exports.createWebBooking = async (req, res) => {
       return res.status(400).json({ error: "Date ou heure invalide." });
     }
 
-    // ID du chauffeur injecté en dur (variable d'env ou valeur par défaut)
+    let returnDateTime = null;
+    if (isRoundTrip && returnDate && returnTime) {
+      returnDateTime = new Date(`${returnDate}T${returnTime}:00`);
+      if (isNaN(returnDateTime.getTime())) returnDateTime = null;
+    }
+
     const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID || '69557bbc48dc1447f5f5140e';
+
+    const notesText = [
+      notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
+      isRoundTrip && returnDateTime ? `Retour prévu : ${returnDate} à ${returnTime}` : null,
+    ].filter(Boolean).join(' — ');
 
     const newRide = new Ride({
       patientName,
@@ -328,14 +357,18 @@ exports.createWebBooking = async (req, res) => {
       type: type || 'Aller',
       btStatus: btStatus || 'Non renseigné',
       chauffeurId,
-      notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
+      notes: notesText,
       status: 'En attente',
       source: 'Web',
       statuFacturation: 'Non facturé',
-      isRoundTrip: false
+      isRoundTrip: !!isRoundTrip,
+      returnDate: returnDateTime,
     });
 
     await newRide.save();
+
+    // SMS de confirmation au patient (si Twilio configuré et numéro fourni)
+    sendSmsConfirmation(patientPhone, patientName, date, time);
 
     // Envoi push : seulement le token, sans charger tout le document User
     const drivers = await User.find(
