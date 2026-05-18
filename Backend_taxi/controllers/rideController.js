@@ -337,7 +337,7 @@ exports.createWebBooking = async (req, res) => {
 
     // Envoi push : seulement le token, sans charger tout le document User
     const drivers = await User.find(
-      { pushToken: { $exists: true, $ne: null } },
+      { pushToken: { $exists: true, $nin: [null, ''] } },
       { pushToken: 1, _id: 0 }
     ).lean();
 

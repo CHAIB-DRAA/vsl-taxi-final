@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
@@ -8,6 +8,7 @@ import HomeScreen from './HomeTabs';
 import AgendaScreen from './AgendaScreen';
 import CreateRideScreen from './CreateRideScreen';
 import HistoryScreen from './HistoryScreen';
+import TodayRidesScreen from './TodayRidesScreen';
 
 const Tab = createBottomTabNavigator();
 
@@ -36,7 +37,7 @@ const CustomPostButton = ({ children, onPress }) => (
   </TouchableOpacity>
 );
 
-export default function MainTabs() {
+export default function MainTabs({ webPendingCount = 0 }) {
   const { pendingInvitation } = useData();
 
   return (
@@ -97,7 +98,28 @@ export default function MainTabs() {
         }}
       />
 
-      {/* 3. BOUTON CENTRAL (CRÉER) */}
+      {/* 3. DEMANDES WEB */}
+      <Tab.Screen
+        name="Demandes"
+        component={TodayRidesScreen}
+        options={{
+          tabBarIcon: ({ focused }) => (
+            <View style={styles.iconContainer}>
+              <View>
+                <Ionicons name={focused ? "notifications" : "notifications-outline"} size={24} color={focused ? "#FF6B00" : "#9E9E9E"} />
+                {webPendingCount > 0 && (
+                  <View style={styles.badgeCount}>
+                    <Text style={styles.badgeText}>{webPendingCount > 9 ? '9+' : webPendingCount}</Text>
+                  </View>
+                )}
+              </View>
+              {focused && <View style={styles.activeDot} />}
+            </View>
+          )
+        }}
+      />
+
+      {/* 4. BOUTON CENTRAL (CRÉER) */}
       <Tab.Screen 
         name="Créer" 
         component={CreateRideScreen} 
@@ -160,5 +182,25 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     borderWidth: 1.5,
     borderColor: '#FFF',
+  },
+  badgeCount: {
+    position: 'absolute',
+    right: -6,
+    top: -4,
+    backgroundColor: '#D32F2F',
+    minWidth: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    borderColor: '#FFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 2,
+  },
+  badgeText: {
+    color: '#FFF',
+    fontSize: 9,
+    fontWeight: '800',
+    lineHeight: 12,
   }
 });

@@ -34,7 +34,7 @@ import FacturationScreen from './screens/FacturationScreen';
 import SettingAppScreen from './screens/SettingAppScreen'; 
 import SettingsScreen from './screens/SettingsScreen'; 
 
-import api, { getRides } from './services/api';
+import api, { getRides, getTodayRides } from './services/api';
 import { setupNotifications } from './services/notificationService';
 
 Notifications.setNotificationHandler({
@@ -53,6 +53,7 @@ const AppNavigator = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
   const [todayRidesCount, setTodayRidesCount] = useState(0);
+  const [webPendingCount, setWebPendingCount] = useState(0);
 
   // 👇 RÉCUPÉRATION DU THÈME ACTUEL
   const { isDark, colors } = useTheme();
@@ -153,19 +154,19 @@ const AppNavigator = () => {
     } catch (error) { console.error(error); }
   };
 
-  // 5. Courses du jour
+  // 5. Courses du jour + demandes web en attente
   const fetchTodayRidesCount = useCallback(async () => {
     if (!session?.token || !session?.user?.id) return;
     try {
-      const data = await getRides();
+      const data = await getTodayRides();
       const todayString = new Date().toDateString();
       const todayRides = data.filter(ride => {
         const rideDate = new Date(ride.date).toDateString();
-        const isMyRide = ride.chauffeurId === session.user.id;
-        const isVisible = !ride.isShared || (ride.statusPartage !== 'refused');
-        return rideDate === todayString && isMyRide && isVisible;
+        return rideDate === todayString;
       });
       setTodayRidesCount(todayRides.length);
+      const pending = data.filter(r => r.source === 'Web' && r.status === 'En attente');
+      setWebPendingCount(pending.length);
     } catch (err) {}
   }, [session]);
 
@@ -205,6 +206,7 @@ const AppNavigator = () => {
                 <MainTabs
                   {...props}
                   todayRidesCount={todayRidesCount}
+                  webPendingCount={webPendingCount}
                   fetchTodayRidesCount={fetchTodayRidesCount}
                 />
               )}
