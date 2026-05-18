@@ -316,7 +316,9 @@ exports.createWebBooking = async (req, res) => {
       return res.status(400).json({ error: "Date ou heure invalide." });
     }
 
-    // 2. INJECTION DE TON ID MONGODB
+    // ID du chauffeur injecté en dur (variable d'env ou valeur par défaut)
+    const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID || '69557bbc48dc1447f5f5140e';
+
     const newRide = new Ride({
       patientName,
       patientPhone,
@@ -325,7 +327,7 @@ exports.createWebBooking = async (req, res) => {
       date: combinedDateTime,
       type: type || 'Aller',
       btStatus: btStatus || 'Non renseigné',
-      // chauffeurId intentionnellement absent : assigné lors de l'acceptation
+      chauffeurId,
       notes: notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',
       status: 'En attente',
       source: 'Web',
