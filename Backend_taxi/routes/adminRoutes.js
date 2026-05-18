@@ -19,6 +19,8 @@ const adminAuth = (req, res, next) => {
   }
 };
 
+router.get('/status',  adminController.getStatus);
+router.post('/setup',  adminLimiter, adminController.setup);
 router.post('/login',  adminLimiter, adminController.login);
 router.get('/rides',   adminAuth,    adminController.getAllRides);
 router.get('/stats',   adminAuth,    adminController.getStats);
