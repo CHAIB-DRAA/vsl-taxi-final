@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback } from 'react';
+import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, FlatList, Platform, TextInput, Modal, RefreshControl, StatusBar
@@ -65,6 +66,9 @@ export default function TodayRidesScreen() {
   }, []);
 
   useEffect(() => { fetchRides(); }, [fetchRides]);
+
+  // Rafraîchit à chaque fois que l'onglet devient actif
+  useFocusEffect(useCallback(() => { fetchRides(); }, [fetchRides]));
 
   const handleStart = async (id) => {
     try {
