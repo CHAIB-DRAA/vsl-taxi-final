@@ -255,6 +255,26 @@ exports.updateBillingStatus = async (req, res) => {
   }
 };
 
+// ─── UPDATE RIDE (FULL EDIT) ──────────────────────────────────────────────────
+exports.updateRide = async (req, res) => {
+  try {
+    const ALLOWED = ['patientName', 'patientPhone', 'startLocation', 'endLocation', 'date',
+      'type', 'status', 'notes', 'price', 'realDistance', 'tolls', 'statuFacturation',
+      'isRoundTrip', 'isTpmr', 'bonTransport', 'cancelReason'];
+    const update = {};
+    for (const key of ALLOWED) {
+      if (key in req.body) update[key] = req.body[key];
+    }
+    if ('chauffeurId' in req.body) update.chauffeurId = req.body.chauffeurId || null;
+    const ride = await Ride.findByIdAndUpdate(req.params.id, { $set: update }, { new: true, runValidators: true })
+      .populate('chauffeurId', 'fullName email');
+    if (!ride) return res.status(404).json({ message: 'Course introuvable' });
+    res.json(ride);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
 // ─── SEND REVIEW SMS ──────────────────────────────────────────────────────────
 exports.sendReviewSms = async (req, res) => {
   try {

@@ -32,6 +32,7 @@ router.get('/patients', adminAuth, adminController.getPatients);
 router.get('/billing',  adminAuth, adminController.getBillingReport);
 
 // ── Actions sur une course ──────────────────────────────────────────────────
+router.patch('/rides/:id',               adminAuth, adminController.updateRide);
 router.patch('/rides/:id/status',        adminAuth, adminController.updateRideStatus);
 router.patch('/rides/:id/accept',        adminAuth, adminController.acceptWebRide);
 router.patch('/rides/:id/reject',        adminAuth, adminController.rejectWebRide);
