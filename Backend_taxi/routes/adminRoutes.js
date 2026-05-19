@@ -22,7 +22,20 @@ const adminAuth = (req, res, next) => {
 router.get('/status',  adminController.getStatus);
 router.post('/setup',  adminLimiter, adminController.setup);
 router.post('/login',  adminLimiter, adminController.login);
-router.get('/rides',   adminAuth,    adminController.getAllRides);
-router.get('/stats',   adminAuth,    adminController.getStats);
+
+// ── Données ────────────────────────────────────────────────────────────────
+router.get('/stats',    adminAuth, adminController.getStats);
+router.get('/rides',    adminAuth, adminController.getAllRides);
+router.post('/rides',   adminAuth, adminController.createRide);
+router.get('/users',    adminAuth, adminController.getUsers);
+router.get('/patients', adminAuth, adminController.getPatients);
+router.get('/billing',  adminAuth, adminController.getBillingReport);
+
+// ── Actions sur une course ──────────────────────────────────────────────────
+router.patch('/rides/:id/status',        adminAuth, adminController.updateRideStatus);
+router.patch('/rides/:id/accept',        adminAuth, adminController.acceptWebRide);
+router.patch('/rides/:id/reject',        adminAuth, adminController.rejectWebRide);
+router.patch('/rides/:id/billing',       adminAuth, adminController.updateBillingStatus);
+router.delete('/rides/:id',              adminAuth, adminController.deleteRide);
 
 module.exports = router;
