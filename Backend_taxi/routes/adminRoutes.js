@@ -37,5 +37,6 @@ router.patch('/rides/:id/accept',        adminAuth, adminController.acceptWebRid
 router.patch('/rides/:id/reject',        adminAuth, adminController.rejectWebRide);
 router.patch('/rides/:id/billing',       adminAuth, adminController.updateBillingStatus);
 router.delete('/rides/:id',              adminAuth, adminController.deleteRide);
+router.post('/rides/:id/review-sms',    adminAuth, adminController.sendReviewSms);
 
 module.exports = router;

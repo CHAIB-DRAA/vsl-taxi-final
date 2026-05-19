@@ -254,3 +254,28 @@ exports.updateBillingStatus = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+// ─── SEND REVIEW SMS ──────────────────────────────────────────────────────────
+exports.sendReviewSms = async (req, res) => {
+  try {
+    const ride = await Ride.findById(req.params.id).lean();
+    if (!ride) return res.status(404).json({ message: 'Course introuvable' });
+    if (!ride.patientPhone) return res.status(400).json({ message: 'Numéro de téléphone manquant pour ce patient.' });
+
+    const { message } = req.body;
+    if (!message || !message.trim()) return res.status(400).json({ message: 'Message requis.' });
+
+    if (!process.env.TWILIO_SID || !process.env.TWILIO_TOKEN || !process.env.TWILIO_FROM) {
+      return res.status(503).json({ message: 'SMS non configuré. Variables TWILIO_SID / TWILIO_TOKEN / TWILIO_FROM manquantes sur Render.' });
+    }
+
+    const twilio = require('twilio')(process.env.TWILIO_SID, process.env.TWILIO_TOKEN);
+    const cleaned = ride.patientPhone.replace(/\s/g, '');
+    const to = cleaned.startsWith('0') ? '+33' + cleaned.slice(1) : cleaned;
+
+    await twilio.messages.create({ body: message.trim(), from: process.env.TWILIO_FROM, to });
+    res.json({ success: true, sentTo: ride.patientPhone });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
