@@ -1,18 +1,19 @@
 import 'react-native-url-polyfill/auto';
 import React, { useState, useEffect, useCallback } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { 
-  NavigationContainer, 
-  DefaultTheme, 
-  DarkTheme 
-} from '@react-navigation/native'; // 👈 IMPORT NAVIGATION THEMES
+import {
+  NavigationContainer,
+  DefaultTheme,
+  DarkTheme,
+  createNavigationContainerRef,
+} from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import { SafeAreaProvider } from 'react-native-safe-area-context'; 
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import * as SecureStore from 'expo-secure-store';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, View, Linking } from 'react-native';
 import { DataProvider } from './contexts/DataContext';
-import { ThemeProvider, useTheme } from './contexts/ThemeContext'; // 👈 IMPORT NOTRE CONTEXTE
+import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import GlobalInvitationModal from './components/GlobalInvitationModal';
 
 import * as Notifications from 'expo-notifications';
@@ -22,20 +23,22 @@ import Constants from 'expo-constants';
 // --- IMPORTS DES ÉCRANS ---
 import SignInScreen from './screens/SigninScreen';
 import SignUpScreen from './screens/SignupScreen';
-import MainTabs from './screens/MainTabs'; 
+import MainTabs from './screens/MainTabs';
 import ContactScreen from './screens/ContactScreen';
 import DocumentsScreen from './screens/DocumentsScreen';
 
 import HistoryScreen from './screens/HistoryScreen';
 import PatientsScreen from './screens/PatientsScreen';
 import ProfileScreen from './screens/ProfileScreen';
-import AddRideScreen from './screens/CreateRideScreen'; 
+import AddRideScreen from './screens/CreateRideScreen';
 import FacturationScreen from './screens/FacturationScreen';
-import SettingAppScreen from './screens/SettingAppScreen'; 
-import SettingsScreen from './screens/SettingsScreen'; 
+import SettingAppScreen from './screens/SettingAppScreen';
+import SettingsScreen from './screens/SettingsScreen';
 
 import api, { getRides, getTodayRides } from './services/api';
 import { setupNotifications } from './services/notificationService';
+
+export const navigationRef = createNavigationContainerRef();
 
 Notifications.setNotificationHandler({
   handleNotification: async () => ({
@@ -137,6 +140,29 @@ const AppNavigator = () => {
     }
   }, [session]);
 
+  // Tap sur une notification de départ → ouvre Waze sur l'adresse de prise en charge
+  useEffect(() => {
+    const sub = Notifications.addNotificationResponseReceivedListener(async (response) => {
+      const data = response.notification.request.content.data;
+      if (data?.type === 'departure_alert' && data?.startLocation) {
+        const encoded = encodeURIComponent(data.startLocation);
+        const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+        const wazeWeb   = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+        try {
+          const canWaze = await Linking.canOpenURL(wazeNative);
+          await Linking.openURL(canWaze ? wazeNative : wazeWeb);
+        } catch {
+          Linking.openURL(wazeWeb).catch(() => {});
+        }
+      }
+      // Ancienne compatibilité
+      if (data?.type === 'proximity_alert' && navigationRef.isReady()) {
+        navigationRef.navigate('Main');
+      }
+    });
+    return () => sub.remove();
+  }, []);
+
   // 3. Login
   const handleLogin = async (data) => {
     try {
@@ -188,7 +214,7 @@ const AppNavigator = () => {
 
   return (
     // 👇 ICI LA LIAISON DU THÈME NAVIGATION
-    <NavigationContainer theme={isDark ? MyDarkTheme : MyLightTheme}>
+    <NavigationContainer ref={navigationRef} theme={isDark ? MyDarkTheme : MyLightTheme}>
       <Stack.Navigator screenOptions={{ headerTintColor: '#FF6B00' }}>
         {!session ? (
           <Stack.Group screenOptions={{ headerShown: false }}>

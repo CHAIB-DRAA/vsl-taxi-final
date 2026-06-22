@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment/locale/fr';
 
@@ -19,34 +20,44 @@ import AgendaHeader from '../components/agenda/AgendaHeader';
 import AgendaList   from '../components/agenda/AgendaList';
 import RideOptionsModal from '../components/RideOptionsModal';
 
+const C = {
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  green:   '#10B981',
+  red:     '#EF4444',
+  blue:    '#3B82F6',
+  purple:  '#8B5CF6',
+  amber:   '#F59E0B',
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hCard:  'rgba(255,255,255,0.07)',
+  hBorder:'rgba(255,255,255,0.10)',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
+};
+
 // Ligne de détail tarification dans le modal "Terminer"
 function BRow({ label, value, bold, sub, color }) {
   return (
     <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 4 }}>
-      <Text style={{ flex: 1, fontSize: 12, color: sub ? '#9CA3AF' : '#6B7280', paddingRight: 6, paddingLeft: sub ? 8 : 0 }}>
+      <Text style={{ flex: 1, fontSize: 12, color: sub ? C.text3 : C.text2, paddingRight: 6, paddingLeft: sub ? 8 : 0 }}>
         {label}
       </Text>
-      <Text style={{ fontSize: 12, fontWeight: bold ? '800' : '600', color: color || (bold ? '#111827' : '#374151'), minWidth: 70, textAlign: 'right' }}>
+      <Text style={{ fontSize: 12, fontWeight: bold ? '800' : '600', color: color || (bold ? C.text : C.text2), minWidth: 70, textAlign: 'right' }}>
         {value}
       </Text>
     </View>
   );
 }
 
-const C = {
-  bg:     '#F2F3F7',
-  card:   '#FFFFFF',
-  card2:  '#F5F7FB',
-  border: '#E2E5EC',
-  text:   '#111827',
-  text2:  '#6B7280',
-  brand:  '#FF6B00',
-  green:  '#16A34A',
-  red:    '#EF4444',
-};
-
 export default function AgendaScreen({ navigation }) {
-  const { allRides, loading, loadData, addLocalRide, removeLocalRide, updateLocalRide, contacts } = useData();
+  const { allRides, loading, ridesError, loadData, addLocalRide, removeLocalRide, updateLocalRide, contacts } = useData();
 
   const [selectedDate, setSelectedDate]     = useState(moment().format('YYYY-MM-DD'));
   const [showCalendar, setShowCalendar]     = useState(true);
@@ -249,7 +260,6 @@ export default function AgendaScreen({ navigation }) {
     }
   };
 
-
   const handleRespond = useCallback(async (ride, action) => {
     try {
       await api.post('/rides/respond-share', { rideId: ride._id || ride.rideId, action });
@@ -272,7 +282,7 @@ export default function AgendaScreen({ navigation }) {
     allRides.forEach(r => {
       const d = moment(r.date).format('YYYY-MM-DD');
       if (!marks[d]) marks[d] = { dots: [] };
-      const color = r.status === 'Terminée' ? '#9E9E9E'
+      const color = r.status === 'Terminée' ? C.text3
         : r.status === 'En cours'  ? C.green
         : C.brand;
       if (marks[d].dots.length < 3) marks[d].dots.push({ color });
@@ -282,7 +292,7 @@ export default function AgendaScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
 
       <AgendaHeader
         selectedDate={selectedDate}
@@ -292,21 +302,42 @@ export default function AgendaScreen({ navigation }) {
         markedDates={markedDates}
       />
 
+      {/* ── BANNIÈRE ERREUR ── */}
+      {ridesError === 'auth' && (
+        <View style={styles.errorBanner}>
+          <Ionicons name="lock-closed-outline" size={15} color="#FFF" />
+          <Text style={styles.errorBannerText}>Session expirée — Réglages → Déconnexion</Text>
+        </View>
+      )}
+      {ridesError === 'network' && (
+        <View style={[styles.errorBanner, { backgroundColor: C.text2 }]}>
+          <Ionicons name="cloud-offline-outline" size={15} color="#FFF" />
+          <Text style={styles.errorBannerText}>Erreur réseau — Tirez pour réessayer</Text>
+        </View>
+      )}
+
       {/* ── BARRE OUTILS ── */}
       <View style={styles.toolbar}>
         <TouchableOpacity
-          style={[styles.magicBtn, analyzing && { opacity: 0.6 }]}
+          style={[styles.magicBtnWrapper, analyzing && { opacity: 0.6 }]}
           onPress={handleMagicPaste}
           disabled={analyzing}
           activeOpacity={0.85}
         >
-          {analyzing
-            ? <ActivityIndicator size="small" color="#FFF" />
-            : <>
-                <Ionicons name="sparkles" size={18} color="#FFF" />
-                <Text style={styles.magicBtnText}>MAGIC PASTE</Text>
-              </>
-          }
+          <LinearGradient
+            colors={[C.brand, '#E55A00']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.magicBtn}
+          >
+            {analyzing
+              ? <ActivityIndicator size="small" color="#FFF" />
+              : <>
+                  <Ionicons name="sparkles" size={18} color="#FFF" />
+                  <Text style={styles.magicBtnText}>MAGIC PASTE</Text>
+                </>
+            }
+          </LinearGradient>
         </TouchableOpacity>
 
         <TouchableOpacity
@@ -317,6 +348,31 @@ export default function AgendaScreen({ navigation }) {
           <Ionicons name="add" size={26} color={C.brand} />
         </TouchableOpacity>
       </View>
+
+      {/* ── COMPTEUR JOURNÉE ── */}
+      {dailyRides.length > 0 && (
+        <View style={styles.daySummaryBar}>
+          <Text style={styles.daySummaryText}>
+            {dailyRides.length} course{dailyRides.length > 1 ? 's' : ''} ce jour
+          </Text>
+          <View style={styles.daySummaryDots}>
+            {dailyRides.slice(0, 5).map((r, i) => (
+              <View
+                key={i}
+                style={[
+                  styles.daySummaryDot,
+                  {
+                    backgroundColor:
+                      r.status === 'Terminée' ? C.text3
+                      : r.status === 'En cours' ? C.green
+                      : C.brand,
+                  },
+                ]}
+              />
+            ))}
+          </View>
+        </View>
+      )}
 
       {/* ── LISTE ── */}
       <AgendaList
@@ -347,11 +403,12 @@ export default function AgendaScreen({ navigation }) {
 
       {/* ── MODAL DISPATCH ── */}
       <Modal visible={modals.dispatch} transparent animationType="slide">
-        <View style={styles.finishOverlay}>
-          <View style={styles.finishCard}>
-            <Text style={styles.finishTitle}>Envoyer à un collègue</Text>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Envoyer à un collègue</Text>
             {contacts.length === 0 ? (
-              <Text style={{ color: C.text2, textAlign: 'center', marginVertical: 20 }}>
+              <Text style={styles.sheetEmptyText}>
                 Aucun collègue dans vos contacts.
               </Text>
             ) : (
@@ -365,11 +422,14 @@ export default function AgendaScreen({ navigation }) {
                     onPress={() => handleSendDispatch(item)}
                     activeOpacity={0.7}
                   >
-                    <View style={styles.dispatchAvatar}>
+                    <LinearGradient
+                      colors={[C.brand, '#E55A00']}
+                      style={styles.dispatchAvatar}
+                    >
                       <Text style={styles.dispatchAvatarText}>
                         {item.contactId?.fullName?.charAt(0)?.toUpperCase() || '?'}
                       </Text>
-                    </View>
+                    </LinearGradient>
                     <Text style={styles.dispatchName}>
                       {item.contactId?.fullName || 'Inconnu'}
                     </Text>
@@ -379,10 +439,10 @@ export default function AgendaScreen({ navigation }) {
               />
             )}
             <TouchableOpacity
-              style={styles.finishCancel}
+              style={styles.cancelBtn}
               onPress={() => setModals(m => ({ ...m, dispatch: false }))}
             >
-              <Text style={styles.finishCancelText}>Fermer</Text>
+              <Text style={styles.cancelBtnText}>Fermer</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -390,29 +450,32 @@ export default function AgendaScreen({ navigation }) {
 
       {/* ── MODAL HEURE RETOUR ── */}
       <Modal visible={modals.returnTime} transparent animationType="slide">
-        <View style={styles.finishOverlay}>
-          <View style={styles.finishCard}>
-            <Text style={styles.finishTitle}>Heure du retour</Text>
-            <Text style={styles.finishLabel}>Heure de départ (HH:MM)</Text>
+        <View style={styles.sheetOverlay}>
+          <View style={styles.sheetCard}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Heure du retour</Text>
+            <Text style={styles.inputLabel}>Heure de départ (HH:MM)</Text>
             <TextInput
-              style={styles.finishInput}
+              style={styles.sheetInput}
               value={returnTimeStr}
               onChangeText={setReturnTimeStr}
               placeholder="14:30"
-              placeholderTextColor="#999"
+              placeholderTextColor={C.text3}
               keyboardType="numbers-and-punctuation"
               autoFocus
               maxLength={5}
             />
-            <View style={styles.finishActions}>
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.finishCancel}
+                style={styles.cancelBtn}
                 onPress={() => setModals(m => ({ ...m, returnTime: false }))}
               >
-                <Text style={styles.finishCancelText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.finishConfirm} onPress={confirmReturn}>
-                <Text style={styles.finishConfirmText}>Confirmer</Text>
+              <TouchableOpacity style={styles.confirmBtnWrapper} onPress={confirmReturn} activeOpacity={0.85}>
+                <LinearGradient colors={[C.brand, '#E55A00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.confirmBtn}>
+                  <Text style={styles.confirmBtnText}>Confirmer</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -421,12 +484,13 @@ export default function AgendaScreen({ navigation }) {
 
       {/* ── MODAL TERMINER ── */}
       <Modal visible={modals.finish} transparent animationType="slide">
-        <View style={styles.finishOverlay}>
-          <View style={styles.finishCard}>
+        <View style={styles.sheetOverlay}>
+          <View style={[styles.sheetCard, { maxHeight: '92%' }]}>
+            <View style={styles.sheetHandle} />
 
             {/* Titre + info patient */}
             <View style={styles.finishHeader}>
-              <Text style={styles.finishTitle}>Terminer la course</Text>
+              <Text style={styles.sheetTitle}>Terminer la course</Text>
               {finishRide && (
                 <Text style={styles.finishSubtitle} numberOfLines={1}>
                   {finishRide.patientName}  ·  {(finishRide.startLocation || '').split(',')[0]} → {(finishRide.endLocation || '').split(',')[0]}
@@ -439,26 +503,26 @@ export default function AgendaScreen({ navigation }) {
               {/* Inputs */}
               <View style={styles.finishRow}>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.finishLabel}>Distance (km)</Text>
+                  <Text style={styles.inputLabel}>Distance (km)</Text>
                   <TextInput
-                    style={styles.finishInput}
+                    style={styles.sheetInput}
                     value={finishDistance}
                     onChangeText={setFinishDistance}
                     placeholder="Ex : 12.5"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={C.text3}
                     keyboardType="decimal-pad"
                     autoFocus
                   />
                 </View>
                 <View style={{ width: 12 }} />
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.finishLabel}>Péages (€)</Text>
+                  <Text style={styles.inputLabel}>Péages (€)</Text>
                   <TextInput
-                    style={styles.finishInput}
+                    style={styles.sheetInput}
                     value={finishTolls}
                     onChangeText={setFinishTolls}
                     placeholder="0.00"
-                    placeholderTextColor="#999"
+                    placeholderTextColor={C.text3}
                     keyboardType="decimal-pad"
                   />
                 </View>
@@ -471,7 +535,7 @@ export default function AgendaScreen({ navigation }) {
                 if (!km || km <= 0) {
                   return (
                     <View style={styles.breakdownEmpty}>
-                      <Ionicons name="calculator-outline" size={16} color="#9CA3AF" />
+                      <Ionicons name="calculator-outline" size={16} color={C.text3} />
                       <Text style={styles.breakdownEmptyText}>Saisis la distance pour voir le calcul</Text>
                     </View>
                   );
@@ -485,13 +549,13 @@ export default function AgendaScreen({ navigation }) {
                 return (
                   <View style={styles.breakdownBlock}>
                     <View style={styles.breakdownHead}>
-                      <Ionicons name="receipt-outline" size={13} color="#FF6B00" />
+                      <Ionicons name="receipt-outline" size={13} color={C.brand} />
                       <Text style={styles.breakdownHeadText}>DÉTAIL CPAM</Text>
                     </View>
 
                     <BRow label="Forfait de base  (4 km inclus)" value="13,00 €" />
                     {d.metropole && (
-                      <BRow label="+ Supplément Grande Ville" value={`+${d.metropoleCost.toFixed(2)} €`} color="#7C3AED" />
+                      <BRow label="+ Supplément Grande Ville" value={`+${d.metropoleCost.toFixed(2)} €`} color={C.purple} />
                     )}
                     {d.billableKm > 0 && (
                       <BRow label={`+ ${d.billableKm} km × 1,10 €`} value={`+${d.kmCost.toFixed(2)} €`} />
@@ -511,18 +575,18 @@ export default function AgendaScreen({ navigation }) {
                       <BRow
                         label="× Nuit / WE / Férié  (+50%)"
                         value={`+${(d.socleAvecNuit - d.socle).toFixed(2)} €`}
-                        color="#D97706"
+                        color={C.amber}
                       />
                     )}
                     {d.multiplicateurAbattement < 1 && (
                       <BRow
                         label={`× Abattement  ${d.nbPass} patients  (−${Math.round((1 - d.multiplicateurAbattement) * 100)}%)`}
                         value={`−${(d.socleAvecNuit - d.socleApresAbattement).toFixed(2)} €`}
-                        color="#16A34A"
+                        color={C.green}
                       />
                     )}
                     {d.isTpmr && (
-                      <BRow label="+ Supplément TPMR" value={`+${d.tpmrCost.toFixed(2)} €`} color="#7C3AED" />
+                      <BRow label="+ Supplément TPMR" value={`+${d.tpmrCost.toFixed(2)} €`} color={C.purple} />
                     )}
                     {d.tollsParPatient > 0 && (
                       <BRow
@@ -541,13 +605,13 @@ export default function AgendaScreen({ navigation }) {
 
               {/* Bon de transport */}
               <View style={{ marginTop: 12 }}>
-                <Text style={styles.finishLabel}>Bon de transport n° (optionnel)</Text>
+                <Text style={styles.inputLabel}>Bon de transport n° (optionnel)</Text>
                 <TextInput
-                  style={styles.finishInput}
+                  style={styles.sheetInput}
                   value={finishBonTransport}
                   onChangeText={setFinishBonTransport}
                   placeholder="Ex : 2026-12345"
-                  placeholderTextColor="#999"
+                  placeholderTextColor={C.text3}
                   autoCapitalize="characters"
                 />
               </View>
@@ -555,15 +619,17 @@ export default function AgendaScreen({ navigation }) {
             </ScrollView>
 
             {/* Boutons fixes en bas */}
-            <View style={styles.finishActions}>
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.finishCancel}
+                style={styles.cancelBtn}
                 onPress={() => { setModals(m => ({ ...m, finish: false })); setFinishRide(null); }}
               >
-                <Text style={styles.finishCancelText}>Annuler</Text>
+                <Text style={styles.cancelBtnText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.finishConfirm} onPress={submitFinish}>
-                <Text style={styles.finishConfirmText}>Terminer</Text>
+              <TouchableOpacity style={styles.confirmBtnWrapper} onPress={submitFinish} activeOpacity={0.85}>
+                <LinearGradient colors={[C.brand, '#E55A00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.confirmBtn}>
+                  <Text style={styles.confirmBtnText}>Terminer</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
 
@@ -577,6 +643,12 @@ export default function AgendaScreen({ navigation }) {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
 
+  errorBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    backgroundColor: C.red, paddingHorizontal: 16, paddingVertical: 10,
+  },
+  errorBannerText: { color: '#FFF', fontSize: 13, fontWeight: '600', flex: 1 },
+
   toolbar: {
     flexDirection: 'row',
     paddingHorizontal: 16,
@@ -586,12 +658,11 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  magicBtnWrapper: { flex: 1 },
   magicBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    backgroundColor: C.brand,
     height: 50,
     borderRadius: 14,
+    flexDirection: 'row',
     justifyContent: 'center',
     alignItems: 'center',
     gap: 8,
@@ -613,48 +684,101 @@ const styles = StyleSheet.create({
     borderColor: C.border,
   },
 
-  // Modal terminer
-  finishOverlay: {
+  daySummaryBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 18,
+    paddingVertical: 8,
+    backgroundColor: C.card2,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
+  },
+  daySummaryText: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: C.text2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  daySummaryDots: { flexDirection: 'row', gap: 5 },
+  daySummaryDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+
+  // ── Bottom Sheet ──
+  sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(10,15,30,0.75)',
     justifyContent: 'flex-end',
   },
-  finishCard: {
-    backgroundColor: '#FFFFFF',
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    paddingTop: 24,
+  sheetCard: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    paddingTop: 12,
     paddingHorizontal: 20,
-    paddingBottom: Platform.OS === 'ios' ? 44 : 20,
+    paddingBottom: Platform.OS === 'ios' ? 44 : 24,
     borderTopWidth: 1,
-    borderColor: '#E2E5EC',
+    borderColor: C.border,
     maxHeight: '90%',
   },
+  sheetHandle: {
+    width: 40,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: C.border,
+    alignSelf: 'center',
+    marginBottom: 16,
+  },
+  sheetTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: C.text,
+    marginBottom: 4,
+    letterSpacing: -0.3,
+  },
+  sheetEmptyText: {
+    color: C.text2,
+    textAlign: 'center',
+    marginVertical: 20,
+    fontSize: 14,
+  },
+
   finishHeader: { marginBottom: 16 },
-  finishTitle: { fontSize: 20, fontWeight: '800', color: '#111827' },
-  finishSubtitle: { fontSize: 12, color: '#6B7280', marginTop: 4 },
+  finishSubtitle: { fontSize: 12, color: C.text2, marginTop: 4 },
   finishRow: { flexDirection: 'row', marginBottom: 16 },
-  finishLabel: { fontSize: 11, color: '#6B7280', fontWeight: '700', marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
-  finishInput: {
-    backgroundColor: '#F5F7FB',
-    color: '#111827',
+
+  inputLabel: {
+    fontSize: 11,
+    color: C.text2,
+    fontWeight: '700',
+    marginBottom: 6,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sheetInput: {
+    backgroundColor: C.card2,
+    color: C.text,
     borderRadius: 12,
     paddingHorizontal: 14,
     paddingVertical: 14,
     fontSize: 18,
     fontWeight: '700',
     borderWidth: 1,
-    borderColor: '#E2E5EC',
+    borderColor: C.border,
   },
 
   // Détail tarification dans modal Terminer
   breakdownBlock: {
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.card2,
     borderRadius: 14,
     padding: 14,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E5EC',
+    borderColor: C.border,
   },
   breakdownHead: {
     flexDirection: 'row',
@@ -663,16 +787,16 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     paddingBottom: 8,
     borderBottomWidth: 1,
-    borderBottomColor: '#E2E5EC',
+    borderBottomColor: C.border,
   },
   breakdownHeadText: {
     fontSize: 11,
     fontWeight: '800',
-    color: '#FF6B00',
+    color: C.brand,
     letterSpacing: 1,
     textTransform: 'uppercase',
   },
-  breakdownSep: { height: 1, backgroundColor: '#E2E5EC', marginVertical: 6 },
+  breakdownSep: { height: 1, backgroundColor: C.border, marginVertical: 6 },
   breakdownTotal: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -680,22 +804,23 @@ const styles = StyleSheet.create({
     marginTop: 10,
     paddingTop: 10,
     borderTopWidth: 2,
-    borderTopColor: '#FF6B00',
+    borderTopColor: C.brand,
   },
-  breakdownTotalLabel: { fontSize: 12, fontWeight: '900', color: '#111827', letterSpacing: 0.5 },
-  breakdownTotalValue: { fontSize: 22, fontWeight: '900', color: '#EA580C' },
+  breakdownTotalLabel: { fontSize: 12, fontWeight: '900', color: C.text, letterSpacing: 0.5 },
+  breakdownTotalValue: { fontSize: 22, fontWeight: '900', color: C.brand },
   breakdownEmpty: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 8,
-    backgroundColor: '#F9FAFB',
+    backgroundColor: C.card2,
     borderRadius: 12,
     padding: 12,
     marginBottom: 16,
     borderWidth: 1,
-    borderColor: '#E2E5EC',
+    borderColor: C.border,
   },
-  breakdownEmptyText: { fontSize: 12, color: '#9CA3AF', fontStyle: 'italic', flex: 1 },
+  breakdownEmptyText: { fontSize: 12, color: C.text3, fontStyle: 'italic', flex: 1 },
+
   dispatchRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -708,14 +833,13 @@ const styles = StyleSheet.create({
     width: 40,
     height: 40,
     borderRadius: 20,
-    backgroundColor: C.brand + '20',
     justifyContent: 'center',
     alignItems: 'center',
   },
   dispatchAvatarText: {
     fontSize: 16,
     fontWeight: '800',
-    color: C.brand,
+    color: '#FFF',
   },
   dispatchName: {
     flex: 1,
@@ -724,17 +848,22 @@ const styles = StyleSheet.create({
     color: C.text,
   },
 
-  finishActions: { flexDirection: 'row', gap: 10, marginTop: 8 },
-  finishCancel: {
-    flex: 1, paddingVertical: 16, borderRadius: 14,
-    backgroundColor: '#F5F7FB', alignItems: 'center',
-    borderWidth: 1, borderColor: '#E2E5EC',
+  sheetActions: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 14,
+    backgroundColor: C.card2,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
   },
-  finishCancelText: { color: '#6B7280', fontWeight: '700', fontSize: 15 },
-  finishConfirm: {
-    flex: 2, paddingVertical: 16, borderRadius: 14,
-    backgroundColor: C.brand, alignItems: 'center',
+  cancelBtnText: { color: C.text2, fontWeight: '700', fontSize: 15 },
+  confirmBtnWrapper: { flex: 2 },
+  confirmBtn: {
+    paddingVertical: 16,
+    borderRadius: 14,
+    alignItems: 'center',
   },
-  finishConfirmText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
-
+  confirmBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
 });

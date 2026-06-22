@@ -1,8 +1,9 @@
 import React, { createContext, useState, useEffect, useContext, useCallback, useRef } from 'react';
 import api, { getRides, cancelRideById } from '../services/api';
-import { Alert } from 'react-native';
+import { Alert, AppState } from 'react-native';
 import * as Notifications from 'expo-notifications';
 import { updateNextRideNotification, syncAllReminders } from '../services/notificationService';
+import { scheduleAllUpcomingAlerts } from '../services/geoAlertService';
 
 const REFRESH_THROTTLE_MS = 30_000; // 30s minimum entre deux rechargements automatiques
 
@@ -12,22 +13,20 @@ export const DataProvider = ({ children }) => {
   const [allRides, setAllRides] = useState([]);
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [ridesError, setRidesError] = useState(null); // null | 'auth' | 'network'
   const lastLoadRef = useRef(0);
-  const isLoadingRef = useRef(false); // garde contre les appels concurrents
+  const isLoadingRef = useRef(false);
+  const authAlertShownRef = useRef(false);
 
   const loadData = useCallback(async (showLoading = true) => {
     const now = Date.now();
-    // Throttle : si ce n'est pas un rechargement explicite (showLoading=false)
-    // et qu'on a chargé il y a moins de 30s, on ignore
     if (!showLoading && now - lastLoadRef.current < REFRESH_THROTTLE_MS) return;
-    // Garde contre les appels parallèles
     if (isLoadingRef.current) return;
 
     isLoadingRef.current = true;
     lastLoadRef.current = now;
     if (showLoading) setLoading(true);
     try {
-      // Les deux requêtes en parallèle
       const [ridesRes, contactsRes] = await Promise.allSettled([
         getRides(),
         api.get('/contacts'),
@@ -35,13 +34,31 @@ export const DataProvider = ({ children }) => {
 
       if (ridesRes.status === 'fulfilled') {
         setAllRides(ridesRes.value);
-        // Mise à jour notif lock screen + rappels en arrière-plan
+        setRidesError(null);
+        authAlertShownRef.current = false;
         updateNextRideNotification(ridesRes.value).catch(() => {});
         syncAllReminders(ridesRes.value).catch(() => {});
+        scheduleAllUpcomingAlerts(ridesRes.value).catch(() => {});
+      } else {
+        const httpStatus = ridesRes.reason?.response?.status;
+        if (httpStatus === 401 || httpStatus === 403) {
+          setRidesError('auth');
+          if (!authAlertShownRef.current) {
+            authAlertShownRef.current = true;
+            Alert.alert(
+              'Session expirée',
+              'Votre session a expiré. Allez dans Réglages → Déconnexion, puis reconnectez-vous.',
+              [{ text: 'OK', onPress: () => { authAlertShownRef.current = false; } }]
+            );
+          }
+        } else {
+          setRidesError('network');
+        }
       }
       setContacts(contactsRes.status === 'fulfilled' ? contactsRes.value.data : []);
     } catch (error) {
       console.error("Erreur chargement global :", error);
+      setRidesError('network');
     } finally {
       isLoadingRef.current = false;
       if (showLoading) setLoading(false);
@@ -93,6 +110,17 @@ export const DataProvider = ({ children }) => {
     loadData();
   }, [loadData]);
 
+  // Recharge les données quand l'app repasse au premier plan
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', nextState => {
+      if (nextState === 'active') {
+        lastLoadRef.current = 0; // reset throttle pour forcer le rechargement
+        loadData(false);
+      }
+    });
+    return () => sub.remove();
+  }, [loadData]);
+
   // Listener push : recharge immédiatement quand une nouvelle demande web arrive
   useEffect(() => {
     const sub = Notifications.addNotificationReceivedListener(notification => {
@@ -116,6 +144,7 @@ export const DataProvider = ({ children }) => {
       allRides,
       contacts,
       loading,
+      ridesError,
       loadData,
       addLocalRide,
       updateLocalRide,

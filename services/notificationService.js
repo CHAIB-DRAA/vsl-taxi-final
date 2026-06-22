@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import moment from 'moment';
 import 'moment/locale/fr';
+import { setupProximityChannel } from './geoAlertService';
 
 const NEXT_RIDE_ID   = 'vsl-next-ride';
 const REMINDER_PFX   = 'vsl-reminder-';
@@ -27,6 +28,8 @@ export async function setupNotifications() {
     lightColor: '#FF6B00',
     lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
   }).catch(() => {});
+
+  await setupProximityChannel();
 
   const { status } = await Notifications.requestPermissionsAsync();
   return status === 'granted';
@@ -70,11 +73,13 @@ export async function updateNextRideNotification(rides) {
       title:  `🚖 ${dayLabel} à ${rideDate.format('HH:mm')}`,
       body:   `${upcoming.patientName}  ·  ${start} → ${end}`,
       data:   { type: 'next_ride', rideId: upcoming._id },
-      sticky: true,       // Android : ne peut pas être balayée
       sound:  false,
-      android: { channelId: CHANNEL_NEXT },
+      android: {
+        channelId: CHANNEL_NEXT,
+        sticky: true,
+      },
     },
-    trigger: null,        // Affichage immédiat
+    trigger: null,
   });
 }
 
@@ -98,9 +103,11 @@ export async function scheduleRideReminder(ride) {
       title:   `🚖 Départ dans 30 min — ${rideDate.format('HH:mm')}`,
       body:    `${ride.patientName}  ·  ${start} → ${end}`,
       data:    { type: 'reminder', rideId: ride._id },
-      sound:   true,
-      vibrate: [0, 250, 250, 250],
-      android: { channelId: CHANNEL_REMIND },
+      sound:   'default',
+      android: {
+        channelId: CHANNEL_REMIND,
+        vibrate: [0, 250, 250, 250],
+      },
     },
     trigger: { date: triggerDate.toDate() },
   });
@@ -111,28 +118,35 @@ export async function cancelRideReminder(rideId) {
   try { await Notifications.cancelScheduledNotificationAsync(REMINDER_PFX + rideId); } catch {}
 }
 
-// ── Synchroniser tous les rappels ──────────────────────────────────────────────
-// Annule les rappels orphelins et programme ceux qui manquent.
+// ── Synchroniser les rappels du jour ───────────────────────────────────────────
+// Ne programme des rappels QUE pour les courses dans les prochaines 24h.
+// Évite de bombarder l'utilisateur avec toutes les courses du planning.
 export async function syncAllReminders(rides) {
-  const upcomingIds = new Set(
-    rides
-      .filter(r => r.status !== 'Terminée' && r.status !== 'Annulée')
-      .map(r => r._id)
-  );
+  const now   = moment();
+  const in24h = moment().add(24, 'hours');
 
-  // Annuler les rappels dont la course n'existe plus ou est terminée
+  // Courses dans les 24 prochaines heures seulement
+  const todayRides = rides.filter(r => {
+    if (r.status === 'Terminée' || r.status === 'Annulée') return false;
+    const d = moment(r.date);
+    return d.isAfter(now) && d.isBefore(in24h);
+  });
+
+  const todayIds = new Set(todayRides.map(r => r._id));
+
+  // Annuler les rappels qui ne sont plus dans la fenêtre 24h
   const scheduled = await Notifications.getAllScheduledNotificationsAsync().catch(() => []);
   for (const n of scheduled) {
     if (n.identifier.startsWith(REMINDER_PFX)) {
       const rideId = n.identifier.slice(REMINDER_PFX.length);
-      if (!upcomingIds.has(rideId)) {
+      if (!todayIds.has(rideId)) {
         await Notifications.cancelScheduledNotificationAsync(n.identifier).catch(() => {});
       }
     }
   }
 
-  // Programmer les rappels manquants
-  for (const ride of rides) {
-    if (upcomingIds.has(ride._id)) await scheduleRideReminder(ride);
+  // Programmer uniquement les courses du jour
+  for (const ride of todayRides) {
+    await scheduleRideReminder(ride);
   }
 }

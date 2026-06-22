@@ -40,4 +40,8 @@ router.patch('/rides/:id/billing',       adminAuth, adminController.updateBillin
 router.delete('/rides/:id',              adminAuth, adminController.deleteRide);
 router.post('/rides/:id/review-sms',    adminAuth, adminController.sendReviewSms);
 
+// ── Site config ─────────────────────────────────────────────────────────────
+router.get('/site-config',  adminAuth, adminController.getSiteConfig);
+router.put('/site-config',  adminAuth, adminController.updateSiteConfig);
+
 module.exports = router;

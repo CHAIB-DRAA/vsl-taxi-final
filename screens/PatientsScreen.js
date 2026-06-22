@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { 
-  View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput, 
-  ActivityIndicator, Alert, Modal, ScrollView, Image, SafeAreaView
+import {
+  View, Text, FlatList, StyleSheet, TouchableOpacity, TextInput,
+  ActivityIndicator, Alert, Modal, ScrollView, Image, SafeAreaView, StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment/locale/fr';
 import * as Print from 'expo-print';
@@ -13,7 +14,7 @@ import * as Sharing from 'expo-sharing';
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
-import { extractSecuNumber } from '../services/ocrService'; 
+import { extractSecuNumber } from '../services/ocrService';
 
 // Contexte & API
 import { useData } from '../contexts/DataContext';
@@ -21,6 +22,29 @@ import api, { getPatients, updatePatient, deletePatient } from '../services/api'
 
 // Composant Scanner
 import DocumentScannerButton from '../components/DocumentScannerButton';
+import BonTransportScannerModal from '../components/BonTransportScannerModal';
+
+const C = {
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  green:   '#10B981',
+  red:     '#EF4444',
+  blue:    '#3B82F6',
+  purple:  '#8B5CF6',
+  amber:   '#F59E0B',
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hCard:  'rgba(255,255,255,0.07)',
+  hBorder:'rgba(255,255,255,0.10)',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
+};
 
 export default function PatientsScreen() {
   const { contacts, allRides } = useData();
@@ -52,13 +76,16 @@ export default function PatientsScreen() {
   const [patientRides, setPatientRides] = useState([]);
   const [patientDocs, setPatientDocs] = useState([]);
   const [loadingDetails, setLoadingDetails] = useState(false);
-  
+
   // Upload & Scan États
   const [uploading, setUploading] = useState(false);
 
   // Visionneuse Image
   const [viewerVisible, setViewerVisible] = useState(false);
   const [selectedDoc, setSelectedDoc] = useState(null);
+
+  // Scanner Bon de Transport
+  const [btScannerVisible, setBtScannerVisible] = useState(false);
 
   // Formulaire Edition Profil
   const [formData, setFormData] = useState({ fullName: '', address: '', phone: '' });
@@ -73,7 +100,7 @@ export default function PatientsScreen() {
       const sorted = data.sort((a, b) => a.fullName.localeCompare(b.fullName));
       setPatients(sorted);
       setFilteredPatients(sorted);
-    } catch (err) { console.error(err); } 
+    } catch (err) { console.error(err); }
     finally { setLoading(false); }
   }, []);
 
@@ -118,10 +145,10 @@ export default function PatientsScreen() {
 
       // Tri
       allDocs.sort((a, b) => new Date(b.uploadDate) - new Date(a.uploadDate));
-      
+
       // Filtre d'affichage
       const finalDocs = [];
-      const typesVus = {}; 
+      const typesVus = {};
       allDocs.forEach(doc => {
         if (doc.type === 'PMT') {
           finalDocs.push(doc); // On garde tous les PMT
@@ -134,72 +161,63 @@ export default function PatientsScreen() {
       });
       setPatientDocs(finalDocs);
 
-    } catch (err) { console.log("Erreur détails", err); } 
+    } catch (err) { console.log("Erreur détails", err); }
     finally { setLoadingDetails(false); }
   };
 
   // ============================================================
-  // 2. LOGIQUE PMT (MÉTIER VSL) 🚨
+  // 2. LOGIQUE PMT (MÉTIER VSL)
   // ============================================================
 
   const checkPMTStatus = () => {
     const pmts = patientDocs.filter(d => d.type === 'PMT');
-    
-    // CAS : Aucun PMT
-    if (pmts.length === 0) return { status: 'MISSING', message: "Aucun PMT dans le dossier.", color: '#FF9800' };
+
+    if (pmts.length === 0) return { status: 'MISSING', message: "Aucun PMT dans le dossier.", color: C.amber };
 
     const lastPMT = pmts[0];
     const pmtDate = new Date(lastPMT.uploadDate);
-    
-    // On force la conversion en nombre pour éviter les bugs si le serveur renvoie du texte
+
     const maxQuota = lastPMT.maxRides ? parseFloat(lastPMT.maxRides) : 1;
 
-    // On compte ce qu'on a fait depuis le scan du PMT
     const ridesSincePMT = patientRides.filter(ride => {
       const rideDate = new Date(ride.date);
-      // On compte les courses faites APRÈS le scan
       return rideDate >= pmtDate && ride.status !== 'Annulée';
     });
 
-    // --- CALCUL MÉTIER ---
     let consumed = 0;
     ridesSincePMT.forEach(ride => {
         if (ride.isRoundTrip) {
-            consumed += 1;   // Aller-Retour = 1 point
+            consumed += 1;
         } else {
-            consumed += 0.5; // Aller Simple = 0.5 point
+            consumed += 0.5;
         }
     });
 
     const remaining = maxQuota - consumed;
 
-    // CAS : Série illimitée (code 1000)
     if (maxQuota >= 1000) {
-        return { status: 'OK', message: "✅ PMT Série / Longue durée", color: '#4CAF50' };
+        return { status: 'OK', message: "PMT Série / Longue durée", color: C.green };
     }
 
-    // CAS : Épuisé
     if (remaining <= 0) {
-      return { 
-        status: 'EXPIRED', 
-        message: `⛔️ PMT ÉPUISÉ (${consumed}/${maxQuota})\nDemandez un nouveau bon !`, 
-        color: '#D32F2F' 
+      return {
+        status: 'EXPIRED',
+        message: `PMT ÉPUISÉ (${consumed}/${maxQuota})\nDemandez un nouveau bon !`,
+        color: C.red
       };
-    } 
-    // CAS : Bientôt fini
+    }
     else if (remaining <= 1) {
-        return { 
-          status: 'WARNING', 
-          message: `⚠️ Reste ${remaining} Aller(s)-Retour(s)`, 
-          color: '#FF9800' 
+        return {
+          status: 'WARNING',
+          message: `Reste ${remaining} Aller(s)-Retour(s)`,
+          color: C.amber
         };
     }
-    // CAS : OK
     else {
-      return { 
-        status: 'OK', 
-        message: `✅ PMT Valide (${remaining} restants sur ${maxQuota})`, 
-        color: '#4CAF50' 
+      return {
+        status: 'OK',
+        message: `PMT Valide (${remaining} restants sur ${maxQuota})`,
+        color: C.green
       };
     }
   };
@@ -210,19 +228,18 @@ export default function PatientsScreen() {
 
   const handleDocumentScanned = async (uri, docType) => {
     if (docType === 'PMT') {
-        // Demande simple
         Alert.alert(
             "Nouveau Bon de Transport",
             "Quelle quantité est écrite sur le bon ?",
             [
               { text: "1 Aller-Retour", onPress: () => uploadDocument(uri, docType, 1) },
-              { 
-                text: "Série (Entrer nombre)", 
+              {
+                text: "Série (Entrer nombre)",
                 onPress: () => {
                     setTempPMTUri(uri);
-                    setCustomRideCount(''); 
+                    setCustomRideCount('');
                     setCustomPMTModalVisible(true);
-                } 
+                }
               },
               { text: "Annuler", style: "cancel" }
             ]
@@ -232,16 +249,14 @@ export default function PatientsScreen() {
     }
   };
 
-  // Validation du Modal de saisie
   const submitCustomPMT = () => {
-      // On remplace la virgule par un point au cas où
       const count = parseFloat(customRideCount.replace(',', '.'));
-      
+
       if (!count || count <= 0) {
           Alert.alert("Erreur", "Entrez un nombre valide (ex: 20).");
           return;
       }
-      
+
       setCustomPMTModalVisible(false);
       uploadDocument(tempPMTUri, 'PMT', count);
   };
@@ -255,8 +270,7 @@ export default function PatientsScreen() {
       formData.append('patientName', selectedPatient.fullName);
       formData.append('patientId', selectedPatient._id);
       formData.append('docType', docType);
-      
-      // On envoie le maxRides au serveur
+
       if (maxRides > 0) formData.append('maxRides', maxRides);
 
       await api.post('/documents/upload', formData, {
@@ -275,7 +289,6 @@ export default function PatientsScreen() {
     }
   };
 
-  // --- ANTI-FRAUDE VITALE ---
   const handleAntiFraudScan = async () => {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
@@ -297,7 +310,7 @@ export default function PatientsScreen() {
     Alert.alert("Supprimer", "Supprimer définitivement ?", [
         { text: "Annuler", style: "cancel" },
         { text: "Supprimer", style: "destructive", onPress: async () => {
-            try { await api.delete(`/documents/${docId}`); fetchPatientDetails(selectedPatient); } 
+            try { await api.delete(`/documents/${docId}`); fetchPatientDetails(selectedPatient); }
             catch (err) { Alert.alert("Erreur", "Impossible de supprimer"); }
         }}
     ]);
@@ -346,7 +359,7 @@ export default function PatientsScreen() {
     if (!targetContact) return;
     setDocSelectionModal(false); setLoading(true);
     try { await api.post('/share/transfert-patient', { patientId: selectedPatient._id, targetUserId: targetContact.contactId._id, docIds: selectedDocIds });
-      Alert.alert("Envoyé !", `Dossier envoyé.`); } catch (err) { Alert.alert("Erreur", "Echec transfert."); } 
+      Alert.alert("Envoyé !", `Dossier envoyé.`); } catch (err) { Alert.alert("Erreur", "Echec transfert."); }
     finally { setLoading(false); }
   };
 
@@ -363,18 +376,27 @@ export default function PatientsScreen() {
   // ============================================================
 
   const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={() => openPatientModal(item)}>
-      <View style={styles.avatar}><Text style={styles.avatarText}>{item.fullName.charAt(0).toUpperCase()}</Text></View>
-      <View style={styles.info}><Text style={styles.name}>{item.fullName}</Text><Text style={styles.subInfo}>{item.phone || "Non renseigné"}</Text></View>
-      <Ionicons name="chevron-forward" size={20} color="#CCC" />
+    <TouchableOpacity style={styles.card} onPress={() => openPatientModal(item)} activeOpacity={0.75}>
+      <LinearGradient colors={[C.brand, '#E55A00']} style={styles.avatar}>
+        <Text style={styles.avatarText}>{item.fullName.charAt(0).toUpperCase()}</Text>
+      </LinearGradient>
+      <View style={styles.info}>
+        <Text style={styles.name}>{item.fullName}</Text>
+        <Text style={styles.subInfo}>{item.phone || "Non renseigné"}</Text>
+      </View>
+      <Ionicons name="chevron-forward" size={18} color={C.text3} />
     </TouchableOpacity>
   );
 
   const renderContactItem = ({ item }) => (
     <TouchableOpacity style={styles.contactRow} onPress={() => initiateShareProcess('colleague', item)}>
-       <View style={styles.contactAvatar}><Text style={styles.contactAvatarText}>{item.contactId?.fullName?.charAt(0)}</Text></View>
-       <Text style={styles.contactName}>{item.contactId?.fullName}</Text>
-       <Ionicons name="send" size={20} color="#FF6B00" />
+      <LinearGradient colors={[C.blue, '#2563EB']} style={styles.contactAvatar}>
+        <Text style={styles.contactAvatarText}>{item.contactId?.fullName?.charAt(0)}</Text>
+      </LinearGradient>
+      <Text style={styles.contactName}>{item.contactId?.fullName}</Text>
+      <LinearGradient colors={[C.brand, '#E55A00']} style={styles.sendBadge}>
+        <Ionicons name="send" size={14} color="#FFF" />
+      </LinearGradient>
     </TouchableOpacity>
   );
 
@@ -382,48 +404,77 @@ export default function PatientsScreen() {
     const isSelected = selectedDocIds.includes(item._id);
     return (
       <TouchableOpacity style={[styles.selectDocRow, isSelected && styles.selectDocRowActive]} onPress={() => toggleDocSelection(item._id)}>
-         <Ionicons name={isSelected ? "checkbox" : "square-outline"} size={24} color={isSelected ? "#FF6B00" : "#CCC"} />
-         <View style={{marginLeft: 15, flex:1}}><Text style={[styles.selectDocTitle, isSelected && {fontWeight:'bold'}]}>{item.type}</Text><Text style={styles.selectDocDate}>{moment(item.uploadDate).format('DD/MM/YYYY')}</Text></View>
+         <Ionicons name={isSelected ? "checkbox" : "square-outline"} size={24} color={isSelected ? C.brand : C.text3} />
+         <View style={{marginLeft: 15, flex:1}}>
+           <Text style={[styles.selectDocTitle, isSelected && {fontWeight:'bold', color: C.text}]}>{item.type}</Text>
+           <Text style={styles.selectDocDate}>{moment(item.uploadDate).format('DD/MM/YYYY')}</Text>
+         </View>
       </TouchableOpacity>
     );
   };
 
   const renderTabContent = () => {
-    if (loadingDetails) return <ActivityIndicator color="#FF6B00" style={{marginTop: 50}} />;
+    if (loadingDetails) return <ActivityIndicator color={C.brand} style={{marginTop: 50}} />;
 
     switch (activeTab) {
       case 'profil':
         const pmtStatus = checkPMTStatus();
+        const pmtBg = pmtStatus.status === 'EXPIRED' ? '#FEF2F2' : pmtStatus.status === 'WARNING' ? '#FFFBEB' : '#F0FDF4';
         return (
-          <ScrollView style={styles.tabContent}>
-             
+          <ScrollView style={styles.tabContent} showsVerticalScrollIndicator={false}>
+
              {/* ALERTE PMT */}
-             <View style={[styles.alertBox, { borderColor: pmtStatus.color, backgroundColor: pmtStatus.status === 'EXPIRED' ? '#FFEBEE' : '#E8F5E9' }]}>
-                <Ionicons 
-                    name={pmtStatus.status === 'EXPIRED' || pmtStatus.status === 'MISSING' ? "warning" : "checkmark-circle"} 
-                    size={30} 
-                    color={pmtStatus.status === 'MISSING' ? '#FF9800' : pmtStatus.color} 
-                />
-                <Text style={[styles.alertText, { color: pmtStatus.status === 'MISSING' ? '#EF6C00' : pmtStatus.color }]}>
+             <View style={[styles.alertBox, { borderColor: pmtStatus.color, backgroundColor: pmtBg }]}>
+                <View style={[styles.alertIconCircle, { backgroundColor: pmtStatus.color + '20' }]}>
+                  <Ionicons
+                      name={pmtStatus.status === 'EXPIRED' || pmtStatus.status === 'MISSING' ? "warning" : "checkmark-circle"}
+                      size={22}
+                      color={pmtStatus.color}
+                  />
+                </View>
+                <Text style={[styles.alertText, { color: pmtStatus.color }]}>
                     {pmtStatus.message}
                 </Text>
              </View>
 
-             <TouchableOpacity style={styles.antiFraudBtn} onPress={handleAntiFraudScan} disabled={uploading}>
-                <View style={styles.antiFraudIcon}><Ionicons name="shield-checkmark" size={24} color="#FFF" /></View>
-                <View><Text style={styles.antiFraudTitle}>Vérifier Droits (Anti-Fraude)</Text><Text style={styles.antiFraudSub}>Scanner Vitale → Copier NIR → AmeliPro</Text></View>
+             {/* ANTI-FRAUDE */}
+             <LinearGradient colors={['#059669', '#047857']} style={styles.antiFraudBtn}>
+               <TouchableOpacity style={styles.antiFraudInner} onPress={handleAntiFraudScan} disabled={uploading}>
+                <View style={styles.antiFraudIcon}><Ionicons name="shield-checkmark" size={22} color="#FFF" /></View>
+                <View style={{flex:1}}>
+                  <Text style={styles.antiFraudTitle}>Vérifier Droits (Anti-Fraude)</Text>
+                  <Text style={styles.antiFraudSub}>Scanner Vitale → Copier NIR → AmeliPro</Text>
+                </View>
                 {uploading && <ActivityIndicator color="#FFF" style={{marginLeft: 10}}/>}
-             </TouchableOpacity>
+               </TouchableOpacity>
+             </LinearGradient>
 
+             {/* FORMULAIRE */}
              <View style={styles.inputGroup}><Text style={styles.label}>Nom</Text><TextInput style={styles.input} value={formData.fullName} onChangeText={t => setFormData({...formData, fullName: t})} /></View>
              <View style={styles.inputGroup}><Text style={styles.label}>Tél</Text><TextInput style={styles.input} value={formData.phone} keyboardType="phone-pad" onChangeText={t => setFormData({...formData, phone: t})} /></View>
              <View style={styles.inputGroup}><Text style={styles.label}>Adresse</Text><TextInput style={styles.input} value={formData.address} multiline onChangeText={t => setFormData({...formData, address: t})} /></View>
-             <TouchableOpacity style={styles.saveBtn} onPress={handleSave}><Text style={styles.saveBtnText}>Enregistrer</Text></TouchableOpacity>
-             
+
+             <TouchableOpacity style={styles.saveBtnWrap} onPress={handleSave}>
+               <LinearGradient colors={[C.green, '#059669']} style={styles.saveBtn}>
+                 <Ionicons name="checkmark" size={18} color="#FFF" style={{marginRight:8}} />
+                 <Text style={styles.saveBtnText}>Enregistrer</Text>
+               </LinearGradient>
+             </TouchableOpacity>
+
              <Text style={styles.sectionHeader}>PARTAGE</Text>
-             <TouchableOpacity style={styles.shareBtnColl} onPress={() => setShareModalVisible(true)}><Ionicons name="people" size={20} color="#FFF" style={{marginRight: 10}} /><Text style={styles.saveBtnText}>Envoyer à un collègue</Text></TouchableOpacity>
-             <TouchableOpacity style={styles.shareBtnPDF} onPress={() => initiateShareProcess('export')}><Ionicons name="document-text" size={20} color="#FF6B00" style={{marginRight: 10}} /><Text style={{color:'#FF6B00', fontWeight:'bold'}}>Exporter en PDF</Text></TouchableOpacity>
-             <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}><Text style={styles.deleteText}>Supprimer le dossier</Text></TouchableOpacity>
+             <TouchableOpacity style={styles.shareBtnCollWrap} onPress={() => setShareModalVisible(true)}>
+               <LinearGradient colors={[C.brand, '#E55A00']} style={styles.shareBtnColl}>
+                 <Ionicons name="people" size={20} color="#FFF" style={{marginRight: 10}} />
+                 <Text style={styles.saveBtnText}>Envoyer à un collègue</Text>
+               </LinearGradient>
+             </TouchableOpacity>
+             <TouchableOpacity style={styles.shareBtnPDF} onPress={() => initiateShareProcess('export')}>
+               <Ionicons name="document-text" size={20} color={C.brand} style={{marginRight: 10}} />
+               <Text style={{color: C.brand, fontWeight:'bold', fontSize:15}}>Exporter en PDF</Text>
+             </TouchableOpacity>
+             <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+               <Text style={styles.deleteText}>Supprimer le dossier</Text>
+             </TouchableOpacity>
           </ScrollView>
         );
 
@@ -431,48 +482,55 @@ export default function PatientsScreen() {
         return (
           <View style={{flex:1}}>
             <View style={styles.scanGrid}>
-                {/* Ces boutons appellent handleDocumentScanned qui gère le PMT */}
                 <DocumentScannerButton title="PMT" docType="PMT" color="#FF6B00" onScan={handleDocumentScanned} isLoading={uploading}/>
                 <DocumentScannerButton title="Vitale" docType="CarteVitale" color="#4CAF50" onScan={handleDocumentScanned} isLoading={uploading}/>
                 <DocumentScannerButton title="Mutuelle" docType="Mutuelle" color="#2196F3" onScan={handleDocumentScanned} isLoading={uploading}/>
             </View>
 
-            <FlatList 
+            <FlatList
                 data={patientDocs} keyExtractor={(item, idx) => idx.toString()} numColumns={2} contentContainerStyle={{paddingBottom: 20}}
                 ListEmptyComponent={<Text style={styles.emptyText}>Aucun document.</Text>}
                 renderItem={({item}) => (
                 <View style={styles.docCardContainer}>
                     <TouchableOpacity style={styles.docCard} onPress={() => { setSelectedDoc(item); setViewerVisible(true); }}>
-                        <Ionicons name={item.type === 'PMT' ? 'document-text' : 'card'} size={32} color={item.type === 'PMT' ? '#5C6BC0' : '#4CAF50'} />
+                        <LinearGradient
+                          colors={item.type === 'PMT' ? [C.purple, '#7C3AED'] : [C.green, '#059669']}
+                          style={styles.docIconBox}
+                        >
+                          <Ionicons name={item.type === 'PMT' ? 'document-text' : 'card'} size={22} color="#FFF" />
+                        </LinearGradient>
                         <Text style={styles.docTitle}>{item.type}</Text>
                         <Text style={styles.docDate}>{moment(item.uploadDate).format('DD/MM/YY')}</Text>
-                        {/* Affichage Quantité */}
                         {item.type === 'PMT' && item.maxRides > 0 && (
-                            <Text style={{fontSize:10, color: item.maxRides >= 1000 ? '#4CAF50' : '#FF6B00', fontWeight:'bold', textAlign:'center'}}>
+                            <Text style={{fontSize:10, color: item.maxRides >= 1000 ? C.green : C.brand, fontWeight:'bold', textAlign:'center', marginTop:2}}>
                                 {item.maxRides >= 1000 ? 'Illimité' : `${item.maxRides} AR`}
                             </Text>
                         )}
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteDocBadge} onPress={() => deleteDocument(item._id)}>
-                        <Ionicons name="trash" size={14} color="#FFF" />
+                        <Ionicons name="trash" size={12} color="#FFF" />
                     </TouchableOpacity>
                 </View>
                 )}
             />
           </View>
         );
+
       case 'history':
         return (
             <FlatList data={patientRides} keyExtractor={item => item._id} renderItem={({item}) => (
                 <View style={styles.historyCard}>
-                    <Text style={{fontWeight:'bold', width: 40}}>{moment(item.date).format('DD/MM')}</Text>
-                    <View style={{flex:1, marginLeft:10}}>
-                        <Text style={{fontWeight:'bold', color:'#333'}}>{item.type}</Text>
-                        <Text style={{fontSize:12, color:'#666'}} numberOfLines={1}>{item.startLocation}</Text>
+                    <View style={styles.historyDateBadge}>
+                      <Text style={styles.historyDateText}>{moment(item.date).format('DD')}</Text>
+                      <Text style={styles.historyMonthText}>{moment(item.date).format('MMM')}</Text>
                     </View>
-                    <View style={{alignItems:'flex-end'}}>
-                        <Ionicons name={item.status === 'Terminée' ? "checkmark-circle" : "time"} size={18} color={item.status === 'Terminée' ? "#4CAF50" : "#FF9800"} />
-                        <Text style={{fontSize:10, color:'#999'}}>{item.isRoundTrip ? "Aller-Retour" : "Aller Simple"}</Text>
+                    <View style={{flex:1, marginLeft:12}}>
+                        <Text style={styles.historyType}>{item.type}</Text>
+                        <Text style={styles.historyLocation} numberOfLines={1}>{item.startLocation}</Text>
+                    </View>
+                    <View style={{alignItems:'flex-end', gap:3}}>
+                        <Ionicons name={item.status === 'Terminée' ? "checkmark-circle" : "time"} size={18} color={item.status === 'Terminée' ? C.green : C.amber} />
+                        <Text style={styles.historyTrip}>{item.isRoundTrip ? "A/R" : "Aller"}</Text>
                     </View>
                 </View>
             )} />
@@ -482,28 +540,89 @@ export default function PatientsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.searchHeader}>
-        <View style={styles.searchBar}>
-          <Ionicons name="search" size={20} color="#999" />
-          <TextInput style={styles.searchInput} placeholder="Chercher un patient..." value={search} onChangeText={handleSearch} />
-        </View>
-      </View>
+      <StatusBar barStyle="light-content" />
 
-      {loading ? <ActivityIndicator size="large" color="#FF6B00" style={{marginTop: 50}} /> : (
-        <FlatList data={filteredPatients} keyExtractor={item => item._id} renderItem={renderItem} contentContainerStyle={{ padding: 15 }} ListEmptyComponent={<Text style={styles.emptyText}>Aucun patient trouvé.</Text>} />
+      {/* HEADER DARK GRADIENT */}
+      <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
+        {/* Accent blob */}
+        <View style={styles.headerBlob} />
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerTitle}>Patients</Text>
+            <Text style={styles.headerSub}>{filteredPatients.length} dossiers</Text>
+          </View>
+          <TouchableOpacity style={styles.scanHeaderBtn} onPress={() => setBtScannerVisible(true)}>
+            <LinearGradient colors={[C.brand, '#E55A00']} style={styles.scanHeaderGradient}>
+              <Ionicons name="scan" size={16} color="#FFF" />
+              <Text style={styles.scanHeaderText}>Bon de transport</Text>
+            </LinearGradient>
+          </TouchableOpacity>
+        </View>
+
+        {/* SEARCH BAR IN HEADER */}
+        <View style={styles.searchBar}>
+          <Ionicons name="search" size={18} color={C.hText2} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Chercher un patient..."
+            placeholderTextColor={C.hText2}
+            value={search}
+            onChangeText={handleSearch}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity onPress={() => handleSearch('')}>
+              <Ionicons name="close-circle" size={18} color={C.hText2} />
+            </TouchableOpacity>
+          )}
+        </View>
+      </LinearGradient>
+
+      {loading ? (
+        <ActivityIndicator size="large" color={C.brand} style={{marginTop: 50}} />
+      ) : (
+        <FlatList
+          data={filteredPatients}
+          keyExtractor={item => item._id}
+          renderItem={renderItem}
+          contentContainerStyle={styles.listContent}
+          ListEmptyComponent={
+            <View style={styles.emptyContainer}>
+              <LinearGradient colors={[C.card2, C.border]} style={styles.emptyIcon}>
+                <Ionicons name="people-outline" size={32} color={C.text3} />
+              </LinearGradient>
+              <Text style={styles.emptyText}>Aucun patient trouvé.</Text>
+            </View>
+          }
+        />
       )}
+
+      {/* FAB + */}
+      <TouchableOpacity style={styles.fabWrap} onPress={() => Alert.alert("Nouveau patient", "Scannez un bon de transport pour ajouter un patient.")}>
+        <LinearGradient colors={[C.brand, '#E55A00']} style={styles.fab}>
+          <Ionicons name="add" size={28} color="#FFF" />
+        </LinearGradient>
+      </TouchableOpacity>
 
       {/* MODAL FICHE PATIENT */}
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
-          <View style={styles.modalHeader}>
-            <Text style={styles.modalTitle}>{selectedPatient?.fullName}</Text>
-            <TouchableOpacity onPress={() => setModalVisible(false)}><Ionicons name="close" size={28} color="#333" /></TouchableOpacity>
-          </View>
+          <View style={styles.modalHandle} />
+          <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+            <View>
+              <Text style={styles.modalTitle}>{selectedPatient?.fullName}</Text>
+              <Text style={styles.modalSub}>Fiche patient</Text>
+            </View>
+            <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
+              <Ionicons name="close" size={20} color={C.hText} />
+            </TouchableOpacity>
+          </LinearGradient>
+
           <View style={styles.tabsContainer}>
             {['profil', 'docs', 'history'].map((tab) => (
               <TouchableOpacity key={tab} style={[styles.tabBtn, activeTab === tab && styles.tabBtnActive]} onPress={() => setActiveTab(tab)}>
-                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>{tab === 'profil' ? 'Profil' : tab === 'docs' ? 'Documents' : 'Historique'}</Text>
+                <Text style={[styles.tabText, activeTab === tab && styles.tabTextActive]}>
+                  {tab === 'profil' ? 'Profil' : tab === 'docs' ? 'Documents' : 'Historique'}
+                </Text>
               </TouchableOpacity>
             ))}
           </View>
@@ -515,151 +634,253 @@ export default function PatientsScreen() {
       <Modal visible={customPMTModalVisible} transparent={true} animationType="fade">
         <View style={styles.inputModalOverlay}>
             <View style={styles.inputModalCard}>
+                <View style={styles.inputModalHandle} />
                 <Text style={styles.inputModalTitle}>Quantité prescrite</Text>
                 <Text style={styles.inputModalSub}>Nombre d'Allers-Retours indiqué ?</Text>
-                
-                <TextInput 
+
+                <TextInput
                     style={styles.bigNumberInput}
                     value={customRideCount}
                     onChangeText={setCustomRideCount}
                     placeholder="Ex: 20"
+                    placeholderTextColor={C.text3}
                     keyboardType="numeric"
                     autoFocus={true}
                 />
-                
-                <Text style={{fontSize: 12, color:'#666', marginBottom: 20, textAlign:'center'}}>
+
+                <Text style={{fontSize: 12, color: C.text2, marginBottom: 20, textAlign:'center', lineHeight:18}}>
                     Entrez le nombre exact écrit sur le papier.{"\n"}
                     (Ex: Pour "20 Allers-Retours", tapez 20).
                 </Text>
 
-                <View style={{flexDirection:'row', gap: 10}}>
-                    <TouchableOpacity style={[styles.modalBtn, {backgroundColor:'#999'}]} onPress={() => setCustomPMTModalVisible(false)}>
-                        <Text style={{color:'#FFF'}}>Annuler</Text>
+                <View style={{flexDirection:'row', gap: 10, width:'100%'}}>
+                    <TouchableOpacity style={[styles.modalBtn, {backgroundColor: C.card2, borderWidth:1, borderColor: C.border, flex:1}]} onPress={() => setCustomPMTModalVisible(false)}>
+                        <Text style={{color: C.text2, fontWeight:'600'}}>Annuler</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity style={[styles.modalBtn, {backgroundColor:'#FF6B00'}]} onPress={submitCustomPMT}>
+                    <TouchableOpacity style={{flex:1, borderRadius:12, overflow:'hidden'}} onPress={submitCustomPMT}>
+                      <LinearGradient colors={[C.brand, '#E55A00']} style={styles.modalBtn}>
                         <Text style={{color:'#FFF', fontWeight:'bold'}}>Valider</Text>
+                      </LinearGradient>
                     </TouchableOpacity>
                 </View>
             </View>
         </View>
       </Modal>
 
-      {/* MODALS AUXILIAIRES */}
+      {/* MODAL COLLÈGUES */}
       <Modal visible={shareModalVisible} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}><Text style={styles.modalTitle}>Destinataire</Text><TouchableOpacity onPress={() => setShareModalVisible(false)}><Ionicons name="close" size={28} color="#333" /></TouchableOpacity></View>
+            <View style={styles.modalHandle} />
+            <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Destinataire</Text>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShareModalVisible(false)}>
+                <Ionicons name="close" size={20} color={C.hText} />
+              </TouchableOpacity>
+            </LinearGradient>
             <FlatList data={contacts} keyExtractor={item => item._id} renderItem={renderContactItem} contentContainerStyle={{padding: 20}} />
         </View>
       </Modal>
 
+      {/* MODAL SÉLECTION DOCS */}
       <Modal visible={docSelectionModal} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modalContainer}>
-            <View style={styles.modalHeader}><Text style={styles.modalTitle}>Documents à joindre</Text><TouchableOpacity onPress={() => setDocSelectionModal(false)}><Ionicons name="close" size={28} color="#333" /></TouchableOpacity></View>
+            <View style={styles.modalHandle} />
+            <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>Documents à joindre</Text>
+              <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setDocSelectionModal(false)}>
+                <Ionicons name="close" size={20} color={C.hText} />
+              </TouchableOpacity>
+            </LinearGradient>
             <FlatList data={patientDocs} keyExtractor={item => item._id} renderItem={renderDocSelectionItem} contentContainerStyle={{padding:20}} />
             <View style={styles.actionFooter}>
                 {shareTarget === 'colleague' ? (
                     <View style={{flexDirection:'row', gap:10}}>
-                        <TouchableOpacity style={[styles.actionBtn, {backgroundColor:'#2196F3', flex:1}]} onPress={handleInternalShare}><Ionicons name="cloud-upload" size={20} color="#FFF" style={{marginRight:5}}/><Text style={styles.actionBtnText}>Transfert App</Text></TouchableOpacity>
-                        <TouchableOpacity style={[styles.actionBtn, {backgroundColor:'#4CAF50', flex:1}]} onPress={handleSystemShare}><Ionicons name="logo-whatsapp" size={20} color="#FFF" style={{marginRight:5}}/><Text style={styles.actionBtnText}>WhatsApp</Text></TouchableOpacity>
+                        <TouchableOpacity style={{flex:1, borderRadius:12, overflow:'hidden'}} onPress={handleInternalShare}>
+                          <LinearGradient colors={[C.blue, '#2563EB']} style={styles.actionBtn}>
+                            <Ionicons name="cloud-upload" size={18} color="#FFF" style={{marginRight:6}}/>
+                            <Text style={styles.actionBtnText}>Transfert App</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={{flex:1, borderRadius:12, overflow:'hidden'}} onPress={handleSystemShare}>
+                          <LinearGradient colors={[C.green, '#059669']} style={styles.actionBtn}>
+                            <Ionicons name="logo-whatsapp" size={18} color="#FFF" style={{marginRight:6}}/>
+                            <Text style={styles.actionBtnText}>WhatsApp</Text>
+                          </LinearGradient>
+                        </TouchableOpacity>
                     </View>
                 ) : (
-                    <TouchableOpacity style={[styles.actionBtn, {backgroundColor:'#FF6B00'}]} onPress={handleSystemShare}><Text style={styles.actionBtnText}>Générer PDF</Text></TouchableOpacity>
+                    <TouchableOpacity style={{borderRadius:12, overflow:'hidden'}} onPress={handleSystemShare}>
+                      <LinearGradient colors={[C.brand, '#E55A00']} style={styles.actionBtn}>
+                        <Text style={styles.actionBtnText}>Générer PDF</Text>
+                      </LinearGradient>
+                    </TouchableOpacity>
                 )}
             </View>
         </View>
       </Modal>
 
+      {/* VISIONNEUSE */}
       <Modal visible={viewerVisible} transparent={true} animationType="fade">
         <View style={styles.viewerOverlay}>
-            <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerVisible(false)}><Ionicons name="close-circle" size={40} color="#FFF" /></TouchableOpacity>
+            <TouchableOpacity style={styles.viewerClose} onPress={() => setViewerVisible(false)}>
+              <Ionicons name="close-circle" size={40} color="#FFF" />
+            </TouchableOpacity>
             {selectedDoc && <Image source={{ uri: selectedDoc.imageData }} style={styles.fullImage} resizeMode="contain" />}
         </View>
       </Modal>
+
+      {/* SCANNER BON DE TRANSPORT */}
+      <BonTransportScannerModal
+        visible={btScannerVisible}
+        onClose={() => setBtScannerVisible(false)}
+        onPatientAdded={() => { setBtScannerVisible(false); loadPatients(); }}
+      />
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#F8F9FA' },
-  searchHeader: { backgroundColor: '#FFF', padding: 15, borderBottomWidth:1, borderBottomColor:'#EEE' },
-  searchBar: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F5F5F5', borderRadius: 10, paddingHorizontal: 15, height: 45 },
-  searchInput: { flex: 1, marginLeft: 10, fontSize: 16 },
-  
-  card: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, marginBottom: 10, borderRadius: 12, marginHorizontal: 15, elevation: 1 },
-  avatar: { width: 45, height: 45, borderRadius: 25, backgroundColor: '#FFF3E0', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  avatarText: { fontSize: 18, fontWeight: 'bold', color: '#FF6B00' },
+  container: { flex: 1, backgroundColor: C.bg },
+
+  // HEADER
+  header: { paddingTop: 8, paddingBottom: 20, paddingHorizontal: 20 },
+  headerBlob: {
+    position: 'absolute', top: -30, right: -30,
+    width: 140, height: 140, borderRadius: 70,
+    backgroundColor: C.brand, opacity: 0.06,
+  },
+  headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
+  headerTitle: { fontSize: 26, fontWeight: '800', color: C.hText, letterSpacing: -0.5 },
+  headerSub: { fontSize: 13, color: C.hText2, marginTop: 2 },
+  scanHeaderBtn: { borderRadius: 12, overflow: 'hidden' },
+  scanHeaderGradient: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 14, paddingVertical: 10, gap: 6 },
+  scanHeaderText: { color: '#FFF', fontWeight: '700', fontSize: 13 },
+
+  // SEARCH
+  searchBar: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.hCard, borderRadius: 16,
+    borderWidth: 1, borderColor: C.hBorder,
+    paddingHorizontal: 16, height: 48, gap: 10,
+  },
+  searchInput: { flex: 1, fontSize: 15, color: C.hText },
+
+  // LIST
+  listContent: { padding: 16, paddingBottom: 100 },
+  card: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card, padding: 15,
+    marginBottom: 10, borderRadius: 20,
+    borderWidth: 1, borderColor: C.border,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06, shadowRadius: 8, elevation: 2,
+  },
+  avatar: { width: 46, height: 46, borderRadius: 23, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  avatarText: { fontSize: 18, fontWeight: '800', color: '#FFF' },
   info: { flex: 1 },
-  name: { fontSize: 16, fontWeight: 'bold', color: '#333' },
-  subInfo: { fontSize: 13, color: '#888' },
-  
-  modalContainer: { flex: 1, backgroundColor: '#F2F2F2' },
-  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 20, backgroundColor: '#FFF' },
-  modalTitle: { fontSize: 20, fontWeight: 'bold', color: '#333' },
-  
-  tabsContainer: { flexDirection: 'row', backgroundColor: '#FFF', paddingHorizontal: 20 },
-  tabBtn: { marginRight: 25, paddingBottom: 15 },
-  tabBtnActive: { borderBottomWidth: 3, borderBottomColor: '#FF6B00' },
-  tabText: { fontSize: 15, color: '#999', fontWeight: '600' },
-  tabTextActive: { color: '#FF6B00', fontWeight: 'bold' },
-  contentContainer: { flex: 1, padding: 20 },
+  name: { fontSize: 16, fontWeight: '700', color: C.text },
+  subInfo: { fontSize: 13, color: C.text2, marginTop: 2 },
+
+  emptyContainer: { alignItems: 'center', marginTop: 60, gap: 12 },
+  emptyIcon: { width: 72, height: 72, borderRadius: 36, justifyContent: 'center', alignItems: 'center' },
+  emptyText: { textAlign: 'center', color: C.text3, fontSize: 15 },
+
+  // FAB
+  fabWrap: {
+    position: 'absolute', bottom: 30, right: 24,
+    shadowColor: C.brand, shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.45, shadowRadius: 12, elevation: 10,
+  },
+  fab: { width: 58, height: 58, borderRadius: 29, justifyContent: 'center', alignItems: 'center' },
+
+  // MODAL
+  modalContainer: { flex: 1, backgroundColor: C.bg },
+  modalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, alignSelf: 'center', marginTop: 10, marginBottom: 4 },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 22, paddingVertical: 18 },
+  modalTitle: { fontSize: 20, fontWeight: '800', color: C.hText },
+  modalSub: { fontSize: 12, color: C.hText2, marginTop: 2 },
+  modalCloseBtn: { width: 34, height: 34, borderRadius: 17, backgroundColor: C.hCard, justifyContent: 'center', alignItems: 'center' },
+
+  tabsContainer: { flexDirection: 'row', backgroundColor: C.card, paddingHorizontal: 20, borderBottomWidth: 1, borderBottomColor: C.border },
+  tabBtn: { marginRight: 24, paddingBottom: 14, paddingTop: 14 },
+  tabBtnActive: { borderBottomWidth: 3, borderBottomColor: C.brand },
+  tabText: { fontSize: 14, color: C.text3, fontWeight: '600' },
+  tabTextActive: { color: C.brand, fontWeight: '800' },
+  contentContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 16 },
   tabContent: { flex: 1 },
 
-  // STYLES ALERT PMT
-  alertBox: { flexDirection: 'row', alignItems: 'center', padding: 15, borderRadius: 10, borderWidth: 1, marginBottom: 20 },
-  alertText: { marginLeft: 10, fontSize: 14, fontWeight: 'bold', flex: 1 },
+  // PMT ALERT
+  alertBox: { flexDirection: 'row', alignItems: 'center', padding: 14, borderRadius: 16, borderWidth: 1.5, marginBottom: 18 },
+  alertIconCircle: { width: 38, height: 38, borderRadius: 19, justifyContent: 'center', alignItems: 'center', marginRight: 12 },
+  alertText: { fontSize: 13, fontWeight: '700', flex: 1, lineHeight: 18 },
 
-  antiFraudBtn: { 
-    flexDirection: 'row', alignItems: 'center', backgroundColor: '#43A047', 
-    padding: 15, borderRadius: 12, marginBottom: 20, elevation: 3 
-  },
-  antiFraudIcon: { width: 40, height: 40, borderRadius: 20, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  antiFraudTitle: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  antiFraudSub: { color: 'rgba(255,255,255,0.8)', fontSize: 11 },
+  // ANTI-FRAUDE
+  antiFraudBtn: { borderRadius: 16, marginBottom: 20, overflow: 'hidden' },
+  antiFraudInner: { flexDirection: 'row', alignItems: 'center', padding: 16 },
+  antiFraudIcon: { width: 42, height: 42, borderRadius: 21, backgroundColor: 'rgba(255,255,255,0.2)', justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  antiFraudTitle: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  antiFraudSub: { color: 'rgba(255,255,255,0.75)', fontSize: 11, marginTop: 2 },
 
-  inputGroup: { marginBottom: 15 },
-  label: { fontSize: 12, color: '#666', marginBottom: 5, fontWeight: 'bold' },
-  input: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, borderWidth: 1, borderColor: '#DDD', fontSize: 16 },
-  saveBtn: { backgroundColor: '#4CAF50', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10 },
-  sectionHeader: { marginTop: 25, marginBottom: 5, fontSize: 12, fontWeight:'bold', color:'#555', letterSpacing:1 },
-  shareBtnColl: { backgroundColor: '#FF6B00', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 5, flexDirection:'row', justifyContent:'center' },
-  shareBtnPDF: { backgroundColor: '#FFF', borderWidth:1, borderColor:'#FF6B00', padding: 15, borderRadius: 10, alignItems: 'center', marginTop: 10, flexDirection:'row', justifyContent:'center' },
-  saveBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 16 },
-  deleteBtn: { alignItems: 'center', marginTop: 30, padding: 15 },
-  deleteText: { color: '#D32F2F', fontWeight: 'bold' },
+  inputGroup: { marginBottom: 14 },
+  label: { fontSize: 11, color: C.text3, marginBottom: 6, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+  input: { backgroundColor: C.card, padding: 14, borderRadius: 14, borderWidth: 1, borderColor: C.border, fontSize: 15, color: C.text },
+  saveBtnWrap: { borderRadius: 14, overflow: 'hidden', marginTop: 8 },
+  saveBtn: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 14 },
+  saveBtnText: { color: '#FFF', fontWeight: '700', fontSize: 15 },
+  sectionHeader: { marginTop: 24, marginBottom: 8, fontSize: 11, fontWeight: '800', color: C.text3, letterSpacing: 1.2, textTransform: 'uppercase' },
+  shareBtnCollWrap: { borderRadius: 14, overflow: 'hidden', marginBottom: 10 },
+  shareBtnColl: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', padding: 15, borderRadius: 14 },
+  shareBtnPDF: { backgroundColor: C.card, borderWidth: 1.5, borderColor: C.brand, padding: 14, borderRadius: 14, alignItems: 'center', flexDirection: 'row', justifyContent: 'center', marginBottom: 10 },
+  deleteBtn: { alignItems: 'center', marginTop: 20, padding: 14 },
+  deleteText: { color: C.red, fontWeight: '700', fontSize: 14 },
 
-  contactRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 12, marginBottom: 10 },
-  contactAvatar: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#E3F2FD', justifyContent: 'center', alignItems: 'center', marginRight: 15 },
-  contactAvatarText: { color: '#1976D2', fontWeight: 'bold', fontSize: 18 },
-  contactName: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
+  // CONTACT ROWS
+  contactRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, padding: 14, borderRadius: 20, marginBottom: 10, borderWidth: 1, borderColor: C.border },
+  contactAvatar: { width: 42, height: 42, borderRadius: 21, justifyContent: 'center', alignItems: 'center', marginRight: 14 },
+  contactAvatarText: { color: '#FFF', fontWeight: '800', fontSize: 17 },
+  contactName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1 },
+  sendBadge: { width: 34, height: 34, borderRadius: 17, justifyContent: 'center', alignItems: 'center' },
 
-  scanGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 20 },
+  // DOCS
+  scanGrid: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 18 },
   docCardContainer: { flex: 0.5, margin: 6 },
-  docCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 12, alignItems: 'center', justifyContent: 'center', elevation: 2, minHeight: 110 },
-  deleteDocBadge: { position:'absolute', top:-5, right:-5, backgroundColor:'#D32F2F', width:24, height:24, borderRadius:12, justifyContent:'center', alignItems:'center', elevation:3 },
-  docTitle: { marginTop: 8, fontWeight: '700', color: '#333', fontSize: 13, textAlign:'center' },
-  docDate: { fontSize: 10, color: '#999', marginTop: 2 },
-  
-  historyCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 10 },
-  emptyText: { textAlign: 'center', color: '#999', marginTop: 30 },
+  docCard: { backgroundColor: C.card, padding: 16, borderRadius: 20, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: C.border, minHeight: 120,
+    shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.05, shadowRadius: 6, elevation: 2 },
+  docIconBox: { width: 48, height: 48, borderRadius: 14, justifyContent: 'center', alignItems: 'center', marginBottom: 8 },
+  deleteDocBadge: { position:'absolute', top:-6, right:-6, backgroundColor: C.red, width:26, height:26, borderRadius:13, justifyContent:'center', alignItems:'center', elevation:3 },
+  docTitle: { fontWeight: '700', color: C.text, fontSize: 13, textAlign:'center' },
+  docDate: { fontSize: 10, color: C.text3, marginTop: 2 },
 
-  selectDocRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 8, borderWidth: 1, borderColor: '#EEE' },
-  selectDocRowActive: { borderColor: '#FF6B00', backgroundColor: '#FFF3E0' },
-  selectDocTitle: { fontSize: 15, color: '#666' },
-  selectDocDate: { fontSize: 12, color: '#999' },
-  
-  actionFooter: { padding: 20, borderTopWidth: 1, borderColor: '#EEE', backgroundColor: '#FFF' },
-  actionBtn: { padding: 15, borderRadius: 10, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
-  actionBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
+  // HISTORY
+  historyCard: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, padding: 14, borderRadius: 16, marginBottom: 10, borderWidth: 1, borderColor: C.border },
+  historyDateBadge: { width: 44, height: 48, borderRadius: 12, backgroundColor: C.card2, justifyContent: 'center', alignItems: 'center', borderWidth: 1, borderColor: C.border },
+  historyDateText: { fontSize: 16, fontWeight: '800', color: C.text },
+  historyMonthText: { fontSize: 9, color: C.text3, fontWeight: '600', textTransform: 'uppercase' },
+  historyType: { fontSize: 14, fontWeight: '700', color: C.text },
+  historyLocation: { fontSize: 12, color: C.text2, marginTop: 2 },
+  historyTrip: { fontSize: 9, color: C.text3, fontWeight: '600' },
 
+  // SELECT DOCS
+  selectDocRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card, padding: 14, borderRadius: 14, marginBottom: 8, borderWidth: 1, borderColor: C.border },
+  selectDocRowActive: { borderColor: C.brand, backgroundColor: '#FFF8F5' },
+  selectDocTitle: { fontSize: 14, color: C.text2 },
+  selectDocDate: { fontSize: 11, color: C.text3, marginTop: 2 },
+
+  actionFooter: { padding: 20, borderTopWidth: 1, borderColor: C.border, backgroundColor: C.card },
+  actionBtn: { padding: 15, borderRadius: 12, alignItems: 'center', flexDirection: 'row', justifyContent: 'center' },
+  actionBtnText: { color: '#FFF', fontWeight: '700', fontSize: 14 },
+
+  // VIEWER
   viewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   fullImage: { width: '100%', height: '80%' },
   viewerClose: { position: 'absolute', top: 50, right: 20, zIndex: 10 },
 
-  // STYLES MODAL SAISIE
-  inputModalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
-  inputModalCard: { backgroundColor: '#FFF', padding: 25, borderRadius: 15, width: '80%', alignItems: 'center' },
-  inputModalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 5 },
-  inputModalSub: { color: '#666', marginBottom: 15 },
-  bigNumberInput: { fontSize: 30, fontWeight: 'bold', borderBottomWidth: 2, borderBottomColor: '#FF6B00', width: 100, textAlign: 'center', marginBottom: 10, color: '#333' },
-  modalBtn: { paddingVertical: 10, paddingHorizontal: 20, borderRadius: 8, minWidth: 100, alignItems: 'center' },
+  // PMT INPUT MODAL
+  inputModalOverlay: { flex: 1, backgroundColor: 'rgba(10,15,30,0.75)', justifyContent: 'flex-end' },
+  inputModalCard: { backgroundColor: C.card, padding: 28, borderTopLeftRadius: 30, borderTopRightRadius: 30, alignItems: 'center' },
+  inputModalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
+  inputModalTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 6 },
+  inputModalSub: { color: C.text2, marginBottom: 18, fontSize: 13 },
+  bigNumberInput: { fontSize: 36, fontWeight: '800', borderBottomWidth: 2.5, borderBottomColor: C.brand, width: 120, textAlign: 'center', marginBottom: 14, color: C.text, paddingBottom: 6 },
+  modalBtn: { paddingVertical: 13, paddingHorizontal: 20, borderRadius: 12, minWidth: 110, alignItems: 'center', justifyContent: 'center' },
 });

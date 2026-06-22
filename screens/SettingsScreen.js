@@ -1,86 +1,242 @@
 import React, { useState } from 'react';
-import { 
-  View, Text, StyleSheet, TouchableOpacity, FlatList, Modal, Alert 
+import {
+  View, Text, StyleSheet, TouchableOpacity, FlatList, Modal,
+  Alert, ActivityIndicator, ScrollView,
 } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
 import * as SecureStore from 'expo-secure-store';
-// 👇 LE SECRET DU DESIGN MODERNE :
+import * as Notifications from 'expo-notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-// Import des écrans
-import ProfileScreen from './ProfileScreen';
-import ContactsScreen from './ContactScreen'; 
-import PatientsScreen from './PatientsScreen'; 
+import ContactsScreen from './ContactScreen';
+import PatientsScreen from './PatientsScreen';
 
 export default function SettingsScreen({ navigation, onLogout }) {
-  // Récupération des marges de sécurité exactes du téléphone
   const insets = useSafeAreaInsets();
-  
+
   const [showContacts, setShowContacts] = useState(false);
   const [showPatients, setShowPatients] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
+  const [testing, setTesting] = useState(false);
+
+  const handleTestProximity = async () => {
+    setTesting(true);
+    try {
+      const { status } = await Notifications.getPermissionsAsync();
+      if (status !== 'granted') {
+        const { status: s } = await Notifications.requestPermissionsAsync();
+        if (s !== 'granted') {
+          Alert.alert('Permission refusée', 'Active les notifications dans les paramètres Android.');
+          return;
+        }
+      }
+
+      await Notifications.scheduleNotificationAsync({
+        identifier: 'vsl-test-depart',
+        content: {
+          title: '🚗 Départ dans 15 min — 09:00',
+          body: 'Patient Test · 12 Rue de la Paix\nAppuyez pour ouvrir Waze',
+          data: {
+            type: 'departure_alert',
+            rideId: 'test',
+            startLocation: '12 Rue de la Paix, Paris',
+            patientName: 'Patient Test',
+          },
+          sound: 'default',
+          android: {
+            channelId: 'vsl_proximity',
+            priority: 'max',
+            vibrate: [0, 500, 200, 500, 200, 500],
+          },
+        },
+        trigger: { seconds: 5 },
+      });
+
+      Alert.alert(
+        'Test programmé',
+        'Une notification apparaîtra dans 5 secondes.\n\nAppuyez dessus → Waze s\'ouvre directement sur l\'adresse.',
+        [{ text: 'OK' }]
+      );
+    } catch (e) {
+      Alert.alert('Erreur', e.message);
+    } finally {
+      setTesting(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert(
       'Déconnexion', 'Voulez-vous vraiment vous déconnecter ?',
       [
-        { text: 'Annuler', style: 'cancel' }, 
-        { text: 'Déconnexion', style: 'destructive', onPress: async () => { try { await SecureStore.deleteItemAsync('user_session'); if (onLogout) onLogout(); } catch (err) { console.error("Erreur", err); } } }
+        { text: 'Annuler', style: 'cancel' },
+        {
+          text: 'Déconnexion', style: 'destructive', onPress: async () => {
+            try {
+              await SecureStore.deleteItemAsync('user_session');
+              if (onLogout) onLogout();
+            } catch (err) {
+              console.error("Erreur", err);
+            }
+          }
+        }
       ]
     );
   };
 
-  const options = [
-    { id: '1', label: 'Mon compte', icon: 'person', colorBg: '#E3F2FD', colorIcon: '#2196F3', onPress: () => setShowProfile(true) },
-    { id: '2', label: 'Mes contacts', icon: 'people', colorBg: '#FFF3E0', colorIcon: '#FF9800', onPress: () => setShowContacts(true) },
-    { id: '5', label: 'Mes Patients', icon: 'medkit', colorBg: '#E8F5E9', colorIcon: '#4CAF50', onPress: () => setShowPatients(true) },
-    { id: '3', label: 'Paramètres app', icon: 'settings', colorBg: '#F3E5F5', colorIcon: '#9C27B0', onPress: () => Alert.alert('Réglages', 'Notifications, Langue, etc.') },
-    { id: '4', label: 'Déconnexion', icon: 'log-out', colorBg: '#FFEBEE', colorIcon: '#D32F2F', onPress: handleLogout, isDestructive: true },
+  const menuSections = [
+    {
+      title: 'Compte',
+      items: [
+        {
+          id: '1',
+          label: 'Mon compte',
+          subtitle: 'Profil et informations',
+          icon: 'person',
+          gradientColors: ['#3B82F6', '#2563EB'],
+          onPress: () => setShowProfile(true),
+        },
+        {
+          id: '2',
+          label: 'Mes contacts',
+          subtitle: 'Gérer vos contacts',
+          icon: 'people',
+          gradientColors: ['#F59E0B', '#D97706'],
+          onPress: () => setShowContacts(true),
+        },
+        {
+          id: '5',
+          label: 'Mes patients',
+          subtitle: 'Liste des patients',
+          icon: 'medkit',
+          gradientColors: ['#10B981', '#059669'],
+          onPress: () => setShowPatients(true),
+        },
+      ],
+    },
+    {
+      title: 'Préférences',
+      items: [
+        {
+          id: '3',
+          label: "Paramètres app",
+          subtitle: 'Notifications, langue…',
+          icon: 'settings',
+          gradientColors: ['#8B5CF6', '#7C3AED'],
+          onPress: () => navigation.navigate('SettingApp'),
+        },
+        {
+          id: '6',
+          label: 'Tester alerte approche',
+          subtitle: 'Simule une alerte départ',
+          icon: 'navigate',
+          gradientColors: ['#FF6B00', '#FF8C00'],
+          onPress: handleTestProximity,
+          isTest: true,
+        },
+      ],
+    },
   ];
 
-  const renderItem = ({ item }) => (
-    <TouchableOpacity style={styles.card} onPress={item.onPress} activeOpacity={0.7}>
-      <View style={styles.cardLeft}>
-        {/* Icône dans une bulle colorée moderne */}
-        <View style={[styles.iconBox, { backgroundColor: item.colorBg }]}>
-            <Ionicons name={item.icon} size={20} color={item.colorIcon} />
-        </View>
-        <Text style={[styles.label, item.isDestructive && { color: '#D32F2F' }]}>{item.label}</Text>
+  const renderMenuItem = (item) => (
+    <TouchableOpacity
+      key={item.id}
+      style={styles.menuItem}
+      onPress={item.onPress}
+      activeOpacity={0.7}
+      disabled={item.isTest && testing}
+    >
+      <LinearGradient
+        colors={item.gradientColors}
+        style={styles.menuIconBox}
+      >
+        {item.isTest && testing
+          ? <ActivityIndicator size="small" color="#FFF" />
+          : <Ionicons name={item.icon} size={20} color="#FFF" />
+        }
+      </LinearGradient>
+
+      <View style={styles.menuTextBox}>
+        <Text style={styles.menuLabel}>
+          {item.isTest && testing ? 'Test en cours...' : item.label}
+        </Text>
+        {item.subtitle ? (
+          <Text style={styles.menuSubtitle}>{item.subtitle}</Text>
+        ) : null}
       </View>
-      
-      {!item.isDestructive && (
-        <View style={styles.chevronBox}>
-           <Ionicons name="chevron-forward" size={16} color="#CCC" />
-        </View>
-      )}
+
+      <View style={styles.chevronBox}>
+        <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+      </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      
-      {/* HEADER ULTRA CLEAN */}
-      <View style={styles.headerContainer}>
+
+      {/* HEADER SOMBRE GRADIENT */}
+      <LinearGradient
+        colors={['#0A0F1E', '#111827']}
+        style={styles.header}
+      >
+        {/* AVATAR INITIALES */}
+        <LinearGradient
+          colors={['#FF6B00', '#FF8C00']}
+          style={styles.avatarCircle}
+        >
+          <Ionicons name="person" size={32} color="#FFF" />
+        </LinearGradient>
         <Text style={styles.headerTitle}>Mon Profil</Text>
         <Text style={styles.headerSubtitle}>Gérez vos préférences</Text>
-      </View>
-      
-      <FlatList
-        data={options}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        contentContainerStyle={styles.listContent}
+      </LinearGradient>
+
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
-      />
+      >
+        {/* SECTIONS MENU */}
+        {menuSections.map((section) => (
+          <View key={section.title} style={styles.section}>
+            <Text style={styles.sectionTitle}>{section.title.toUpperCase()}</Text>
+            <View style={styles.sectionCard}>
+              {section.items.map((item, index) => (
+                <View key={item.id}>
+                  {renderMenuItem(item)}
+                  {index < section.items.length - 1 && (
+                    <View style={styles.separator} />
+                  )}
+                </View>
+              ))}
+            </View>
+          </View>
+        ))}
+
+        {/* BOUTON DÉCONNEXION */}
+        <TouchableOpacity
+          style={styles.logoutWrapper}
+          onPress={handleLogout}
+          activeOpacity={0.85}
+        >
+          <LinearGradient
+            colors={['#EF4444', '#DC2626']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={styles.logoutBtn}
+          >
+            <Ionicons name="log-out-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
+            <Text style={styles.logoutText}>Déconnexion</Text>
+          </LinearGradient>
+        </TouchableOpacity>
+      </ScrollView>
 
       {/* --- MODALS --- */}
-      
+
       {/* Modal Contacts */}
       <Modal visible={showContacts} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Mes Contacts</Text>
           <TouchableOpacity onPress={() => setShowContacts(false)} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="close" size={22} color="#0D1117" />
           </TouchableOpacity>
         </View>
         <ContactsScreen />
@@ -91,21 +247,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Mes Patients</Text>
           <TouchableOpacity onPress={() => setShowPatients(false)} style={styles.closeButton}>
-            <Ionicons name="close" size={24} color="#333" />
+            <Ionicons name="close" size={22} color="#0D1117" />
           </TouchableOpacity>
         </View>
         <PatientsScreen />
-      </Modal>
-
-      {/* Modal Profil */}
-      <Modal visible={showProfile} animationType="slide" presentationStyle="pageSheet">
-         <View style={styles.modalHeader}>
-           <Text style={styles.modalTitle}>Mon Profil</Text>
-           <TouchableOpacity onPress={() => setShowProfile(false)} style={styles.closeButton}>
-             <Ionicons name="close" size={24} color="#333" />
-           </TouchableOpacity>
-         </View>
-         <ProfileScreen />
       </Modal>
 
     </View>
@@ -113,98 +258,159 @@ export default function SettingsScreen({ navigation, onLogout }) {
 }
 
 const styles = StyleSheet.create({
-  container: { 
-    flex: 1, 
-    backgroundColor: '#F8F9FA', // Gris très léger "Apple Style"
+  container: {
+    flex: 1,
+    backgroundColor: '#F0F3FA',
   },
-  
+
   // HEADER
-  headerContainer: {
-    paddingHorizontal: 25,
-    paddingTop: 20, // Espace supplémentaire sous la barre de statut
-    paddingBottom: 10,
+  header: {
+    paddingHorizontal: 24,
+    paddingTop: 20,
+    paddingBottom: 30,
+    alignItems: 'center',
   },
-  headerTitle: { 
-    fontSize: 34, // Très grand titre moderne
-    fontWeight: '800', 
-    color: '#1A1A1A',
+  avatarCircle: {
+    width: 72,
+    height: 72,
+    borderRadius: 24,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 14,
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 10,
+  },
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: '800',
+    color: '#F1F5F9',
     letterSpacing: -0.5,
   },
   headerSubtitle: {
-    fontSize: 15,
-    color: '#888',
-    marginTop: 5,
-    fontWeight: '500'
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 4,
+    fontWeight: '500',
   },
 
-  // LISTE
-  listContent: {
+  // SCROLL
+  scrollContent: {
     paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 50,
+    paddingTop: 20,
+    paddingBottom: 60,
   },
 
-  // CARTE (ITEM)
-  card: { 
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff', 
-    marginBottom: 12, 
-    borderRadius: 20, // Coins très ronds
-    paddingVertical: 16, 
-    paddingHorizontal: 20, 
-    
-    // Ombres très douces (Style 2024)
-    shadowColor: '#000', 
-    shadowOffset: { width: 0, height: 2 }, 
-    shadowOpacity: 0.03, 
-    shadowRadius: 10, 
-    elevation: 1, // Android Low Elevation
+  // SECTIONS
+  section: {
+    marginBottom: 20,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#94A3B8',
+    letterSpacing: 1,
+    marginBottom: 10,
+    marginLeft: 4,
+  },
+  sectionCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 20,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
     borderWidth: 1,
-    borderColor: '#F0F0F0'
+    borderColor: '#E4E8F0',
   },
-  cardLeft: {
+
+  // MENU ITEMS
+  menuItem: {
     flexDirection: 'row',
     alignItems: 'center',
+    paddingVertical: 14,
+    paddingHorizontal: 16,
   },
-  iconBox: {
+  menuIconBox: {
     width: 42,
     height: 42,
-    borderRadius: 14, // Squircle
+    borderRadius: 13,
     justifyContent: 'center',
     alignItems: 'center',
-    marginRight: 16
+    marginRight: 14,
   },
-  label: { 
-    fontSize: 17, 
-    fontWeight: '600', 
-    color: '#333' 
+  menuTextBox: {
+    flex: 1,
+  },
+  menuLabel: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#0D1117',
+  },
+  menuSubtitle: {
+    fontSize: 12,
+    color: '#94A3B8',
+    marginTop: 2,
+    fontWeight: '400',
   },
   chevronBox: {
-    backgroundColor: '#F9F9F9',
+    backgroundColor: '#F5F7FF',
     borderRadius: 20,
-    padding: 6
+    padding: 6,
   },
-  
-  // MODALS STYLES
-  modalHeader: { 
-    flexDirection: 'row', 
-    justifyContent: 'space-between', 
-    alignItems: 'center', 
-    padding: 20, 
-    borderBottomWidth: 1, 
-    borderBottomColor: '#F5F5F5', 
-    backgroundColor: '#FFF' 
+  separator: {
+    height: 1,
+    backgroundColor: '#E4E8F0',
+    marginLeft: 72,
   },
-  modalTitle: { 
-    fontSize: 20, 
-    fontWeight: '800', 
-    color: '#1A1A1A' 
+
+  // BOUTON DÉCONNEXION
+  logoutWrapper: {
+    marginTop: 8,
+    borderRadius: 16,
+    overflow: 'hidden',
+    shadowColor: '#EF4444',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 12,
+    elevation: 8,
   },
-  closeButton: { 
+  logoutBtn: {
+    height: 56,
+    flexDirection: 'row',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderRadius: 16,
+  },
+  logoutText: {
+    color: '#FFF',
+    fontSize: 17,
+    fontWeight: '700',
+    letterSpacing: 0.3,
+  },
+
+  // MODALS
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: '#E4E8F0',
+    backgroundColor: '#FFF',
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#0D1117',
+  },
+  closeButton: {
     padding: 8,
-    backgroundColor: '#F5F5F5',
-    borderRadius: 20
-  }
+    backgroundColor: '#F0F3FA',
+    borderRadius: 20,
+  },
 });

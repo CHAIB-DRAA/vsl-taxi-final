@@ -1,7 +1,7 @@
 {
   "expo": {
     "name": "vsl-mobile",
-    "slug": "taxiapp31",
+    "slug": "taxi-vsl",
     "owner": "chaibdraa",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -25,8 +25,10 @@
       "edgeToEdgeEnabled": true,
       "package": "com.mostafa27001.vslmobile",
       "permissions": [
-        "READ_CALENDAR",
-        "WRITE_CALENDAR"
+        "android.permission.READ_CALENDAR",
+        "android.permission.WRITE_CALENDAR",
+        "android.permission.RECORD_AUDIO",
+        "android.permission.USE_FULL_SCREEN_INTENT"
       ]
     },
     "web": {
@@ -34,18 +36,17 @@
     },
     "extra": {
       "eas": {
-        "projectId": "21413392-d545-4146-966e-92625813c204"      }
+        "projectId": "f68975be-b983-42cc-a7f9-0588c132f989"
+      }
     },
     "plugins": [
       "expo-secure-store",
-      
       [
         "expo-calendar",
         {
           "calendarPermission": "L'application a besoin d'accéder à votre calendrier pour y ajouter vos courses automatiquement."
         }
-      ], 
-      
+      ],
       [
         "expo-image-picker",
         {
@@ -53,6 +54,10 @@
           "cameraPermission": "L'application a besoin d'accéder à la caméra pour scanner les bons de transport."
         }
       ]
-    ]
+    ],
+    "runtimeVersion": "1.0.0",
+    "updates": {
+      "url": "https://u.expo.dev/f68975be-b983-42cc-a7f9-0588c132f989"
+    }
   }
 }

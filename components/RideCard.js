@@ -56,11 +56,25 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
     Alert.alert('Copié ✓', '');
   };
 
-  const openWaze = (isStart) => {
+  const openWaze = async (isStart) => {
     const addr = isStart ? ride.startLocation : ride.endLocation;
     if (!addr) return;
-    Linking.openURL(`https://waze.com/ul?q=${encodeURIComponent(addr)}&navigate=yes`)
-      .catch(() => Alert.alert('Erreur', "Waze n'est pas installé."));
+    const encoded = encodeURIComponent(addr);
+    const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+    const wazeWeb   = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+    const googleMaps = `https://maps.google.com/?q=${encoded}`;
+    try {
+      const canWaze = await Linking.canOpenURL(wazeNative);
+      if (canWaze) {
+        await Linking.openURL(wazeNative);
+      } else {
+        await Linking.openURL(wazeWeb).catch(() => Linking.openURL(googleMaps));
+      }
+    } catch {
+      Linking.openURL(googleMaps).catch(() =>
+        Alert.alert('Navigation', "Impossible d'ouvrir Waze ou Google Maps.")
+      );
+    }
   };
 
   const callPatient = () => {

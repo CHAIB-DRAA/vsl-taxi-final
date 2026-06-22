@@ -1,107 +1,108 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, FlatList, Platform, TextInput, Modal, RefreshControl, StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment/locale/fr';
-import { getTodayRides, startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
+import { startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
+import { useData } from '../contexts/DataContext';
 
+// ─── Design tokens (identiques à HomeTabs) ───────────────────────────────────
 const C = {
-  bg:     '#F2F3F7',
-  card:   '#FFFFFF',
-  card2:  '#F5F7FB',
-  border: '#E2E5EC',
-  text:   '#111827',
-  text2:  '#6B7280',
-  text3:  '#9CA3AF',
-  brand:  '#FF6B00',
-  green:  '#16A34A',
-  red:    '#EF4444',
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  green:   '#10B981',
+  red:     '#EF4444',
+  blue:    '#3B82F6',
+  amber:   '#F59E0B',
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hCard:  'rgba(255,255,255,0.07)',
+  hBorder:'rgba(255,255,255,0.10)',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
 };
 
 const STATUS_CONFIG = {
-  'À venir':    { color: '#2563EB', bg: '#EFF6FF', icon: 'time-outline' },
-  'En attente': { color: '#D97706', bg: '#FFFBEB', icon: 'hourglass-outline' },
-  'En cours':   { color: '#16A34A', bg: '#F0FDF4', icon: 'navigate-outline' },
-  'Terminée':   { color: '#9CA3AF', bg: '#F9FAFB', icon: 'checkmark-circle-outline' },
-  'Annulée':    { color: '#EF4444', bg: '#FFF1F2', icon: 'close-circle-outline' },
+  'À venir':    { color: C.blue,  bg: '#EFF6FF', icon: 'time-outline',              grad: [C.blue, '#2563EB'] },
+  'En attente': { color: C.amber, bg: '#FFFBEB', icon: 'hourglass-outline',         grad: [C.amber,'#D97706'] },
+  'En cours':   { color: C.green, bg: '#F0FDF4', icon: 'navigate-outline',          grad: [C.green,'#059669'] },
+  'Terminée':   { color: C.text3, bg: '#F8FAFC', icon: 'checkmark-circle-outline',  grad: ['#94A3B8','#64748B'] },
+  'Annulée':    { color: C.red,   bg: '#FFF1F2', icon: 'close-circle-outline',      grad: [C.red, '#DC2626'] },
 };
 
-export default function TodayRidesScreen() {
-  const [rides, setRides] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [refreshing, setRefreshing] = useState(false);
+const RIDE_ORDER = { 'En cours': 0, 'À venir': 1, 'En attente': 1, 'Terminée': 2, 'Annulée': 3 };
 
-  // Modal fin de course
-  const [finishModal, setFinishModal] = useState({ visible: false, rideId: null });
+export default function TodayRidesScreen({ navigation }) {
+  const { allRides, loading, loadData, updateLocalRide, removeLocalRide } = useData();
+
+  const [finishModal, setFinishModal] = useState({ visible: false, rideId: null, ride: null });
   const [distance, setDistance] = useState('');
-  const [tolls, setTolls] = useState('');
+  const [tolls, setTolls]       = useState('');
 
-  // Modal annulation
   const [cancelModal, setCancelModal] = useState({ visible: false, rideId: null, patientName: '' });
   const [cancelReason, setCancelReason] = useState('');
 
-  const fetchRides = useCallback(async (isRefresh = false) => {
-    if (isRefresh) setRefreshing(true);
-    else setLoading(true);
-    try {
-      const data = await getTodayRides();
-      // Tri : En cours d'abord, puis À venir par heure, puis Terminées, Annulées en dernier
-      const order = { 'En cours': 0, 'À venir': 1, 'En attente': 1, 'Terminée': 2, 'Annulée': 3 };
-      data.sort((a, b) => {
-        const diff = (order[a.status] ?? 4) - (order[b.status] ?? 4);
-        if (diff !== 0) return diff;
-        return new Date(a.date) - new Date(b.date);
-      });
-      setRides(data);
-    } catch {
-      Alert.alert('Erreur', 'Impossible de récupérer les courses.');
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  }, []);
+  const todayStr = new Date().toDateString();
 
-  useEffect(() => { fetchRides(); }, [fetchRides]);
+  const rides = useMemo(() => {
+    const today = allRides.filter(r => new Date(r.date).toDateString() === todayStr);
+    return [...today].sort((a, b) => {
+      const d = (RIDE_ORDER[a.status] ?? 4) - (RIDE_ORDER[b.status] ?? 4);
+      return d !== 0 ? d : new Date(a.date) - new Date(b.date);
+    });
+  }, [allRides, todayStr]);
 
-  // Rafraîchit à chaque fois que l'onglet devient actif
-  useFocusEffect(useCallback(() => { fetchRides(); }, [fetchRides]));
+  useFocusEffect(useCallback(() => { loadData(false); }, [loadData]));
 
+  // ─── Actions ────────────────────────────────────────────────────────────
   const handleStart = async (id) => {
     try {
       const updated = await startRideById(id);
-      setRides(prev => {
-        const next = prev.map(r => r._id === id ? updated : r);
-        next.sort((a, b) => {
-          const order = { 'En cours': 0, 'À venir': 1, 'En attente': 1, 'Terminée': 2, 'Annulée': 3 };
-          const diff = (order[a.status] ?? 4) - (order[b.status] ?? 4);
-          return diff !== 0 ? diff : new Date(a.date) - new Date(b.date);
-        });
-        return next;
-      });
+      updateLocalRide(updated);
     } catch {
       Alert.alert('Erreur', 'Impossible de démarrer la course.');
     }
   };
 
   const openFinishModal = (ride) => {
-    setFinishModal({ visible: true, rideId: ride._id });
+    setFinishModal({ visible: true, rideId: ride._id, ride });
     setDistance('');
     setTolls('');
   };
 
   const submitFinish = async () => {
     const km = parseFloat(distance?.trim());
-    if (!km || isNaN(km) || km <= 0) {
-      return Alert.alert('Erreur', 'Entrez une distance valide (km).');
-    }
+    if (!km || isNaN(km) || km <= 0) return Alert.alert('Erreur', 'Distance invalide (km).');
+    const { rideId, ride } = finishModal;
     try {
-      const updated = await finishRideById(finishModal.rideId, km, parseFloat(tolls) || 0);
-      setRides(prev => prev.map(r => r._id === finishModal.rideId ? updated : r));
-      setFinishModal({ visible: false, rideId: null });
+      const updated = await finishRideById(rideId, km, parseFloat(tolls) || 0);
+      updateLocalRide(updated);
+      setFinishModal({ visible: false, rideId: null, ride: null });
+      setTimeout(() => {
+        Alert.alert('Terminée ✓', `${ride?.patientName || 'Patient'} — Créer le retour ?`, [
+          { text: 'Non', style: 'cancel' },
+          { text: 'Retour →', onPress: () => navigation.navigate('Créer', {
+            importedData: {
+              patientName:   ride?.patientName   || '',
+              patientPhone:  ride?.patientPhone  || '',
+              startLocation: ride?.endLocation   || '',
+              endLocation:   ride?.startLocation || '',
+              type:          ride?.type          || 'VSL',
+            },
+          })},
+        ]);
+      }, 350);
     } catch {
       Alert.alert('Erreur', 'Impossible de terminer la course.');
     }
@@ -113,49 +114,46 @@ export default function TodayRidesScreen() {
   };
 
   const handleAcceptWeb = async (id) => {
-    Alert.alert('Accepter la course ?', 'La demande web sera ajoutée à votre planning.', [
+    Alert.alert('Accepter ?', 'La demande web sera ajoutée au planning.', [
       { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Accepter ✓', onPress: async () => {
-          try {
-            const updated = await acceptWebBooking(id);
-            setRides(prev => prev.map(r => r._id === id ? updated.ride : r));
-          } catch {
-            Alert.alert('Erreur', 'Impossible d\'accepter la demande.');
-          }
-        }
-      },
+      { text: 'Accepter ✓', onPress: async () => {
+        try { const r = await acceptWebBooking(id); updateLocalRide(r.ride); }
+        catch { Alert.alert('Erreur', "Impossible d'accepter."); }
+      }},
     ]);
   };
 
-  const handleRejectWeb = async (id, patientName) => {
-    Alert.alert('Refuser la demande ?', `Refuser la course de ${patientName} ? Elle sera supprimée.`, [
+  const handleRejectWeb = async (id, name) => {
+    Alert.alert('Refuser ?', `La course de ${name} sera supprimée.`, [
       { text: 'Annuler', style: 'cancel' },
-      {
-        text: 'Refuser', style: 'destructive', onPress: async () => {
-          try {
-            await rejectWebBooking(id);
-            setRides(prev => prev.filter(r => r._id !== id));
-          } catch {
-            Alert.alert('Erreur', 'Impossible de refuser la demande.');
-          }
-        }
-      },
+      { text: 'Refuser', style: 'destructive', onPress: async () => {
+        try { await rejectWebBooking(id); removeLocalRide(id); }
+        catch { Alert.alert('Erreur', 'Impossible de refuser.'); }
+      }},
     ]);
   };
 
   const submitCancel = async () => {
     try {
       const updated = await cancelRideById(cancelModal.rideId, cancelReason);
-      setRides(prev => prev.map(r => r._id === cancelModal.rideId ? updated : r));
+      updateLocalRide(updated);
       setCancelModal({ visible: false, rideId: null, patientName: '' });
     } catch {
       Alert.alert('Erreur', "Impossible d'annuler la course.");
     }
   };
 
+  // ─── Stats header ────────────────────────────────────────────────────────
+  const headerStats = useMemo(() => ({
+    total:    rides.filter(r => r.status !== 'Annulée').length,
+    done:     rides.filter(r => r.status === 'Terminée').length,
+    active:   rides.filter(r => r.status === 'En cours').length,
+    upcoming: rides.filter(r => r.status === 'À venir' || r.status === 'En attente').length,
+  }), [rides]);
+
+  // ─── Render ride card ────────────────────────────────────────────────────
   const renderItem = ({ item }) => {
-    const cfg = STATUS_CONFIG[item.status] || STATUS_CONFIG['À venir'];
+    const cfg         = STATUS_CONFIG[item.status] || STATUS_CONFIG['À venir'];
     const isFinished  = item.status === 'Terminée';
     const isCancelled = item.status === 'Annulée';
     const isActive    = item.status === 'En cours';
@@ -165,182 +163,200 @@ export default function TodayRidesScreen() {
       ? moment(item.endTime).diff(moment(item.startTime), 'minutes')
       : null;
 
-    const accentColor = isWebPending ? '#D97706'
-      : isCancelled ? C.red
-      : isFinished  ? C.text3
-      : isActive    ? C.green
-      : C.border;
-
     return (
-      <View style={[styles.card, { borderLeftColor: accentColor, borderLeftWidth: isWebPending ? 4 : 3 }]}>
+      <View style={[styles.card, (isFinished || isCancelled) && styles.cardDim]}>
 
-        {/* BANDEAU DEMANDE WEB */}
+        {/* Accent latéral coloré */}
+        <LinearGradient
+          colors={cfg.grad}
+          style={styles.cardStripe}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 0, y: 1 }}
+        />
+
+        {/* Bandeau web */}
         {isWebPending && (
           <View style={styles.webBanner}>
-            <Ionicons name="globe-outline" size={13} color="#92400E" />
-            <Text style={styles.webBannerText}>DEMANDE VIA LE SITE WEB — À TRAITER</Text>
+            <Ionicons name="globe-outline" size={12} color="#92400E" />
+            <Text style={styles.webBannerText}>DEMANDE WEB — À TRAITER</Text>
           </View>
         )}
 
-        {/* HEADER : heure + statut */}
-        <View style={styles.cardHeader}>
-          <View>
-            <Text style={[styles.timeText, (isFinished || isCancelled) && styles.dimmed]}>
-              {moment(item.date).format(isWebPending ? 'ddd D MMM · HH:mm' : 'HH:mm')}
-            </Text>
-            {isActive && (
-              <View style={styles.liveRow}>
-                <View style={styles.liveDot} />
-                <Text style={styles.liveText}>EN COURS</Text>
+        <View style={styles.cardInner}>
+          {/* Heure + badge */}
+          <View style={styles.cardHeader}>
+            <View>
+              <Text style={[styles.timeText, (isFinished || isCancelled) && styles.dimmed]}>
+                {moment(item.date).format(isWebPending ? 'ddd D · HH:mm' : 'HH:mm')}
+              </Text>
+              {isActive && (
+                <View style={styles.liveRow}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveText}>EN COURS</Text>
+                </View>
+              )}
+            </View>
+            {!isWebPending && (
+              <View style={[styles.statusPill, { backgroundColor: cfg.bg, borderColor: cfg.color + '33' }]}>
+                <Ionicons name={cfg.icon} size={11} color={cfg.color} />
+                <Text style={[styles.statusPillText, { color: cfg.color }]}>{item.status}</Text>
               </View>
             )}
           </View>
-          {!isWebPending && (
-            <View style={[styles.statusBadge, { backgroundColor: cfg.bg, borderColor: cfg.color + '44' }]}>
-              <Ionicons name={cfg.icon} size={12} color={cfg.color} />
-              <Text style={[styles.statusText, { color: cfg.color }]}>{item.status}</Text>
+
+          {/* Patient */}
+          <Text style={[styles.patientName, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
+            {item.patientName}
+          </Text>
+          {item.patientPhone ? <Text style={styles.phoneText}>{item.patientPhone}</Text> : null}
+
+          {/* Trajet */}
+          <View style={styles.routeBlock}>
+            <View style={styles.routeRow}>
+              <View style={[styles.routeDot, { backgroundColor: C.green }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.routeLabel}>Départ</Text>
+                <Text style={[styles.routeText, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
+                  {item.startLocation}
+                </Text>
+              </View>
+            </View>
+            <View style={styles.routeVLine} />
+            <View style={styles.routeRow}>
+              <View style={[styles.routeDot, { backgroundColor: C.brand, borderRadius: 2 }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.routeLabel}>Arrivée</Text>
+                <Text style={[styles.routeText, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
+                  {item.endLocation}
+                </Text>
+              </View>
+            </View>
+          </View>
+
+          {/* Info terminée */}
+          {isFinished && (
+            <View style={styles.finishedRow}>
+              <Ionicons name="checkmark-circle" size={13} color={C.text3} />
+              <Text style={styles.finishedText}>
+                {item.endTime ? `Terminée à ${moment(item.endTime).format('HH:mm')}` : 'Terminée'}
+                {duration !== null ? ` · ${duration} min` : ''}
+                {item.realDistance > 0 ? ` · ${item.realDistance} km` : ''}
+                {item.tolls > 0 ? ` · Péages ${item.tolls} €` : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* Raison annulation */}
+          {isCancelled && (
+            <View style={styles.cancelRow}>
+              <Ionicons name="close-circle-outline" size={13} color={C.red} />
+              <Text style={styles.cancelText}>
+                Annulée{item.cancelReason ? ` · ${item.cancelReason}` : ''}
+              </Text>
+            </View>
+          )}
+
+          {/* Notes */}
+          {item.notes ? (
+            <View style={styles.noteBox}>
+              <Ionicons name="chatbox-ellipses" size={12} color={C.brand} />
+              <Text style={styles.noteText} numberOfLines={2}>{item.notes}</Text>
+            </View>
+          ) : null}
+
+          {/* Actions web */}
+          {isWebPending && (
+            <View style={styles.webActions}>
+              <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)} activeOpacity={0.85}>
+                <LinearGradient colors={[C.green, '#059669']} style={styles.btnGrad}>
+                  <Ionicons name="checkmark" size={16} color="#FFF" />
+                  <Text style={styles.btnGradText}>Accepter</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnReject} onPress={() => handleRejectWeb(item._id, item.patientName)} activeOpacity={0.85}>
+                <Ionicons name="close" size={16} color={C.red} />
+                <Text style={styles.btnRejectText}>Refuser</Text>
+              </TouchableOpacity>
+            </View>
+          )}
+
+          {/* Actions normales */}
+          {!isFinished && !isCancelled && !isWebPending && (
+            <View style={styles.actions}>
+              {!isActive ? (
+                <TouchableOpacity style={styles.btnStart} onPress={() => handleStart(item._id)} activeOpacity={0.85}>
+                  <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.btnGrad}>
+                    <Ionicons name="play" size={15} color="#FFF" />
+                    <Text style={styles.btnGradText}>Démarrer</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity style={styles.btnFinish} onPress={() => openFinishModal(item)} activeOpacity={0.85}>
+                  <LinearGradient colors={[C.brand, '#E55A00']} style={styles.btnGrad}>
+                    <Ionicons name="flag" size={15} color="#FFF" />
+                    <Text style={styles.btnGradText}>Terminer</Text>
+                  </LinearGradient>
+                </TouchableOpacity>
+              )}
+              <TouchableOpacity style={styles.btnCancelPill} onPress={() => openCancelModal(item)}>
+                <Ionicons name="close" size={15} color={C.red} />
+              </TouchableOpacity>
             </View>
           )}
         </View>
-
-        {/* PATIENT */}
-        <Text style={[styles.patientName, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
-          {item.patientName}
-        </Text>
-        {item.patientPhone ? (
-          <Text style={styles.phoneText}>{item.patientPhone}</Text>
-        ) : null}
-
-        {/* TRAJET */}
-        <View style={styles.route}>
-          <View style={styles.routeRow}>
-            <View style={[styles.dot, { backgroundColor: C.green }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.routeLabel}>Départ</Text>
-              <Text style={[styles.routeText, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
-                {item.startLocation}
-              </Text>
-            </View>
-          </View>
-          <View style={styles.routeLine} />
-          <View style={styles.routeRow}>
-            <View style={[styles.dot, styles.dotSquare, { backgroundColor: C.brand }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.routeLabel}>Arrivée</Text>
-              <Text style={[styles.routeText, (isFinished || isCancelled) && styles.dimmed]} numberOfLines={1}>
-                {item.endLocation}
-              </Text>
-            </View>
-          </View>
-        </View>
-
-        {/* INFO TERMINÉE */}
-        {isFinished && (
-          <View style={styles.finishedRow}>
-            <Ionicons name="checkmark-circle" size={13} color={C.text3} />
-            <Text style={styles.finishedText}>
-              Terminée{item.endTime ? ` à ${moment(item.endTime).format('HH:mm')}` : ''}
-              {duration !== null ? ` · ${duration} min` : ''}
-              {item.realDistance > 0 ? ` · ${item.realDistance} km` : ''}
-              {item.tolls > 0 ? ` · Péages ${item.tolls}€` : ''}
-            </Text>
-          </View>
-        )}
-
-        {/* RAISON ANNULATION */}
-        {isCancelled && (
-          <View style={styles.cancelRow}>
-            <Ionicons name="close-circle-outline" size={13} color={C.red} />
-            <Text style={styles.cancelText}>
-              Annulée{item.cancelReason ? ` · ${item.cancelReason}` : ''}
-            </Text>
-          </View>
-        )}
-
-        {/* NOTES */}
-        {item.notes ? (
-          <View style={styles.noteBox}>
-            <Ionicons name="chatbox-ellipses" size={13} color={C.brand} />
-            <Text style={styles.noteText} numberOfLines={2}>{item.notes}</Text>
-          </View>
-        ) : null}
-
-        {/* ACTIONS DEMANDE WEB */}
-        {isWebPending && (
-          <View style={styles.webActions}>
-            <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)}>
-              <Ionicons name="checkmark" size={18} color="#FFF" />
-              <Text style={styles.btnAcceptText}>Accepter</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.btnReject} onPress={() => handleRejectWeb(item._id, item.patientName)}>
-              <Ionicons name="close" size={18} color={C.red} />
-              <Text style={styles.btnRejectText}>Refuser</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-
-        {/* ACTIONS NORMALES */}
-        {!isFinished && !isCancelled && !isWebPending && (
-          <View style={styles.actions}>
-            {!isActive ? (
-              <TouchableOpacity style={styles.btnStart} onPress={() => handleStart(item._id)}>
-                <Ionicons name="play" size={16} color="#000" />
-                <Text style={styles.btnStartText}>Démarrer</Text>
-              </TouchableOpacity>
-            ) : (
-              <TouchableOpacity style={styles.btnFinish} onPress={() => openFinishModal(item)}>
-                <Ionicons name="flag" size={16} color="#FFF" />
-                <Text style={styles.btnFinishText}>Terminer</Text>
-              </TouchableOpacity>
-            )}
-            <TouchableOpacity style={styles.btnCancelIcon} onPress={() => openCancelModal(item)}>
-              <Ionicons name="close" size={16} color={C.red} />
-            </TouchableOpacity>
-          </View>
-        )}
       </View>
     );
   };
 
-  const stats = rides.reduce(
-    (acc, r) => ({
-      total: acc.total + 1,
-      done: acc.done + (r.status === 'Terminée' ? 1 : 0),
-      active: acc.active + (r.status === 'En cours' ? 1 : 0),
-    }),
-    { total: 0, done: 0, active: 0 }
-  );
-
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <View>
-          <Text style={styles.headerTitle}>Aujourd'hui</Text>
-          <Text style={styles.headerDate}>{moment().format('dddd D MMMM')}</Text>
-        </View>
-        <View style={styles.headerStats}>
-          {stats.active > 0 ? (
-            <View style={styles.activeBadge}>
-              <View style={styles.liveDot} />
-              <Text style={styles.activeBadgeText}>{stats.active} en cours</Text>
-            </View>
-          ) : (
-            <View style={styles.countPill}>
-              <Text style={styles.countText}>{stats.total} courses</Text>
+      {/* ═══ HEADER GRADIENT ═══ */}
+      <LinearGradient
+        colors={[C.hBg1, C.hBg2, '#1a2235']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        style={styles.header}
+      >
+        <View style={styles.accentBlob} />
+
+        <View style={styles.headerTop}>
+          <View>
+            <Text style={styles.headerLabel}>Courses du jour</Text>
+            <Text style={styles.headerDate}>{moment().format('dddd D MMMM')}</Text>
+          </View>
+          {headerStats.active > 0 && (
+            <View style={styles.liveBadge}>
+              <View style={styles.liveDotHeader} />
+              <Text style={styles.liveBadgeText}>{headerStats.active} en cours</Text>
             </View>
           )}
-          {stats.done > 0 && (
-            <Text style={styles.doneCount}>{stats.done} terminée{stats.done > 1 ? 's' : ''}</Text>
-          )}
         </View>
-      </View>
 
-      {loading ? (
+        {/* Stats pills */}
+        <View style={styles.headerPills}>
+          <View style={styles.pill}>
+            <Text style={styles.pillValue}>{headerStats.total}</Text>
+            <Text style={styles.pillLabel}>total</Text>
+          </View>
+          <View style={styles.pillDivider} />
+          <View style={styles.pill}>
+            <Text style={[styles.pillValue, { color: C.brand }]}>{headerStats.upcoming}</Text>
+            <Text style={styles.pillLabel}>à venir</Text>
+          </View>
+          <View style={styles.pillDivider} />
+          <View style={styles.pill}>
+            <Text style={[styles.pillValue, { color: C.green }]}>{headerStats.done}</Text>
+            <Text style={styles.pillLabel}>terminées</Text>
+          </View>
+        </View>
+      </LinearGradient>
+
+      {/* ═══ LISTE ═══ */}
+      {loading && rides.length === 0 ? (
         <View style={styles.center}>
-          <ActivityIndicator size="large" color="#FF6B00" />
+          <ActivityIndicator size="large" color={C.brand} />
         </View>
       ) : (
         <FlatList
@@ -348,91 +364,130 @@ export default function TodayRidesScreen() {
           keyExtractor={item => item._id}
           renderItem={renderItem}
           contentContainerStyle={styles.list}
+          showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => fetchRides(true)}
-              colors={['#FF6B00']}
-              tintColor="#FF6B00"
+              refreshing={loading}
+              onRefresh={() => loadData(true)}
+              tintColor={C.brand}
+              colors={[C.brand]}
             />
           }
           ListEmptyComponent={
             <View style={styles.empty}>
-              <View style={styles.emptyCircle}>
-                <Ionicons name="calendar-outline" size={38} color={C.brand} />
-              </View>
-              <Text style={styles.emptyTitle}>Journée libre</Text>
-              <Text style={styles.emptySubtitle}>Aucune course aujourd'hui</Text>
+              <LinearGradient
+                colors={[C.brand + '18', C.brand + '08']}
+                style={styles.emptyInner}
+              >
+                <View style={styles.emptyIconWrap}>
+                  <Ionicons name="calendar-outline" size={34} color={C.brand} />
+                </View>
+                <Text style={styles.emptyTitle}>Journée libre</Text>
+                <Text style={styles.emptySub}>Aucune course aujourd'hui</Text>
+              </LinearGradient>
             </View>
           }
         />
       )}
 
-      {/* MODAL TERMINER */}
-      <Modal visible={finishModal.visible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Terminer la course</Text>
-            <Text style={styles.modalLabel}>Distance parcourue (km) *</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={distance}
-              onChangeText={setDistance}
-              placeholder="Ex: 12.5"
-              placeholderTextColor={C.text3}
-              keyboardType="decimal-pad"
-              autoFocus
-            />
-            <Text style={styles.modalLabel}>Péages (€) — optionnel</Text>
-            <TextInput
-              style={styles.modalInput}
-              value={tolls}
-              onChangeText={setTolls}
-              placeholder="Ex: 3.50"
-              placeholderTextColor={C.text3}
-              keyboardType="decimal-pad"
-            />
-            <View style={styles.modalActions}>
+      {/* ═══ MODAL TERMINER ═══ */}
+      <Modal
+        visible={finishModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setFinishModal({ visible: false, rideId: null, ride: null })}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Terminer la course</Text>
+            {finishModal.ride?.patientName && (
+              <Text style={styles.sheetSub}>{finishModal.ride.patientName}</Text>
+            )}
+
+            <Text style={styles.fieldLabel}>Distance parcourue (km) *</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="speedometer-outline" size={18} color={C.text3} />
+              <TextInput
+                style={styles.input}
+                value={distance}
+                onChangeText={setDistance}
+                placeholder="Ex : 12.5"
+                placeholderTextColor={C.text3}
+                keyboardType="decimal-pad"
+                autoFocus
+              />
+            </View>
+
+            <Text style={styles.fieldLabel}>Péages (€) — optionnel</Text>
+            <View style={styles.inputWrap}>
+              <Ionicons name="card-outline" size={18} color={C.text3} />
+              <TextInput
+                style={styles.input}
+                value={tolls}
+                onChangeText={setTolls}
+                placeholder="Ex : 3.50"
+                placeholderTextColor={C.text3}
+                keyboardType="decimal-pad"
+              />
+            </View>
+
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.modalBtnSecondary}
-                onPress={() => setFinishModal({ visible: false, rideId: null })}
+                style={styles.sheetBtnCancel}
+                onPress={() => setFinishModal({ visible: false, rideId: null, ride: null })}
               >
-                <Text style={styles.modalBtnSecondaryText}>Annuler</Text>
+                <Text style={styles.sheetBtnCancelText}>Annuler</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={styles.modalBtnPrimary} onPress={submitFinish}>
-                <Text style={styles.modalBtnPrimaryText}>Valider</Text>
+              <TouchableOpacity style={styles.sheetBtnPrimary} onPress={submitFinish} activeOpacity={0.85}>
+                <LinearGradient colors={[C.brand, '#E55A00']} style={styles.sheetBtnGrad}>
+                  <Ionicons name="flag" size={16} color="#FFF" />
+                  <Text style={styles.sheetBtnPrimaryText}>Valider</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
         </View>
       </Modal>
 
-      {/* MODAL ANNULER */}
-      <Modal visible={cancelModal.visible} transparent animationType="slide">
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalSheet}>
-            <View style={styles.modalHandle} />
-            <Text style={styles.modalTitle}>Annuler la course</Text>
-            <Text style={styles.modalSub}>{cancelModal.patientName}</Text>
-            <Text style={styles.modalLabel}>Motif d'annulation (optionnel)</Text>
-            <TextInput
-              style={[styles.modalInput, { height: 80, textAlignVertical: 'top' }]}
-              value={cancelReason}
-              onChangeText={setCancelReason}
-              placeholder="Ex: Patient hospitalisé, transport annulé..."
-              placeholderTextColor={C.text3}
-              multiline
-            />
-            <View style={styles.modalActions}>
+      {/* ═══ MODAL ANNULER ═══ */}
+      <Modal
+        visible={cancelModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setCancelModal({ visible: false, rideId: null, patientName: '' })}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Annuler la course</Text>
+            <Text style={styles.sheetSub}>{cancelModal.patientName}</Text>
+
+            <Text style={styles.fieldLabel}>Motif (optionnel)</Text>
+            <View style={[styles.inputWrap, { height: 90, alignItems: 'flex-start', paddingTop: 12 }]}>
+              <Ionicons name="chatbox-outline" size={18} color={C.text3} style={{ marginTop: 2 }} />
+              <TextInput
+                style={[styles.input, { height: 70, textAlignVertical: 'top' }]}
+                value={cancelReason}
+                onChangeText={setCancelReason}
+                placeholder="Patient hospitalisé, transport annulé..."
+                placeholderTextColor={C.text3}
+                multiline
+              />
+            </View>
+
+            <View style={styles.sheetActions}>
               <TouchableOpacity
-                style={styles.modalBtnSecondary}
+                style={styles.sheetBtnCancel}
                 onPress={() => setCancelModal({ visible: false, rideId: null, patientName: '' })}
               >
-                <Text style={styles.modalBtnSecondaryText}>Retour</Text>
+                <Text style={styles.sheetBtnCancelText}>Retour</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.modalBtnPrimary, { backgroundColor: C.red }]} onPress={submitCancel}>
-                <Text style={styles.modalBtnPrimaryText}>Confirmer</Text>
+              <TouchableOpacity style={styles.sheetBtnPrimary} onPress={submitCancel} activeOpacity={0.85}>
+                <LinearGradient colors={[C.red, '#DC2626']} style={styles.sheetBtnGrad}>
+                  <Ionicons name="close-circle" size={16} color="#FFF" />
+                  <Text style={styles.sheetBtnPrimaryText}>Confirmer</Text>
+                </LinearGradient>
               </TouchableOpacity>
             </View>
           </View>
@@ -442,157 +497,206 @@ export default function TodayRidesScreen() {
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
+  root: { flex: 1, backgroundColor: C.bg },
 
+  // ── HEADER ──
   header: {
-    backgroundColor: C.bg,
-    paddingTop: Platform.OS === 'ios' ? 60 : 45,
-    paddingBottom: 16,
+    paddingTop: Platform.OS === 'ios' ? 64 : 50,
     paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-end',
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingBottom: 24,
+    overflow: 'hidden',
   },
-  headerTitle: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -0.5 },
-  headerDate: { fontSize: 13, color: C.brand, fontWeight: '600', textTransform: 'capitalize', marginTop: 2 },
-  headerStats: { alignItems: 'flex-end', gap: 4 },
-  activeBadge: {
+  accentBlob: {
+    position: 'absolute', width: 200, height: 200, borderRadius: 100,
+    backgroundColor: C.brand, opacity: 0.06, top: -50, right: -40,
+  },
+  headerTop: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 20,
+  },
+  headerLabel: { color: C.hText2, fontSize: 12, fontWeight: '600', letterSpacing: 0.3 },
+  headerDate: {
+    color: C.hText, fontSize: 24, fontWeight: '800',
+    textTransform: 'capitalize', letterSpacing: -0.5, marginTop: 2,
+  },
+  liveBadge: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: C.green + '22', paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 10, borderWidth: 1, borderColor: C.green + '44',
+    backgroundColor: C.green + '22', borderWidth: 1, borderColor: C.green + '44',
+    borderRadius: 20, paddingHorizontal: 12, paddingVertical: 6,
   },
-  activeBadgeText: { color: C.green, fontSize: 12, fontWeight: '700' },
-  countPill: {
-    backgroundColor: C.card, paddingHorizontal: 10, paddingVertical: 5,
-    borderRadius: 10, borderWidth: 1, borderColor: C.border,
-  },
-  countText: { color: C.text2, fontSize: 12, fontWeight: '600' },
-  doneCount: { fontSize: 11, color: C.text3, fontWeight: '600' },
+  liveDotHeader: { width: 7, height: 7, borderRadius: 4, backgroundColor: C.green },
+  liveBadgeText: { color: C.green, fontSize: 12, fontWeight: '700' },
 
+  headerPills: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.hCard, borderWidth: 1, borderColor: C.hBorder,
+    borderRadius: 16, paddingHorizontal: 20, paddingVertical: 14,
+  },
+  pill: { flex: 1, alignItems: 'center', gap: 2 },
+  pillValue: { color: C.hText, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
+  pillLabel: { color: C.hText2, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  pillDivider: { width: 1, height: 32, backgroundColor: C.hBorder },
+
+  // ── LISTE ──
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  list: { paddingHorizontal: 14, paddingTop: 12, paddingBottom: 160 },
+  list: { paddingHorizontal: 16, paddingTop: 16, paddingBottom: 160 },
 
+  // ── CARD ──
   card: {
+    flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 16,
-    padding: 16,
+    borderRadius: 20,
     marginBottom: 12,
-    borderLeftWidth: 3,
     borderWidth: 1,
     borderColor: C.border,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 10,
+    elevation: 3,
   },
+  cardDim: { opacity: 0.72 },
+  cardStripe: { width: 5 },
+  cardInner: { flex: 1, padding: 16 },
 
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 },
+  cardHeader: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'flex-start', marginBottom: 10,
+  },
   timeText: { fontSize: 28, fontWeight: '800', color: C.text, letterSpacing: -1 },
   dimmed: { color: C.text3 },
   liveRow: { flexDirection: 'row', alignItems: 'center', marginTop: 2, gap: 5 },
   liveDot: { width: 6, height: 6, borderRadius: 3, backgroundColor: C.green },
   liveText: { fontSize: 10, fontWeight: '800', color: C.green, letterSpacing: 1.5 },
-  statusBadge: {
-    flexDirection: 'row', alignItems: 'center', paddingHorizontal: 10, paddingVertical: 4,
-    borderRadius: 8, borderWidth: 1, gap: 4,
-  },
-  statusText: { fontSize: 11, fontWeight: '700' },
 
-  patientName: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 3 },
+  statusPill: {
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1,
+  },
+  statusPillText: { fontSize: 11, fontWeight: '700' },
+
+  patientName: { fontSize: 17, fontWeight: '700', color: C.text, marginBottom: 2 },
   phoneText: { fontSize: 12, color: C.text2, marginBottom: 10 },
 
-  route: { backgroundColor: C.card2, borderRadius: 12, padding: 12, marginBottom: 10, borderWidth: 1, borderColor: C.border },
+  routeBlock: {
+    backgroundColor: C.card2, borderRadius: 14, padding: 12,
+    marginBottom: 10, borderWidth: 1, borderColor: C.border,
+  },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  dot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
-  dotSquare: { borderRadius: 2 },
-  routeLabel: { fontSize: 10, color: C.text3, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
+  routeDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  routeVLine: { height: 10, width: 1, backgroundColor: C.border, marginLeft: 3, marginVertical: 4 },
+  routeLabel: { fontSize: 9, color: C.text3, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
   routeText: { fontSize: 14, color: C.text, fontWeight: '500', marginTop: 1 },
-  routeLine: { height: 1, backgroundColor: C.border, marginVertical: 8, marginLeft: 18 },
 
-  finishedRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border, gap: 6, marginBottom: 4 },
+  finishedRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingTop: 10, borderTopWidth: 1, borderTopColor: C.border,
+  },
   finishedText: { color: C.text3, fontSize: 12, fontStyle: 'italic', flex: 1 },
-  cancelRow: { flexDirection: 'row', alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: C.red + '22', gap: 6, marginBottom: 4 },
+
+  cancelRow: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    paddingTop: 10, borderTopWidth: 1, borderTopColor: C.red + '22',
+  },
   cancelText: { color: C.red, fontSize: 12, fontWeight: '600' },
 
-  noteBox: { flexDirection: 'row', alignItems: 'flex-start', backgroundColor: C.card2, padding: 10, borderRadius: 10, marginBottom: 10, borderLeftWidth: 2, borderLeftColor: C.brand, gap: 7 },
-  noteText: { fontSize: 13, color: '#CCC', flex: 1, lineHeight: 18 },
+  noteBox: {
+    flexDirection: 'row', alignItems: 'flex-start',
+    backgroundColor: C.brand + '0C', padding: 10, borderRadius: 10,
+    marginBottom: 10, borderLeftWidth: 2, borderLeftColor: C.brand + '66', gap: 7,
+  },
+  noteText: { fontSize: 13, color: C.text2, flex: 1, lineHeight: 18 },
 
+  // ── ACTIONS ──
   actions: {
     flexDirection: 'row', alignItems: 'center',
     marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border, gap: 10,
   },
-  btnStart: {
-    flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#111827', paddingVertical: 13, borderRadius: 12, gap: 8,
+  btnStart: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  btnFinish: { flex: 1, borderRadius: 14, overflow: 'hidden' },
+  btnGrad: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 13, gap: 7,
   },
-  btnStartText: { color: '#FFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
-  btnFinish: {
-    flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: C.brand, paddingVertical: 13, borderRadius: 12, gap: 8,
-  },
-  btnFinishText: { color: '#FFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
-  btnCancelIcon: {
-    width: 44, height: 44, justifyContent: 'center', alignItems: 'center',
-    backgroundColor: C.red + '11', borderRadius: 12, borderWidth: 1, borderColor: C.red + '33',
+  btnGradText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  btnCancelPill: {
+    width: 46, height: 46, borderRadius: 14,
+    backgroundColor: C.red + '10', borderWidth: 1, borderColor: C.red + '28',
+    justifyContent: 'center', alignItems: 'center',
   },
 
-  // Demande web
+  // Web actions
   webBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
-    backgroundColor: '#FEF3C7', borderRadius: 8,
-    paddingHorizontal: 10, paddingVertical: 6,
-    marginBottom: 12,
+    backgroundColor: '#FEF3C7', paddingHorizontal: 10, paddingVertical: 6,
+    marginBottom: 12, borderRadius: 8,
   },
-  webBannerText: {
-    fontSize: 10, fontWeight: '800', color: '#92400E', letterSpacing: 0.4,
-  },
-  webActions: {
-    flexDirection: 'row', gap: 10, marginTop: 14,
-  },
-  btnAccept: {
-    flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#16A34A', paddingVertical: 14, borderRadius: 12, gap: 8,
-  },
-  btnAcceptText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+  webBannerText: { fontSize: 10, fontWeight: '800', color: '#92400E', letterSpacing: 0.4 },
+  webActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  btnAccept: { flex: 1, borderRadius: 14, overflow: 'hidden' },
   btnReject: {
     flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: C.red + '11', paddingVertical: 14, borderRadius: 12, gap: 8,
-    borderWidth: 1, borderColor: C.red + '33',
+    backgroundColor: C.red + '10', borderRadius: 14, gap: 7,
+    borderWidth: 1, borderColor: C.red + '28',
   },
   btnRejectText: { color: C.red, fontWeight: '800', fontSize: 14 },
 
-  empty: { alignItems: 'center', paddingTop: 80 },
-  emptyCircle: {
-    width: 80, height: 80, borderRadius: 40,
-    backgroundColor: C.brand + '15', alignItems: 'center', justifyContent: 'center',
-    marginBottom: 18, borderWidth: 1, borderColor: C.brand + '22',
+  // ── EMPTY ──
+  empty: { marginTop: 40, borderRadius: 22, overflow: 'hidden', borderWidth: 1, borderColor: C.brand + '22' },
+  emptyInner: { alignItems: 'center', paddingVertical: 40 },
+  emptyIconWrap: {
+    width: 72, height: 72, borderRadius: 22,
+    backgroundColor: C.brand + '18', alignItems: 'center', justifyContent: 'center',
+    marginBottom: 16, borderWidth: 1, borderColor: C.brand + '28',
   },
   emptyTitle: { fontSize: 18, fontWeight: '800', color: C.text },
-  emptySubtitle: { fontSize: 13, color: C.text2, marginTop: 5 },
+  emptySub: { fontSize: 13, color: C.text2, marginTop: 5 },
 
-  // Modals
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.75)', justifyContent: 'flex-end' },
-  modalSheet: {
-    backgroundColor: C.card, borderTopLeftRadius: 28, borderTopRightRadius: 28,
-    padding: 24, paddingBottom: Platform.OS === 'ios' ? 40 : 24,
+  // ── MODALS ──
+  overlay: {
+    flex: 1, backgroundColor: 'rgba(10,15,30,0.75)',
+    justifyContent: 'flex-end',
+  },
+  sheet: {
+    backgroundColor: C.card,
+    borderTopLeftRadius: 30, borderTopRightRadius: 30,
+    padding: 24, paddingBottom: Platform.OS === 'ios' ? 42 : 28,
     borderTopWidth: 1, borderColor: C.border,
   },
-  modalHandle: { width: 40, height: 4, backgroundColor: '#D1D5DB', borderRadius: 2, alignSelf: 'center', marginBottom: 20 },
-  modalTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 4 },
-  modalSub: { fontSize: 14, color: C.text2, marginBottom: 20 },
-  modalLabel: { fontSize: 12, color: C.text2, fontWeight: '600', marginBottom: 8, marginTop: 16, textTransform: 'uppercase', letterSpacing: 0.5 },
-  modalInput: {
-    backgroundColor: C.card2, borderRadius: 12, padding: 14,
-    fontSize: 16, color: C.text, borderWidth: 1, borderColor: C.border,
+  sheetHandle: {
+    width: 40, height: 4, backgroundColor: C.border,
+    borderRadius: 2, alignSelf: 'center', marginBottom: 24,
   },
-  modalActions: { flexDirection: 'row', marginTop: 24, gap: 12 },
-  modalBtnSecondary: {
-    flex: 1, paddingVertical: 14, borderRadius: 12,
-    backgroundColor: C.card2, alignItems: 'center', borderWidth: 1, borderColor: C.border,
+  sheetTitle: { fontSize: 22, fontWeight: '800', color: C.text, marginBottom: 2 },
+  sheetSub: { fontSize: 14, color: C.text2, marginBottom: 20 },
+
+  fieldLabel: {
+    fontSize: 11, color: C.text2, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 0.6,
+    marginBottom: 8, marginTop: 16,
   },
-  modalBtnSecondaryText: { color: C.text2, fontWeight: '700', fontSize: 15 },
-  modalBtnPrimary: {
-    flex: 1, paddingVertical: 14, borderRadius: 12,
-    backgroundColor: C.brand, alignItems: 'center',
+  inputWrap: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card2, borderRadius: 14, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: C.border, height: 52,
   },
-  modalBtnPrimaryText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+  input: { flex: 1, fontSize: 16, color: C.text, fontWeight: '600' },
+
+  sheetActions: { flexDirection: 'row', marginTop: 28, gap: 12 },
+  sheetBtnCancel: {
+    flex: 1, paddingVertical: 15, borderRadius: 16,
+    backgroundColor: C.card2, alignItems: 'center',
+    borderWidth: 1, borderColor: C.border,
+  },
+  sheetBtnCancelText: { color: C.text2, fontWeight: '700', fontSize: 15 },
+  sheetBtnPrimary: { flex: 1, borderRadius: 16, overflow: 'hidden' },
+  sheetBtnGrad: {
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    paddingVertical: 15, gap: 8,
+  },
+  sheetBtnPrimaryText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
 });

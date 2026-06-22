@@ -58,7 +58,10 @@
     "react-native-url-polyfill": "^2.0.0",
     "react-native-vector-icons": "^10.3.0",
     "react-navigation": "^5.0.0",
-    "@react-native-community/netinfo": "11.4.1"
+    "@react-native-community/netinfo": "11.4.1",
+    "expo-updates": "~0.28.18",
+    "expo-location": "~18.1.6",
+    "expo-task-manager": "~13.1.6"
   },
   "devDependencies": {
     "@babel/core": "^7.20.0"

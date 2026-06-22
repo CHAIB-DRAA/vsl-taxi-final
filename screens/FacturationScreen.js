@@ -1,9 +1,10 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
-  ActivityIndicator, Alert, StatusBar, TextInput,
+  ActivityIndicator, Alert, StatusBar, TextInput, Platform,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment/locale/fr';
 import * as Print from 'expo-print';
@@ -15,16 +16,25 @@ import api from '../services/api';
 import { calculatePrice } from '../utils/pricing';
 
 const C = {
-  bg:    '#F2F3F7',
-  card:  '#FFFFFF',
-  card2: '#F5F7FB',
-  border:'#E2E5EC',
-  text:  '#111827',
-  text2: '#6B7280',
-  text3: '#9CA3AF',
-  brand: '#FF6B00',
-  green: '#16A34A',
-  red:   '#EF4444',
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  green:   '#10B981',
+  red:     '#EF4444',
+  blue:    '#3B82F6',
+  purple:  '#8B5CF6',
+  amber:   '#F59E0B',
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hCard:  'rgba(255,255,255,0.07)',
+  hBorder:'rgba(255,255,255,0.10)',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
 };
 
 // Regroupe par période CPAM : 1-15 ou 16-fin du mois
@@ -226,6 +236,7 @@ export default function FacturationScreen() {
     const mc    = MOTIF_COLOR[r.motif] || C.text2;
     const price = calculatePrice(r);
     const isEditingBt = editingBtId === r._id;
+    const isBilled = r.statuFacturation === 'Facturé';
 
     const copyAddr = async (text, label) => {
       await Clipboard.setStringAsync(text);
@@ -237,133 +248,142 @@ export default function FacturationScreen() {
       Alert.alert('Copié ✓', 'Fiche Cofidoc dans le presse-papier');
     };
 
+    // Stripe color
+    const stripeColor = isBilled ? C.green : C.brand;
+
     return (
       <View style={styles.rideRow}>
+        {/* Stripe latérale colorée */}
+        <View style={[styles.rideStripe, { backgroundColor: stripeColor }]} />
 
-        {/* ── En-tête : date · motif · patient ── */}
-        <View style={styles.rideHeader}>
-          <View style={styles.rideTopLine}>
-            <Text style={styles.rideTime}>{moment(r.date).format('DD/MM HH:mm')}</Text>
-            {r.motif && (
-              <View style={[styles.motifPill, { backgroundColor: mc + '18', borderColor: mc + '44' }]}>
-                <Text style={[styles.motifText, { color: mc }]}>{r.motif}</Text>
-              </View>
-            )}
-            {r.isRoundTrip && (
-              <View style={styles.rtBadge}>
-                <Ionicons name="repeat" size={9} color={C.text3} />
-                <Text style={styles.rtText}>A/R</Text>
-              </View>
-            )}
-          </View>
-          <Text style={styles.rideName} numberOfLines={1}>{r.patientName}</Text>
-
-          {/* Bon de transport */}
-          {isEditingBt ? (
-            <View style={styles.btEditRow}>
-              <Ionicons name="document-text-outline" size={12} color={C.brand} />
-              <TextInput
-                style={styles.btInput}
-                value={editingBtVal}
-                onChangeText={setEditingBtVal}
-                placeholder="N° du bon de transport"
-                placeholderTextColor={C.text3}
-                autoFocus
-                autoCapitalize="characters"
-                returnKeyType="done"
-                onSubmitEditing={() => saveBonTransport(r._id)}
-              />
-              <TouchableOpacity onPress={() => saveBonTransport(r._id)} style={styles.btSaveBtn}>
-                <Ionicons name="checkmark" size={14} color={C.green} />
-              </TouchableOpacity>
-              <TouchableOpacity onPress={() => setEditingBtId(null)} style={styles.btCancelBtn}>
-                <Ionicons name="close" size={14} color={C.red} />
-              </TouchableOpacity>
+        <View style={styles.rideContent}>
+          {/* ── En-tête : date · motif · patient ── */}
+          <View style={styles.rideHeader}>
+            <View style={styles.rideTopLine}>
+              <Text style={styles.rideTime}>{moment(r.date).format('DD/MM HH:mm')}</Text>
+              {r.motif && (
+                <View style={[styles.motifPill, { backgroundColor: mc + '18', borderColor: mc + '44' }]}>
+                  <Text style={[styles.motifText, { color: mc }]}>{r.motif}</Text>
+                </View>
+              )}
+              {r.isRoundTrip && (
+                <View style={styles.rtBadge}>
+                  <Ionicons name="repeat" size={9} color={C.text3} />
+                  <Text style={styles.rtText}>A/R</Text>
+                </View>
+              )}
             </View>
-          ) : r.bonTransport ? (
-            <TouchableOpacity
-              style={styles.btRow}
-              onPress={() => { setEditingBtId(r._id); setEditingBtVal(r.bonTransport); }}
-            >
-              <Ionicons name="document-text-outline" size={11} color={C.text3} />
-              <Text style={styles.btText}>BT n° {r.bonTransport}</Text>
-              <Ionicons name="create-outline" size={11} color={C.text3} />
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
-              style={styles.btAddRow}
-              onPress={() => { setEditingBtId(r._id); setEditingBtVal(''); }}
-            >
-              <Ionicons name="add-circle-outline" size={11} color={C.text3} />
-              <Text style={styles.btAddText}>Ajouter n° bon de transport</Text>
-            </TouchableOpacity>
-          )}
-        </View>
+            <Text style={styles.rideName} numberOfLines={1}>{r.patientName}</Text>
 
-        {/* ── Adresses cliquables ── */}
-        <View style={styles.addrBlock}>
-          <TouchableOpacity
-            style={styles.addrRow}
-            onPress={() => copyAddr(r.startLocation, 'Adresse de départ copiée')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.addrDot, { backgroundColor: C.green }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.addrLabel}>DÉPART</Text>
-              <Text style={styles.addrText}>{r.startLocation}</Text>
-            </View>
-            <Ionicons name="copy-outline" size={13} color={C.text3} />
-          </TouchableOpacity>
-
-          <View style={styles.addrDivider} />
-
-          <TouchableOpacity
-            style={styles.addrRow}
-            onPress={() => copyAddr(r.endLocation, 'Adresse d\'arrivée copiée')}
-            activeOpacity={0.7}
-          >
-            <View style={[styles.addrDot, styles.addrDotSquare, { backgroundColor: C.brand }]} />
-            <View style={{ flex: 1 }}>
-              <Text style={styles.addrLabel}>ARRIVÉE</Text>
-              <Text style={styles.addrText}>{r.endLocation}</Text>
-            </View>
-            <Ionicons name="copy-outline" size={13} color={C.text3} />
-          </TouchableOpacity>
-        </View>
-
-        {/* ── Méta + Prix ── */}
-        <View style={styles.rideFooter}>
-          <View style={styles.rideMeta}>
-            {r.realDistance ? <Text style={styles.metaChip}>{r.realDistance} km</Text> : null}
-            {r.tolls > 0   ? <Text style={styles.metaChip}>Péage {parseFloat(r.tolls).toFixed(2)} €</Text> : null}
-            {r.nuit        ? <Text style={[styles.metaChip, { color: '#D97706' }]}>🌙 Nuit</Text> : null}
-          </View>
-          <Text style={styles.ridePrice}>{price} €</Text>
-        </View>
-
-        {/* ── Actions ── */}
-        <View style={styles.rideActions}>
-          <TouchableOpacity style={styles.cofidocBtn} onPress={copyFiche} activeOpacity={0.8}>
-            <Ionicons name="clipboard-outline" size={12} color={C.brand} />
-            <Text style={styles.cofidocBtnText}>Copier fiche</Text>
-          </TouchableOpacity>
-
-          {activeTab === 'unbilled' && (
-            markingId === r._id
-              ? <ActivityIndicator size="small" color={C.brand} />
-              : (
-                <TouchableOpacity style={styles.factBtn} onPress={() => markBilled(r._id)}>
-                  <Ionicons name="checkmark" size={13} color={C.green} />
-                  <Text style={styles.factBtnText}>Facturer</Text>
+            {/* Bon de transport */}
+            {isEditingBt ? (
+              <View style={styles.btEditRow}>
+                <Ionicons name="document-text-outline" size={12} color={C.brand} />
+                <TextInput
+                  style={styles.btInput}
+                  value={editingBtVal}
+                  onChangeText={setEditingBtVal}
+                  placeholder="N° du bon de transport"
+                  placeholderTextColor={C.text3}
+                  autoFocus
+                  autoCapitalize="characters"
+                  returnKeyType="done"
+                  onSubmitEditing={() => saveBonTransport(r._id)}
+                />
+                <TouchableOpacity onPress={() => saveBonTransport(r._id)} style={styles.btSaveBtn}>
+                  <Ionicons name="checkmark" size={14} color={C.green} />
                 </TouchableOpacity>
-              )
-          )}
-          {activeTab === 'billed' && (
-            <View style={styles.billedChip}>
-              <Ionicons name="checkmark-circle" size={11} color={C.green} />
-              <Text style={styles.billedChipText}>Facturé</Text>
+                <TouchableOpacity onPress={() => setEditingBtId(null)} style={styles.btCancelBtn}>
+                  <Ionicons name="close" size={14} color={C.red} />
+                </TouchableOpacity>
+              </View>
+            ) : r.bonTransport ? (
+              <TouchableOpacity
+                style={styles.btRow}
+                onPress={() => { setEditingBtId(r._id); setEditingBtVal(r.bonTransport); }}
+              >
+                <Ionicons name="document-text-outline" size={11} color={C.text3} />
+                <Text style={styles.btText}>BT n° {r.bonTransport}</Text>
+                <Ionicons name="create-outline" size={11} color={C.text3} />
+              </TouchableOpacity>
+            ) : (
+              <TouchableOpacity
+                style={styles.btAddRow}
+                onPress={() => { setEditingBtId(r._id); setEditingBtVal(''); }}
+              >
+                <Ionicons name="add-circle-outline" size={11} color={C.text3} />
+                <Text style={styles.btAddText}>Ajouter n° bon de transport</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {/* ── Adresses cliquables ── */}
+          <View style={styles.addrBlock}>
+            <TouchableOpacity
+              style={styles.addrRow}
+              onPress={() => copyAddr(r.startLocation, 'Adresse de départ copiée')}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.addrDot, { backgroundColor: C.green }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addrLabel}>DÉPART</Text>
+                <Text style={styles.addrText}>{r.startLocation}</Text>
+              </View>
+              <Ionicons name="copy-outline" size={13} color={C.text3} />
+            </TouchableOpacity>
+
+            <View style={styles.addrDivider} />
+
+            <TouchableOpacity
+              style={styles.addrRow}
+              onPress={() => copyAddr(r.endLocation, "Adresse d'arrivée copiée")}
+              activeOpacity={0.7}
+            >
+              <View style={[styles.addrDot, styles.addrDotSquare, { backgroundColor: C.brand }]} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.addrLabel}>ARRIVÉE</Text>
+                <Text style={styles.addrText}>{r.endLocation}</Text>
+              </View>
+              <Ionicons name="copy-outline" size={13} color={C.text3} />
+            </TouchableOpacity>
+          </View>
+
+          {/* ── Méta + Prix ── */}
+          <View style={styles.rideFooter}>
+            <View style={styles.rideMeta}>
+              {r.realDistance ? <Text style={styles.metaChip}>{r.realDistance} km</Text> : null}
+              {r.tolls > 0   ? <Text style={styles.metaChip}>Péage {parseFloat(r.tolls).toFixed(2)} €</Text> : null}
+              {r.nuit        ? <Text style={[styles.metaChip, { color: '#D97706' }]}>Nuit</Text> : null}
             </View>
-          )}
+            <Text style={styles.ridePrice}>{price} €</Text>
+          </View>
+
+          {/* ── Actions ── */}
+          <View style={styles.rideActions}>
+            <TouchableOpacity style={styles.cofidocBtn} onPress={copyFiche} activeOpacity={0.8}>
+              <Ionicons name="clipboard-outline" size={12} color={C.brand} />
+              <Text style={styles.cofidocBtnText}>Copier fiche</Text>
+            </TouchableOpacity>
+
+            {activeTab === 'unbilled' && (
+              markingId === r._id
+                ? <ActivityIndicator size="small" color={C.green} />
+                : (
+                  <TouchableOpacity onPress={() => markBilled(r._id)} activeOpacity={0.85}>
+                    <LinearGradient colors={['#10B981', '#34D399']} style={styles.factBtn}>
+                      <Ionicons name="checkmark" size={13} color="#FFF" />
+                      <Text style={styles.factBtnText}>Facturer</Text>
+                    </LinearGradient>
+                  </TouchableOpacity>
+                )
+            )}
+            {activeTab === 'billed' && (
+              <View style={styles.billedChip}>
+                <Ionicons name="checkmark-circle" size={11} color={C.green} />
+                <Text style={styles.billedChipText}>Facturé</Text>
+              </View>
+            )}
+          </View>
         </View>
       </View>
     );
@@ -407,57 +427,80 @@ export default function FacturationScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
 
-      {/* ── RÉSUMÉ ── */}
-      <View style={styles.summary}>
-        <View style={styles.summaryRow}>
-          {[
-            { val: totals.count,                    label: 'À facturer' },
-            { val: `${totals.km} km`,               label: 'Distance' },
-            { val: `${totals.amount.toFixed(2)} €`, label: 'Montant CPAM', highlight: true },
-          ].map((s, i) => (
-            <React.Fragment key={i}>
-              {i > 0 && <View style={styles.summarySep} />}
-              <View style={styles.summaryItem}>
-                <Text style={[styles.summaryVal, s.highlight && { color: C.brand }]}>{s.val}</Text>
-                <Text style={styles.summaryLabel}>{s.label}</Text>
-              </View>
-            </React.Fragment>
-          ))}
+      {/* ── HEADER DARK GRADIENT ── */}
+      <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.header}>
+        <Text style={styles.headerTitle}>Facturation</Text>
+        <Text style={styles.headerSub}>Gestion CPAM & Cofidoc</Text>
+
+        {/* Stats rapides */}
+        <View style={styles.statsRow}>
+          <View style={styles.statItem}>
+            <Text style={styles.statVal}>{totals.count}</Text>
+            <Text style={styles.statLabel}>À facturer</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={styles.statVal}>{totals.km} km</Text>
+            <Text style={styles.statLabel}>Distance</Text>
+          </View>
+          <View style={styles.statDivider} />
+          <View style={styles.statItem}>
+            <Text style={[styles.statVal, { color: C.brand }]}>{totals.amount.toFixed(2)} €</Text>
+            <Text style={styles.statLabel}>Montant CPAM</Text>
+          </View>
         </View>
+
         {totals.tolls > 0 && (
-          <Text style={styles.summaryTolls}>dont {totals.tolls.toFixed(2)} € de péages</Text>
+          <Text style={styles.headerTolls}>dont {totals.tolls.toFixed(2)} € de péages</Text>
         )}
+
         <TouchableOpacity
-          style={[styles.pdfAllBtn, (generating || unbilled.length === 0) && { opacity: 0.5 }]}
           onPress={() => generatePDF(unbilled, 'Toutes les courses à facturer')}
           disabled={generating || unbilled.length === 0}
+          activeOpacity={0.85}
+          style={{ opacity: generating || unbilled.length === 0 ? 0.5 : 1 }}
         >
-          {generating
-            ? <ActivityIndicator size="small" color="#FFF" />
-            : <>
-                <Ionicons name="document-text" size={16} color="#FFF" />
-                <Text style={styles.pdfAllText}>Générer bordereau PDF complet</Text>
-              </>
-          }
+          <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.pdfAllBtn}>
+            {generating
+              ? <ActivityIndicator size="small" color="#FFF" />
+              : <>
+                  <Ionicons name="document-text" size={16} color="#FFF" />
+                  <Text style={styles.pdfAllText}>Générer bordereau PDF complet</Text>
+                </>
+            }
+          </LinearGradient>
         </TouchableOpacity>
-      </View>
+      </LinearGradient>
 
-      {/* ── TABS ── */}
-      <View style={styles.tabs}>
+      {/* ── TABS pills ── */}
+      <View style={styles.tabsContainer}>
         {[
-          { key: 'unbilled', label: `À facturer (${unbilled.length})` },
-          { key: 'billed',   label: `Facturé (${billed.length})` },
+          { key: 'unbilled', label: `À facturer`, count: unbilled.length },
+          { key: 'billed',   label: `Facturé`,    count: billed.length },
         ].map(t => (
           <TouchableOpacity
             key={t.key}
-            style={[styles.tab, activeTab === t.key && styles.tabActive]}
+            style={styles.tabWrap}
             onPress={() => setActiveTab(t.key)}
+            activeOpacity={0.8}
           >
-            <Text style={[styles.tabText, activeTab === t.key && styles.tabTextActive]}>
-              {t.label}
-            </Text>
+            {activeTab === t.key ? (
+              <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.tabActive}>
+                <Text style={styles.tabTextActive}>{t.label}</Text>
+                <View style={styles.tabBadgeActive}>
+                  <Text style={styles.tabBadgeTextActive}>{t.count}</Text>
+                </View>
+              </LinearGradient>
+            ) : (
+              <View style={styles.tabInactive}>
+                <Text style={styles.tabTextInactive}>{t.label}</Text>
+                <View style={styles.tabBadgeInactive}>
+                  <Text style={styles.tabBadgeTextInactive}>{t.count}</Text>
+                </View>
+              </View>
+            )}
           </TouchableOpacity>
         ))}
       </View>
@@ -470,7 +513,7 @@ export default function FacturationScreen() {
         contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
         ListEmptyComponent={
           <View style={styles.empty}>
-            <Ionicons name="checkmark-circle-outline" size={52} color={C.border} />
+            <Ionicons name="checkmark-circle-outline" size={56} color={C.border} />
             <Text style={styles.emptyText}>
               {activeTab === 'unbilled' ? 'Aucune course à facturer' : 'Aucune course facturée'}
             </Text>
@@ -489,45 +532,69 @@ export default function FacturationScreen() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: C.bg },
 
-  // RÉSUMÉ
-  summary: {
-    backgroundColor: C.card,
-    margin: 16,
-    marginBottom: 0,
-    borderRadius: 20,
-    padding: 20,
-    borderWidth: 1,
-    borderColor: C.border,
+  // ── HEADER ──
+  header: {
+    paddingTop: Platform.OS === 'ios' ? 56 : 44,
+    paddingHorizontal: 20,
+    paddingBottom: 24,
   },
-  summaryRow: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 12 },
-  summaryItem: { alignItems: 'center' },
-  summaryVal: { fontSize: 22, fontWeight: '900', color: C.text },
-  summaryLabel: { fontSize: 11, color: C.text2, fontWeight: '600', marginTop: 2 },
-  summarySep: { width: 1, backgroundColor: C.border },
-  summaryTolls: { fontSize: 12, color: C.text2, textAlign: 'center', marginBottom: 12 },
+  headerTitle: { fontSize: 26, fontWeight: '900', color: C.hText, letterSpacing: 0.3 },
+  headerSub: { fontSize: 13, color: C.hText2, marginTop: 2, marginBottom: 20 },
+
+  statsRow: {
+    flexDirection: 'row',
+    backgroundColor: C.hCard,
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: C.hBorder,
+  },
+  statItem: { flex: 1, alignItems: 'center' },
+  statVal: { fontSize: 20, fontWeight: '900', color: C.hText },
+  statLabel: { fontSize: 11, color: C.hText2, marginTop: 3, fontWeight: '600' },
+  statDivider: { width: 1, backgroundColor: C.hBorder },
+  headerTolls: { fontSize: 12, color: C.hText2, textAlign: 'center', marginBottom: 12 },
+
   pdfAllBtn: {
     flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
-    backgroundColor: C.brand, borderRadius: 14, paddingVertical: 14, gap: 8,
+    borderRadius: 14, paddingVertical: 14, gap: 8,
+    shadowColor: C.brand, shadowOpacity: 0.4, shadowRadius: 8, elevation: 5,
   },
   pdfAllText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
 
-  // TABS
-  tabs: {
+  // ── TABS ──
+  tabsContainer: {
     flexDirection: 'row',
     margin: 16,
-    marginBottom: 0,
-    backgroundColor: C.card2,
-    borderRadius: 14,
-    padding: 4,
-    borderWidth: 1,
-    borderColor: C.border,
+    marginBottom: 4,
+    gap: 10,
   },
-  tab: { flex: 1, paddingVertical: 10, alignItems: 'center', borderRadius: 11 },
-  tabActive: { backgroundColor: C.card, shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-  tabText: { fontSize: 13, fontWeight: '600', color: C.text2 },
-  tabTextActive: { color: C.text, fontWeight: '800' },
+  tabWrap: { flex: 1 },
+  tabActive: {
+    borderRadius: 14, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    shadowColor: C.brand, shadowOpacity: 0.3, shadowRadius: 6, elevation: 4,
+  },
+  tabInactive: {
+    borderRadius: 14, paddingVertical: 12,
+    flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
+    backgroundColor: C.card, borderWidth: 1, borderColor: C.border,
+  },
+  tabTextActive: { fontSize: 13, fontWeight: '800', color: '#FFF' },
+  tabTextInactive: { fontSize: 13, fontWeight: '600', color: C.text2 },
+  tabBadgeActive: {
+    backgroundColor: 'rgba(255,255,255,0.25)', borderRadius: 8,
+    paddingHorizontal: 6, paddingVertical: 2,
+  },
+  tabBadgeTextActive: { fontSize: 11, fontWeight: '800', color: '#FFF' },
+  tabBadgeInactive: {
+    backgroundColor: C.card2, borderRadius: 8,
+    paddingHorizontal: 6, paddingVertical: 2, borderWidth: 1, borderColor: C.border,
+  },
+  tabBadgeTextInactive: { fontSize: 11, fontWeight: '700', color: C.text3 },
 
-  // GROUPES
+  // ── GROUPES ──
   group: {
     backgroundColor: C.card,
     borderRadius: 16,
@@ -550,7 +617,7 @@ const styles = StyleSheet.create({
   groupSub:   { fontSize: 12, color: C.text2, marginTop: 2 },
   groupActions: { flexDirection: 'row', gap: 8, alignItems: 'center' },
   groupCopyBtn: {
-    backgroundColor: C.card2, width: 32, height: 32, borderRadius: 8,
+    backgroundColor: C.card, width: 32, height: 32, borderRadius: 8,
     justifyContent: 'center', alignItems: 'center',
     borderWidth: 1, borderColor: C.border,
   },
@@ -566,12 +633,14 @@ const styles = StyleSheet.create({
     borderWidth: 1, borderColor: '#BBF7D0',
   },
 
-  // RIDE ROW
+  // ── RIDE ROW ──
   rideRow: {
-    padding: 14,
+    flexDirection: 'row',
     borderBottomWidth: 1,
     borderBottomColor: C.border,
   },
+  rideStripe: { width: 4 },
+  rideContent: { flex: 1, padding: 14 },
 
   // Header
   rideHeader: { marginBottom: 10 },
@@ -599,7 +668,7 @@ const styles = StyleSheet.create({
 
   // Adresses
   addrBlock: {
-    backgroundColor: C.card2, borderRadius: 10, padding: 10,
+    backgroundColor: C.card2, borderRadius: 12, padding: 10,
     borderWidth: 1, borderColor: C.border, marginBottom: 10,
   },
   addrRow: { flexDirection: 'row', alignItems: 'center', gap: 10, paddingVertical: 4 },
@@ -612,7 +681,11 @@ const styles = StyleSheet.create({
   // Footer méta + prix
   rideFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 },
   rideMeta: { flexDirection: 'row', gap: 6, flexWrap: 'wrap' },
-  metaChip: { fontSize: 11, color: C.text2, backgroundColor: C.card2, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6 },
+  metaChip: {
+    fontSize: 11, color: C.text2, backgroundColor: C.card2,
+    paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6,
+    borderWidth: 1, borderColor: C.border,
+  },
   ridePrice: { fontSize: 22, fontWeight: '900', color: C.brand },
 
   // Actions
@@ -624,19 +697,20 @@ const styles = StyleSheet.create({
   },
   cofidocBtnText: { fontSize: 11, fontWeight: '700', color: C.brand },
   factBtn: {
-    flexDirection: 'row', alignItems: 'center', gap: 4,
-    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 7,
-    borderRadius: 8, borderWidth: 1, borderColor: '#BBF7D0',
+    flexDirection: 'row', alignItems: 'center', gap: 5,
+    paddingHorizontal: 12, paddingVertical: 8,
+    borderRadius: 10,
+    shadowColor: C.green, shadowOpacity: 0.3, shadowRadius: 4, elevation: 3,
   },
-  factBtnText: { fontSize: 11, fontWeight: '700', color: C.green },
+  factBtnText: { fontSize: 12, fontWeight: '800', color: '#FFF' },
   billedChip: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
-    backgroundColor: '#F0FDF4', paddingHorizontal: 7, paddingVertical: 4,
-    borderRadius: 6, borderWidth: 1, borderColor: '#BBF7D0',
+    backgroundColor: '#F0FDF4', paddingHorizontal: 8, paddingVertical: 5,
+    borderRadius: 8, borderWidth: 1, borderColor: '#BBF7D0',
   },
   billedChipText: { fontSize: 10, fontWeight: '700', color: C.green },
 
-  // EMPTY
+  // ── EMPTY ──
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyText: { fontSize: 16, fontWeight: '700', color: C.text2, marginTop: 16, textAlign: 'center' },
   emptyHint: { fontSize: 13, color: C.text2, marginTop: 8, textAlign: 'center', lineHeight: 20 },

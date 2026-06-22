@@ -4,6 +4,7 @@ const Ride = require('../models/Ride');
 const User = require('../models/User');
 const Patient = require('../models/Patient');
 const AdminConfig = require('../models/AdminConfig');
+const SiteConfig = require('../models/SiteConfig');
 
 // ─── STATUS ───────────────────────────────────────────────────────────────────
 // Returns whether admin has been configured (DB or env var)
@@ -270,6 +271,40 @@ exports.updateRide = async (req, res) => {
       .populate('chauffeurId', 'fullName email');
     if (!ride) return res.status(404).json({ message: 'Course introuvable' });
     res.json(ride);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+// ─── SITE CONFIG ─────────────────────────────────────────────────────────────
+exports.getSiteConfig = async (req, res) => {
+  try {
+    let config = await SiteConfig.findOne().lean();
+    if (!config) config = await SiteConfig.create({});
+    res.json(config);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.updateSiteConfig = async (req, res) => {
+  try {
+    const ALLOWED = [
+      'brandLegalName','brandShortName','brandHighlight','brandTagline','brandTaglineAlt','brandCpamLabel',
+      'domain','phone','phoneDisplay','phoneE164','email','whatsapp','smsBody',
+      'addressStreet','addressCity','addressPostalCode','addressRegion','addressDisplay','addressDisplaySub',
+      'geoLat','geoLng','geoMetaCity','geoMetaRegion','geoMetaPos',
+      'googleAdsId','googleSearchConsole','googleReviewUrl','googleMapsUrl','googleCid','googleSameAs',
+      'seoTitle','seoTitleTemplate','seoDescription','seoOgTitle','seoOgDescription','seoLocalBizName','seoLocalBizDesc',
+      'styleAccentColor','stylePrimaryColor','styleDarkColor',
+      'vercelDeployHook',
+    ];
+    const update = {};
+    for (const key of ALLOWED) {
+      if (key in req.body) update[key] = req.body[key];
+    }
+    const config = await SiteConfig.findOneAndUpdate({}, { $set: update }, { new: true, upsert: true });
+    res.json(config);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

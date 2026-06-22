@@ -1,13 +1,30 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, 
-  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform 
+import React, { useState } from 'react';
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, Alert, ActivityIndicator, KeyboardAvoidingView, Platform
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import moment from 'moment';
 import ScreenWrapper from '../components/ScreenWrapper';
 import api from '../services/api';
+
+const C = {
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  green:   '#10B981',
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
+};
 
 export default function EditRideScreen({ navigation, route }) {
   // On récupère la course transmise par l'Agenda
@@ -15,7 +32,7 @@ export default function EditRideScreen({ navigation, route }) {
 
   const [loading, setLoading] = useState(false);
   const [showDatePicker, setShowDatePicker] = useState(false);
-  
+
   // États pré-remplis avec les données de la course existante
   const [form, setForm] = useState({
     patientName: ride.patientName,
@@ -34,13 +51,12 @@ export default function EditRideScreen({ navigation, route }) {
 
     setLoading(true);
     try {
-      // 🔄 On utilise l'ID de la course pour faire le PUT
+      // On utilise l'ID de la course pour faire le PUT
       await api.put(`/rides/${ride._id}`, {
         ...form,
         date: form.date.toISOString()
       });
-      
-      Vibration.vibrate(50);
+
       Alert.alert("Succès", "La course a été mise à jour.");
       navigation.goBack(); // Retour automatique à l'agenda
     } catch (error) {
@@ -50,61 +66,115 @@ export default function EditRideScreen({ navigation, route }) {
     }
   };
 
+  const fields = [
+    { key: 'patientName',   label: 'PATIENT',        icon: 'person-outline',   keyboard: 'default' },
+    { key: 'patientPhone',  label: 'TÉLÉPHONE',       icon: 'call-outline',     keyboard: 'phone-pad' },
+    { key: 'startLocation', label: 'PRISE EN CHARGE', icon: 'navigate-outline', keyboard: 'default' },
+    { key: 'endLocation',   label: 'DESTINATION',     icon: 'location-outline', keyboard: 'default' },
+  ];
+
   return (
-    <ScreenWrapper style={{backgroundColor: '#F3F4F6'}}>
-      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{flex: 1}}>
-        <ScrollView contentContainerStyle={{padding: 20}}>
-          
-          <View style={styles.header}>
-            <TouchableOpacity onPress={() => navigation.goBack()}>
-              <Ionicons name="close" size={28} color="#111" />
+    <ScreenWrapper style={{ backgroundColor: C.bg }}>
+      <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
+
+        {/* ── HEADER DARK GRADIENT ── */}
+        <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.header}>
+          <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
+            <Ionicons name="arrow-back" size={22} color={C.hText} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.headerTitle}>Modifier la course</Text>
+            <Text style={styles.headerSub}>
+              {ride.patientName} · {moment(ride.date).format('DD MMM, HH:mm')}
+            </Text>
+          </View>
+        </LinearGradient>
+
+        <ScrollView
+          contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+
+          {/* ── CARD INFOS COURSE ── */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>INFORMATIONS</Text>
+
+            {fields.map(f => (
+              <View key={f.key} style={{ marginBottom: 14 }}>
+                <Text style={styles.fieldLabel}>{f.label}</Text>
+                <View style={styles.inputBox}>
+                  <Ionicons name={f.icon} size={16} color={C.text3} style={{ marginRight: 10 }} />
+                  <TextInput
+                    style={styles.inputField}
+                    value={form[f.key]}
+                    onChangeText={t => setForm({ ...form, [f.key]: t })}
+                    keyboardType={f.keyboard}
+                    placeholderTextColor={C.text3}
+                    placeholder={`Saisir ${f.label.toLowerCase()}...`}
+                  />
+                </View>
+              </View>
+            ))}
+
+            {/* DATE & HEURE */}
+            <Text style={styles.fieldLabel}>DATE & HEURE</Text>
+            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)} activeOpacity={0.8}>
+              <View style={styles.dateBtnIcon}>
+                <Ionicons name="calendar-outline" size={18} color={C.brand} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.dateBtnTime}>{moment(form.date).format('HH:mm')}</Text>
+                <Text style={styles.dateBtnDate}>{moment(form.date).format('dddd DD MMMM YYYY')}</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={16} color={C.text3} />
             </TouchableOpacity>
-            <Text style={styles.title}>Modifier la course</Text>
-            <View style={{width: 28}} />
           </View>
 
-          <View style={styles.card}>
-            <Text style={styles.label}>PATIENT</Text>
-            <TextInput 
-              style={styles.input} 
-              value={form.patientName} 
-              onChangeText={(t) => setForm({...form, patientName: t})} 
-            />
-
-            <Text style={styles.label}>PRISE EN CHARGE</Text>
-            <TextInput 
-              style={styles.input} 
-              value={form.startLocation} 
-              onChangeText={(t) => setForm({...form, startLocation: t})} 
-            />
-
-            <Text style={styles.label}>DESTINATION</Text>
-            <TextInput 
-              style={styles.input} 
-              value={form.endLocation} 
-              onChangeText={(t) => setForm({...form, endLocation: t})} 
-            />
-
-            <Text style={styles.label}>DATE & HEURE</Text>
-            <TouchableOpacity style={styles.dateBtn} onPress={() => setShowDatePicker(true)}>
-              <Ionicons name="calendar-outline" size={20} color="#FF6B00" />
-              <Text style={styles.dateText}>{moment(form.date).format('LLLL')}</Text>
-            </TouchableOpacity>
+          {/* ── CARD NOTES ── */}
+          <View style={styles.sectionCard}>
+            <Text style={styles.sectionTitle}>NOTES</Text>
+            <View style={[styles.inputBox, { height: 90, alignItems: 'flex-start', paddingTop: 12 }]}>
+              <Ionicons name="document-text-outline" size={16} color={C.text3} style={{ marginRight: 10, marginTop: 2 }} />
+              <TextInput
+                style={[styles.inputField, { minHeight: 64, textAlignVertical: 'top' }]}
+                value={form.notes}
+                onChangeText={t => setForm({ ...form, notes: t })}
+                placeholder="Informations complémentaires..."
+                placeholderTextColor={C.text3}
+                multiline
+                numberOfLines={3}
+              />
+            </View>
           </View>
 
-          <TouchableOpacity style={styles.saveBtn} onPress={handleUpdate} disabled={loading}>
-            {loading ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveBtnText}>ENREGISTRER</Text>}
+          {/* ── BOUTON SOUMETTRE ── */}
+          <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.85}>
+            <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.saveBtn}>
+              {loading ? (
+                <ActivityIndicator color="#FFF" />
+              ) : (
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                  <Ionicons name="checkmark-circle" size={20} color="#FFF" />
+                  <Text style={styles.saveBtnText}>ENREGISTRER LES MODIFICATIONS</Text>
+                </View>
+              )}
+            </LinearGradient>
           </TouchableOpacity>
 
         </ScrollView>
       </KeyboardAvoidingView>
 
       {showDatePicker && (
-        <DateTimePicker 
-          value={form.date} 
-          mode="datetime" 
-          display="default" 
-          onChange={(e, d) => { setShowDatePicker(false); if(d) setForm({...form, date: d}); }} 
+        <DateTimePicker
+          value={form.date}
+          mode="datetime"
+          display="spinner"
+          is24Hour={true}
+          onChange={(e, d) => {
+            setShowDatePicker(false);
+            if (d) setForm({ ...form, date: d });
+          }}
         />
       )}
     </ScreenWrapper>
@@ -112,13 +182,75 @@ export default function EditRideScreen({ navigation, route }) {
 }
 
 const styles = StyleSheet.create({
-  header: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 30 },
-  title: { fontSize: 22, fontWeight: '800', color: '#111' },
-  card: { backgroundColor: '#FFF', borderRadius: 24, padding: 20, shadowColor: '#000', shadowOpacity: 0.05, shadowRadius: 10, elevation: 2 },
-  label: { fontSize: 11, fontWeight: '900', color: '#9CA3AF', marginBottom: 8, letterSpacing: 1 },
-  input: { backgroundColor: '#F9FAFB', borderRadius: 12, padding: 15, marginBottom: 20, fontSize: 16, fontWeight: '600', color: '#111' },
-  dateBtn: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#F9FAFB', padding: 15, borderRadius: 12 },
-  dateText: { marginLeft: 10, fontSize: 16, fontWeight: '600', color: '#111' },
-  saveBtn: { backgroundColor: '#111', padding: 20, borderRadius: 20, alignItems: 'center', marginTop: 30 },
-  saveBtnText: { color: '#FFF', fontWeight: '800', fontSize: 16 }
+  // ── HEADER ──
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingTop: Platform.OS === 'ios' ? 56 : 44,
+    paddingBottom: 20,
+    paddingHorizontal: 20,
+    gap: 14,
+  },
+  headerBack: {
+    width: 40, height: 40, borderRadius: 12,
+    backgroundColor: 'rgba(255,255,255,0.10)',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  headerTitle: { fontSize: 20, fontWeight: '800', color: C.hText, letterSpacing: 0.2 },
+  headerSub: { fontSize: 12, color: C.hText2, marginTop: 2 },
+
+  // ── SECTION CARD ──
+  sectionCard: {
+    backgroundColor: C.card,
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 16,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 10,
+    elevation: 2,
+  },
+  sectionTitle: {
+    fontSize: 11, fontWeight: '800', color: C.text3,
+    letterSpacing: 1.2, textTransform: 'uppercase', marginBottom: 16,
+  },
+
+  // ── FIELD ──
+  fieldLabel: {
+    fontSize: 11, fontWeight: '700', color: C.text3,
+    letterSpacing: 0.8, marginBottom: 8,
+  },
+  inputBox: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card2, borderRadius: 14,
+    height: 52, paddingHorizontal: 14,
+    borderWidth: 1, borderColor: C.border,
+  },
+  inputField: {
+    flex: 1, fontSize: 15, color: C.text, fontWeight: '600',
+  },
+
+  // ── DATE BTN ──
+  dateBtn: {
+    flexDirection: 'row', alignItems: 'center',
+    backgroundColor: C.card2, borderRadius: 14,
+    paddingHorizontal: 14, paddingVertical: 12,
+    borderWidth: 1, borderColor: C.border, gap: 12,
+  },
+  dateBtnIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: C.brand + '15',
+    justifyContent: 'center', alignItems: 'center',
+  },
+  dateBtnTime: { fontSize: 18, fontWeight: '800', color: C.text },
+  dateBtnDate: { fontSize: 12, color: C.text2, marginTop: 2, textTransform: 'capitalize' },
+
+  // ── SAVE BTN ──
+  saveBtn: {
+    borderRadius: 16, height: 56,
+    justifyContent: 'center', alignItems: 'center',
+    shadowColor: C.brand, shadowOpacity: 0.35, shadowRadius: 12, elevation: 6,
+  },
+  saveBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15, letterSpacing: 0.8 },
 });

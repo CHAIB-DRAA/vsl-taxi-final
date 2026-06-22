@@ -1,5 +1,6 @@
 import React from 'react';
 import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
@@ -12,28 +13,21 @@ import TodayRidesScreen from './TodayRidesScreen';
 
 const Tab = createBottomTabNavigator();
 
-// ✨ COMPOSANT SPÉCIAL : Le bouton central "Créer" flottant
+// Bouton central flottant avec gradient brand
 const CustomPostButton = ({ children, onPress }) => (
   <TouchableOpacity
-    style={{
-      top: -30, // Fait sortir le bouton de la barre
-      justifyContent: 'center',
-      alignItems: 'center',
-      ...styles.shadow // Ombre portée du bouton
-    }}
+    style={styles.centralBtnWrapper}
     onPress={onPress}
-    activeOpacity={0.9} // Effet de clic solide
+    activeOpacity={0.88}
   >
-    <View style={{
-      width: 65,
-      height: 65,
-      borderRadius: 35, // Parfaitement rond
-      backgroundColor: '#FF6B00', // Orange vibrant
-      borderWidth: 4,
-      borderColor: '#F1F5F9',
-    }}>
+    <LinearGradient
+      colors={['#FF6B00', '#FF8C00']}
+      start={{ x: 0, y: 0 }}
+      end={{ x: 1, y: 1 }}
+      style={styles.centralBtnGradient}
+    >
       {children}
-    </View>
+    </LinearGradient>
   </TouchableOpacity>
 );
 
@@ -44,57 +38,66 @@ export default function MainTabs({ webPendingCount = 0 }) {
     <Tab.Navigator
       screenOptions={{
         headerShown: false,
-        tabBarShowLabel: false, // Minimalisme : Pas de texte
-        tabBarHideOnKeyboard: true, // INDISPENSABLE sur Z-Flip (cache la barre quand clavier actif)
-        
-        // 💎 LE STYLE "FLOTTANT" PROFESSIONNEL
+        tabBarShowLabel: false,
+        tabBarHideOnKeyboard: true,
         tabBarStyle: {
           position: 'absolute',
           bottom: 18,
           left: 16,
           right: 16,
           backgroundColor: '#FFFFFF',
-          borderRadius: 26,
-          height: 68,
+          borderRadius: 28,
+          height: 70,
           borderTopWidth: 0,
-          elevation: 14,
-          shadowColor: '#1E293B',
-          shadowOffset: { width: 0, height: 6 },
-          shadowOpacity: 0.12,
-          shadowRadius: 16,
+          elevation: 20,
+          shadowColor: '#FF6B00',
+          shadowOffset: { width: 0, height: 8 },
+          shadowOpacity: 0.18,
+          shadowRadius: 20,
           zIndex: 999,
-        }
+          borderWidth: 1,
+          borderColor: '#F0F3FA',
+        },
       }}
     >
       {/* 1. ACCUEIL */}
-      <Tab.Screen 
-        name="Accueil" 
-        component={HomeScreen} 
+      <Tab.Screen
+        name="Accueil"
+        component={HomeScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons name={focused ? "home" : "home-outline"} size={24} color={focused ? "#FF6B00" : "#9E9E9E"} />
-              {focused && <View style={styles.activeDot} />}
+              <Ionicons
+                name={focused ? 'home' : 'home-outline'}
+                size={24}
+                color={focused ? '#FF6B00' : '#94A3B8'}
+              />
+              {focused && <Text style={styles.activeLabel}>Accueil</Text>}
+              {!focused && <View style={styles.inactiveDot} />}
             </View>
-          )
+          ),
         }}
       />
 
       {/* 2. AGENDA */}
-      <Tab.Screen 
-        name="Agenda" 
-        component={AgendaScreen} 
+      <Tab.Screen
+        name="Agenda"
+        component={AgendaScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
               <View>
-                <Ionicons name={focused ? "calendar" : "calendar-outline"} size={24} color={focused ? "#FF6B00" : "#9E9E9E"} />
-                {/* Badge Notification Rouge */}
+                <Ionicons
+                  name={focused ? 'calendar' : 'calendar-outline'}
+                  size={24}
+                  color={focused ? '#FF6B00' : '#94A3B8'}
+                />
                 {pendingInvitation && <View style={styles.badge} />}
               </View>
-              {focused && <View style={styles.activeDot} />}
+              {focused && <Text style={styles.activeLabel}>Agenda</Text>}
+              {!focused && <View style={styles.inactiveDot} />}
             </View>
-          )
+          ),
         }}
       />
 
@@ -106,77 +109,109 @@ export default function MainTabs({ webPendingCount = 0 }) {
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
               <View>
-                <Ionicons name={focused ? "notifications" : "notifications-outline"} size={24} color={focused ? "#FF6B00" : "#9E9E9E"} />
+                <Ionicons
+                  name={focused ? 'notifications' : 'notifications-outline'}
+                  size={24}
+                  color={focused ? '#FF6B00' : '#94A3B8'}
+                />
                 {webPendingCount > 0 && (
                   <View style={styles.badgeCount}>
-                    <Text style={styles.badgeText}>{webPendingCount > 9 ? '9+' : webPendingCount}</Text>
+                    <Text style={styles.badgeText}>
+                      {webPendingCount > 9 ? '9+' : webPendingCount}
+                    </Text>
                   </View>
                 )}
               </View>
-              {focused && <View style={styles.activeDot} />}
+              {focused && <Text style={styles.activeLabel}>Courses</Text>}
+              {!focused && <View style={styles.inactiveDot} />}
             </View>
-          )
+          ),
         }}
       />
 
       {/* 4. BOUTON CENTRAL (CRÉER) */}
-      <Tab.Screen 
-        name="Créer" 
-        component={CreateRideScreen} 
+      <Tab.Screen
+        name="Créer"
+        component={CreateRideScreen}
         options={{
           tabBarIcon: ({ focused }) => (
-            <Ionicons name="add" size={36} color="#FFF" style={{marginLeft: 2}} />
+            <Ionicons name="add" size={36} color="#FFF" />
           ),
-          tabBarButton: (props) => (
-            <CustomPostButton {...props} />
-          )
+          tabBarButton: (props) => <CustomPostButton {...props} />,
         }}
       />
 
-      {/* 4. HISTORIQUE / COMPTA */}
-      <Tab.Screen 
-        name="Historique" 
-        component={HistoryScreen} 
+      {/* 5. HISTORIQUE / COMPTA */}
+      <Tab.Screen
+        name="Historique"
+        component={HistoryScreen}
         options={{
           tabBarIcon: ({ focused }) => (
             <View style={styles.iconContainer}>
-              <Ionicons name={focused ? "pie-chart" : "pie-chart-outline"} size={24} color={focused ? "#FF6B00" : "#9E9E9E"} />
-              {focused && <View style={styles.activeDot} />}
+              <Ionicons
+                name={focused ? 'pie-chart' : 'pie-chart-outline'}
+                size={24}
+                color={focused ? '#FF6B00' : '#94A3B8'}
+              />
+              {focused && <Text style={styles.activeLabel}>Stats</Text>}
+              {!focused && <View style={styles.inactiveDot} />}
             </View>
-          )
+          ),
         }}
       />
-
     </Tab.Navigator>
   );
 }
 
 const styles = StyleSheet.create({
-  // Ombre spécifique pour le bouton rond central
-  shadow: {
-    shadowColor: '#FF6B00', // Ombre orange (effet "Glow")
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 8, // Android
+  // BOUTON CENTRAL
+  centralBtnWrapper: {
+    top: -28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    shadowColor: '#FF6B00',
+    shadowOffset: { width: 0, height: 10 },
+    shadowOpacity: 0.5,
+    shadowRadius: 14,
+    elevation: 14,
   },
+  centralBtnGradient: {
+    width: 68,
+    height: 68,
+    borderRadius: 34,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 4,
+    borderColor: '#FFFFFF',
+  },
+
+  // ICÔNES TABS
   iconContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    top: 0, // Centrage vertical
+    paddingTop: 2,
   },
-  activeDot: {
-    width: 4,
-    height: 4,
+  activeLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    color: '#FF6B00',
+    marginTop: 3,
+    letterSpacing: 0.3,
+  },
+  inactiveDot: {
+    width: 3,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: '#FF6B00',
-    marginTop: 4, // Petit point sous l'icône active
+    backgroundColor: 'transparent',
+    marginTop: 4,
   },
+
+  // BADGES
   badge: {
     position: 'absolute',
-    right: -1,
+    right: -2,
     top: -2,
-    backgroundColor: '#D32F2F',
+    backgroundColor: '#EF4444',
     width: 10,
     height: 10,
     borderRadius: 5,
@@ -185,9 +220,9 @@ const styles = StyleSheet.create({
   },
   badgeCount: {
     position: 'absolute',
-    right: -6,
+    right: -7,
     top: -4,
-    backgroundColor: '#D32F2F',
+    backgroundColor: '#EF4444',
     minWidth: 16,
     height: 16,
     borderRadius: 8,
@@ -202,5 +237,5 @@ const styles = StyleSheet.create({
     fontSize: 9,
     fontWeight: '800',
     lineHeight: 12,
-  }
+  },
 });

@@ -1,340 +1,404 @@
 import React, { useState, useCallback, useEffect } from 'react';
-import { 
+import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, RefreshControl,
   ActivityIndicator, Alert, StatusBar, Platform
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import moment from 'moment';
 import 'moment/locale/fr';
 
-// --- MODULES ---
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
 import * as Linking from 'expo-linking';
 
-// --- SERVICES ---
-import { getRides } from '../services/api';
 import { extractSecuNumber } from '../services/ocrService';
-import { calculatePrice } from '../utils/pricing'; 
+import { calculatePrice } from '../utils/pricing';
+import { useData } from '../contexts/DataContext';
 
+// ─── Design tokens ───────────────────────────────────────────────────────────
 const C = {
-  bg:     '#F2F3F7',
-  card:   '#FFFFFF',
-  card2:  '#F5F7FB',
-  border: '#E2E5EC',
-  text:   '#111827',
-  text2:  '#6B7280',
-  text3:  '#9CA3AF',
-  brand:  '#FF6B00',
-  green:  '#16A34A',
-  red:    '#EF4444',
+  bg:      '#F0F3FA',
+  card:    '#FFFFFF',
+  card2:   '#F5F7FF',
+  border:  '#E4E8F0',
+  text:    '#0D1117',
+  text2:   '#64748B',
+  text3:   '#94A3B8',
+  brand:   '#FF6B00',
+  brandDim:'#FF6B0018',
+  green:   '#10B981',
+  greenDim:'#10B98118',
+  blue:    '#3B82F6',
+  purple:  '#8B5CF6',
+
+  // Header palette
+  hBg1:   '#0A0F1E',
+  hBg2:   '#111827',
+  hCard:  'rgba(255,255,255,0.07)',
+  hBorder:'rgba(255,255,255,0.10)',
+  hText:  '#F1F5F9',
+  hText2: '#94A3B8',
 };
 
 export default function HomeScreen({ navigation }) {
-  const [loading, setLoading] = useState(false);
+  const { allRides, loading, loadData } = useData();
   const [scanning, setScanning] = useState(false);
-  
-  // NOUVEAU : On stocke toutes les courses en mémoire pour des calculs ultra-rapides
-  const [allRides, setAllRides] = useState([]);
-  
-  // NOUVEAU : État pour le mois sélectionné par l'utilisateur (Par défaut: ce mois-ci)
   const [selectedMonth, setSelectedMonth] = useState(moment());
-
   const [stats, setStats] = useState({
     todayCount: 0,
     monthEarnings: 0,
     monthBilledEarnings: 0,
-    nextRide: null
+    nextRide: null,
   });
 
   const getGreeting = () => {
-    const hour = moment().hour();
-    return hour >= 18 ? "Bonsoir," : "Bonjour,";
+    const h = moment().hour();
+    if (h < 6) return 'Bonne nuit,';
+    if (h < 12) return 'Bonjour,';
+    if (h < 18) return 'Bon après-midi,';
+    return 'Bonsoir,';
   };
 
-  // 1. On télécharge les données depuis l'API (Seulement au chargement ou "Pull-to-refresh")
-  const fetchDashboardData = useCallback(async () => {
-    try {
-      setLoading(true);
-      const data = await getRides();
-      setAllRides(data);
-    } catch (error) {
-      console.error("Erreur Dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
+  useFocusEffect(useCallback(() => { loadData(false); }, [loadData]));
 
-  useFocusEffect(
-    useCallback(() => {
-      fetchDashboardData();
-    }, [fetchDashboardData])
-  );
-
-  // 2. On calcule les statistiques localement à chaque fois que tu changes de mois ou que les données arrivent
   useEffect(() => {
-    if (!allRides || allRides.length === 0) return;
-
+    if (!allRides?.length) return;
     const todayStr = moment().format('YYYY-MM-DD');
-    const targetMonthStr = selectedMonth.format('MM-YYYY'); // On utilise le mois choisi !
+    const monthStr = selectedMonth.format('MM-YYYY');
     const now = moment();
 
-    // Courses du jour (Reste toujours sur la date d'aujourd'hui)
     const todayRides = allRides.filter(r => moment(r.date).format('YYYY-MM-DD') === todayStr);
-    
-    // Prochaine course (Future)
     const upcoming = todayRides
-      .filter(r => moment(r.date || r.startTime).isAfter(now))
+      .filter(r => r.status !== 'Terminée' && r.status !== 'Annulée' && moment(r.date).isAfter(now))
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
 
-    // CA Mois (Basé sur le mois sélectionné avec les flèches)
-    const finishedRidesTargetMonth = allRides.filter(r => 
-      r.status === 'Terminée' && 
-      moment(r.date).format('MM-YYYY') === targetMonthStr
+    const monthDone = allRides.filter(r =>
+      r.status === 'Terminée' && moment(r.date).format('MM-YYYY') === monthStr
     );
-
-    const totalEarnings = finishedRidesTargetMonth.reduce((acc, ride) => {
-      return acc + parseFloat(calculatePrice(ride)); 
-    }, 0);
-
-    const billedEarnings = finishedRidesTargetMonth.reduce((acc, ride) => {
-      if (ride.statuFacturation === 'Facturé') {
-        return acc + parseFloat(calculatePrice(ride));
-      }
-      return acc;
-    }, 0);
+    const totalEarnings = monthDone.reduce((s, r) => s + parseFloat(calculatePrice(r)), 0);
+    const billedEarnings = monthDone
+      .filter(r => r.statuFacturation === 'Facturé')
+      .reduce((s, r) => s + parseFloat(calculatePrice(r)), 0);
 
     setStats({
-      todayCount: todayRides.length,
+      todayCount: todayRides.filter(r => r.status !== 'Annulée').length,
       monthEarnings: totalEarnings.toFixed(2),
       monthBilledEarnings: billedEarnings.toFixed(2),
-      nextRide: upcoming
+      nextRide: upcoming,
     });
+  }, [allRides, selectedMonth]);
 
-  }, [allRides, selectedMonth]); // Le calcul se refait instantanément si selectedMonth change
-
-  // --- SCANNER ANTI-FRAUDE ---
+  // ─── Scanner Carte Vitale ────────────────────────────────────────────────
   const handleAntiFraudScan = async () => {
     const processImage = async (uri) => {
       try {
         setScanning(true);
-        const nir = await extractSecuNumber(uri); 
-        
+        const nir = await extractSecuNumber(uri);
         if (nir) {
           await Clipboard.setStringAsync(nir);
-          Alert.alert(
-            "✅ NIR Copié !",
-            `Numéro : ${nir}\n\nOuvrir AmeliPro maintenant ?`,
-            [
-              { text: "Non", style: "cancel" },
-              { text: "Oui, ouvrir", onPress: () => Linking.openURL('https://professionnels.ameli.fr/') }
-            ]
-          );
+          Alert.alert('NIR Copié', `${nir}\n\nOuvrir AmeliPro ?`, [
+            { text: 'Non', style: 'cancel' },
+            { text: 'Ouvrir', onPress: () => Linking.openURL('https://professionnels.ameli.fr/') },
+          ]);
         } else {
-          Alert.alert("Info", "Aucun numéro détecté. Essayez de mieux cadrer.");
+          Alert.alert('Info', 'Aucun numéro détecté. Cadrez mieux la carte.');
         }
-      } catch (e) {
-        Alert.alert("Erreur", "Analyse impossible.");
+      } catch {
+        Alert.alert('Erreur', 'Analyse impossible.');
       } finally {
         setScanning(false);
       }
     };
-
-    Alert.alert(
-      "Scanner Carte Vitale",
-      "Sélectionnez une méthode :",
-      [
-        {
-          text: "📷 Appareil Photo",
-          onPress: async () => {
-            const { status } = await ImagePicker.requestCameraPermissionsAsync();
-            if (status === 'granted') {
-                const result = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
-                if (!result.canceled) processImage(result.assets[0].uri);
-            }
-          }
-        },
-        {
-          text: "🖼️ Galerie",
-          onPress: async () => {
-            const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
-            if (status === 'granted') {
-                const result = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
-                if (!result.canceled) processImage(result.assets[0].uri);
-            }
-          }
-        },
-        { text: "Annuler", style: "cancel" }
-      ]
-    );
+    Alert.alert('Scanner Carte Vitale', 'Choisir une source :', [
+      { text: '📷 Appareil Photo', onPress: async () => {
+        const { status } = await ImagePicker.requestCameraPermissionsAsync();
+        if (status === 'granted') {
+          const r = await ImagePicker.launchCameraAsync({ allowsEditing: true, quality: 1 });
+          if (!r.canceled) processImage(r.assets[0].uri);
+        }
+      }},
+      { text: '🖼️ Galerie', onPress: async () => {
+        const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+        if (status === 'granted') {
+          const r = await ImagePicker.launchImageLibraryAsync({ allowsEditing: true, quality: 1 });
+          if (!r.canceled) processImage(r.assets[0].uri);
+        }
+      }},
+      { text: 'Annuler', style: 'cancel' },
+    ]);
   };
 
-  // Fonctions pour changer le mois
-  const goToPreviousMonth = () => setSelectedMonth(moment(selectedMonth).subtract(1, 'month'));
-  const goToNextMonth = () => setSelectedMonth(moment(selectedMonth).add(1, 'month'));
+  const goToPreviousMonth = () => setSelectedMonth(m => moment(m).subtract(1, 'month'));
+  const goToNextMonth     = () => setSelectedMonth(m => moment(m).add(1, 'month'));
+
+  // ─── Pourcentage facturé ──────────────────────────────────────────────────
+  const billedPct = stats.monthEarnings > 0
+    ? Math.round((stats.monthBilledEarnings / stats.monthEarnings) * 100)
+    : 0;
 
   return (
-    <View style={styles.container}>
-      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
+    <View style={styles.root}>
+      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
 
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={<RefreshControl refreshing={loading} onRefresh={fetchDashboardData} tintColor={C.brand}/>}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scroll}
+        refreshControl={
+          <RefreshControl
+            refreshing={loading}
+            onRefresh={() => loadData(true)}
+            tintColor={C.brand}
+            colors={[C.brand]}
+          />
+        }
       >
-        {/* === HEADER === */}
-        <View style={styles.header}>
+        {/* ════════════════════════ HEADER GRADIENT ════════════════════════ */}
+        <LinearGradient
+          colors={[C.hBg1, C.hBg2, '#1a2235']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={styles.header}
+        >
+          {/* Accent blob */}
+          <View style={styles.accentBlob} />
+
+          {/* Top row */}
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.date}>{moment().format('dddd D MMMM')}</Text>
+              <Text style={styles.dateText}>{moment().format('dddd D MMMM')}</Text>
             </View>
-            <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.avatarBtn}>
-              <Ionicons name="settings-outline" size={20} color={C.text2} />
+            <TouchableOpacity
+              onPress={() => navigation.navigate('Settings')}
+              style={styles.settingsBtn}
+              activeOpacity={0.7}
+            >
+              <Ionicons name="settings-outline" size={18} color={C.hText2} />
             </TouchableOpacity>
           </View>
 
-          {/* STATS CARDS */}
-          <View style={styles.statsContainer}>
+          {/* ── STATS GLASS CARDS ── */}
+          <View style={styles.statsRow}>
 
             {/* Courses du jour */}
-            <View style={styles.statCardRow}>
-              <View style={styles.statCardHalf}>
-                <View style={styles.statIconBox}>
-                  <Ionicons name="car-sport-outline" size={18} color={C.brand} />
+            <View style={styles.glassCard}>
+              <View style={styles.glassCardTop}>
+                <View style={[styles.glassIconBox, { backgroundColor: C.brand + '22' }]}>
+                  <Ionicons name="car-sport" size={16} color={C.brand} />
                 </View>
-                <Text style={styles.statLabelSmall}>Aujourd'hui</Text>
-                <Text style={styles.statValueLarge}>{stats.todayCount}</Text>
+                <Text style={styles.glassLabel}>Aujourd'hui</Text>
               </View>
-
-              {/* Sélecteur de mois + CA */}
-              <View style={styles.statCardHalf}>
-                <View style={styles.monthRow}>
-                  <TouchableOpacity onPress={goToPreviousMonth} hitSlop={{top:8,right:8,bottom:8,left:8}}>
-                    <Ionicons name="chevron-back" size={16} color={C.text2} />
-                  </TouchableOpacity>
-                  <Text style={styles.monthText}>{selectedMonth.format('MMM YY')}</Text>
-                  <TouchableOpacity onPress={goToNextMonth} hitSlop={{top:8,right:8,bottom:8,left:8}}>
-                    <Ionicons name="chevron-forward" size={16} color={C.text2} />
-                  </TouchableOpacity>
-                </View>
-                <Text style={styles.statValueLarge}>{stats.monthEarnings} €</Text>
-                <Text style={styles.statLabelSmall}>CA estimé</Text>
-              </View>
+              <Text style={styles.glassValue}>{stats.todayCount}</Text>
+              <Text style={styles.glassUnit}>courses</Text>
             </View>
 
-            {/* Déjà facturé */}
-            <View style={styles.billedCard}>
-              <View style={styles.statIconBox}>
-                <Ionicons name="checkmark-done-circle" size={18} color={C.green} />
+            {/* CA mensuel */}
+            <View style={[styles.glassCard, styles.glassCardAccent]}>
+              <View style={styles.glassCardTop}>
+                {/* Sélecteur de mois */}
+                <View style={styles.monthPicker}>
+                  <TouchableOpacity onPress={goToPreviousMonth} hitSlop={{ top:8,right:8,bottom:8,left:8 }}>
+                    <Ionicons name="chevron-back" size={14} color={C.hText2} />
+                  </TouchableOpacity>
+                  <Text style={styles.monthPickerText}>{selectedMonth.format('MMM YY')}</Text>
+                  <TouchableOpacity onPress={goToNextMonth} hitSlop={{ top:8,right:8,bottom:8,left:8 }}>
+                    <Ionicons name="chevron-forward" size={14} color={C.hText2} />
+                  </TouchableOpacity>
+                </View>
               </View>
-              <View style={{flex: 1}}>
-                <Text style={styles.statLabelSmall}>Déjà facturé</Text>
-                <Text style={[styles.statValueLarge, { color: C.green }]}>{stats.monthBilledEarnings} €</Text>
-              </View>
+              <Text style={[styles.glassValue, { color: C.brand }]}>{stats.monthEarnings} €</Text>
+              <Text style={styles.glassUnit}>CA estimé</Text>
             </View>
 
           </View>
-        </View>
 
-        <View style={styles.bodyContainer}>
+          {/* ── BARRE FACTURATION ── */}
+          <View style={styles.billingBar}>
+            <View style={styles.billingLeft}>
+              <View style={[styles.glassIconBox, { backgroundColor: C.green + '25', width: 28, height: 28, borderRadius: 8 }]}>
+                <Ionicons name="checkmark-done" size={13} color={C.green} />
+              </View>
+              <View>
+                <Text style={styles.billingLabel}>Facturé ce mois</Text>
+                <Text style={styles.billingAmount}>{stats.monthBilledEarnings} €</Text>
+              </View>
+            </View>
+            <View style={styles.billingRight}>
+              <Text style={styles.billingPct}>{billedPct}%</Text>
+              <View style={styles.progressTrack}>
+                <View style={[styles.progressFill, { width: `${billedPct}%` }]} />
+              </View>
+            </View>
+          </View>
 
-            {/* === PROCHAIN DÉPART === */}
-            <Text style={styles.sectionTitle}>Prochain Départ</Text>
-            {stats.nextRide ? (
-                <TouchableOpacity
-                    style={styles.nextRideCard}
-                    activeOpacity={0.85}
-                    onPress={() => navigation.navigate('Agenda')}
-                >
-                    <View style={styles.ticketLeft}>
-                        <Text style={styles.bigTime}>{moment(stats.nextRide.date).format('HH:mm')}</Text>
-                        <Text style={styles.timeLabel}>DÉPART</Text>
-                    </View>
+        </LinearGradient>
 
-                    <View style={styles.ticketDivider}>
-                        <View style={styles.dashedLine} />
-                    </View>
+        {/* ════════════════════════ BODY ════════════════════════ */}
+        <View style={styles.body}>
 
-                    <View style={styles.ticketRight}>
-                        <View style={{flexDirection:'row', justifyContent:'space-between', alignItems:'flex-start', marginBottom: 10}}>
-                            <Text style={styles.patientName} numberOfLines={1}>{stats.nextRide.patientName}</Text>
-                            <View style={styles.typeBadge}>
-                                <Text style={styles.typeBadgeText}>{stats.nextRide.type}</Text>
-                            </View>
-                        </View>
-
-                        <View style={styles.routeMini}>
-                            <View style={styles.routePoint}>
-                                <View style={[styles.routeDot, {backgroundColor: C.green}]}/>
-                                <Text style={styles.routeText} numberOfLines={1}>{stats.nextRide.startLocation}</Text>
-                            </View>
-                            <View style={styles.routePoint}>
-                                <View style={[styles.routeDot, {backgroundColor: C.brand, borderRadius: 2}]}/>
-                                <Text style={styles.routeText} numberOfLines={1}>{stats.nextRide.endLocation}</Text>
-                            </View>
-                        </View>
-                    </View>
-                </TouchableOpacity>
-            ) : (
-                <View style={styles.emptyCard}>
-                    <View style={styles.emptyCircle}>
-                      <Ionicons name="checkmark-circle-outline" size={32} color={C.brand} />
-                    </View>
-                    <Text style={styles.emptyText}>Journée libre</Text>
-                    <Text style={styles.emptySubText}>Aucune course à venir aujourd'hui</Text>
-                </View>
+          {/* ── PROCHAIN DÉPART ── */}
+          <View style={styles.sectionRow}>
+            <Text style={styles.sectionTitle}>Prochain départ</Text>
+            {stats.nextRide && (
+              <TouchableOpacity onPress={() => navigation.navigate('Agenda')}>
+                <Text style={styles.sectionLink}>Voir tout →</Text>
+              </TouchableOpacity>
             )}
+          </View>
 
-            {/* === OUTIL SCANNER === */}
-            <Text style={styles.sectionTitle}>Outils Rapides</Text>
+          {stats.nextRide ? (
             <TouchableOpacity
-                style={styles.scannerCard}
-                onPress={handleAntiFraudScan}
-                disabled={scanning}
-                activeOpacity={0.8}
+              style={styles.nextRideCard}
+              activeOpacity={0.88}
+              onPress={() => navigation.navigate('Agenda')}
             >
-                <View style={styles.scannerIconBox}>
-                    {scanning ? <ActivityIndicator color="#FFF"/> : <Ionicons name="scan" size={22} color="#FFF" />}
+              {/* Bande gauche orange */}
+              <LinearGradient
+                colors={[C.brand, '#FF8C30']}
+                style={styles.nextRideStripe}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 0, y: 1 }}
+              >
+                <Text style={styles.nextRideTime}>
+                  {moment(stats.nextRide.date).format('HH:mm')}
+                </Text>
+                <Text style={styles.nextRideTimeLabel}>DÉPART</Text>
+              </LinearGradient>
+
+              {/* Contenu */}
+              <View style={styles.nextRideContent}>
+                <View style={styles.nextRideHeader}>
+                  <Text style={styles.nextRidePatient} numberOfLines={1}>
+                    {stats.nextRide.patientName}
+                  </Text>
+                  <View style={styles.typePill}>
+                    <Text style={styles.typePillText}>{stats.nextRide.type}</Text>
+                  </View>
                 </View>
-                <View style={{flex: 1}}>
-                    <Text style={styles.scannerTitle}>Scanner Droits Ameli</Text>
-                    <Text style={styles.scannerSub}>Vérification Carte Vitale / Attestation</Text>
+
+                {/* Timer */}
+                <Text style={styles.nextRideIn}>
+                  Dans {moment(stats.nextRide.date).fromNow(true)}
+                </Text>
+
+                {/* Trajet */}
+                <View style={styles.routeBlock}>
+                  <View style={styles.routeRow}>
+                    <View style={[styles.routeDot, { backgroundColor: C.green }]} />
+                    <Text style={styles.routeAddr} numberOfLines={1}>{stats.nextRide.startLocation}</Text>
+                  </View>
+                  <View style={styles.routeConnector}>
+                    <View style={styles.routeLine} />
+                  </View>
+                  <View style={styles.routeRow}>
+                    <View style={[styles.routeDot, { backgroundColor: C.brand, borderRadius: 2 }]} />
+                    <Text style={styles.routeAddr} numberOfLines={1}>{stats.nextRide.endLocation}</Text>
+                  </View>
                 </View>
-                <Ionicons name="chevron-forward" size={18} color={C.text3} />
+              </View>
+
+              <Ionicons name="chevron-forward" size={16} color={C.text3} style={{ alignSelf: 'center', marginRight: 14 }} />
+            </TouchableOpacity>
+          ) : (
+            <View style={styles.freeCard}>
+              <LinearGradient
+                colors={[C.brand + '18', C.brand + '08']}
+                style={styles.freeCardInner}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+              >
+                <View style={styles.freeIconWrap}>
+                  <Ionicons name="sunny-outline" size={28} color={C.brand} />
+                </View>
+                <Text style={styles.freeTitle}>Journée libre</Text>
+                <Text style={styles.freeSub}>Aucune course à venir aujourd'hui</Text>
+              </LinearGradient>
+            </View>
+          )}
+
+          {/* ── OUTIL SCANNER ── */}
+          <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Outils</Text>
+          <TouchableOpacity
+            style={styles.scannerCard}
+            onPress={handleAntiFraudScan}
+            disabled={scanning}
+            activeOpacity={0.82}
+          >
+            <LinearGradient
+              colors={[C.green, '#0EA572']}
+              style={styles.scannerGradIcon}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+            >
+              {scanning
+                ? <ActivityIndicator color="#FFF" size="small" />
+                : <Ionicons name="scan-outline" size={20} color="#FFF" />
+              }
+            </LinearGradient>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.scannerTitle}>Scanner Droits Ameli</Text>
+              <Text style={styles.scannerSub}>Carte Vitale · Attestation CPAM</Text>
+            </View>
+            <View style={styles.scannerArrow}>
+              <Ionicons name="arrow-forward" size={14} color={C.green} />
+            </View>
+          </TouchableOpacity>
+
+          {/* ── NAVIGATION GRID ── */}
+          <Text style={[styles.sectionTitle, { marginTop: 8 }]}>Navigation</Text>
+          <View style={styles.grid}>
+
+            <TouchableOpacity
+              style={styles.gridItem}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate('Agenda')}
+            >
+              <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gridIcon}>
+                <Ionicons name="calendar" size={22} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.gridLabel}>Planning</Text>
+              <Text style={styles.gridSub}>Agenda</Text>
             </TouchableOpacity>
 
-            {/* === GRILLE NAVIGATION === */}
-            <View style={styles.gridMenu}>
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Agenda')}>
-                    <View style={[styles.menuIcon, {backgroundColor: '#3B82F6'+'22'}]}>
-                      <Ionicons name="calendar" size={26} color="#3B82F6"/>
-                    </View>
-                    <Text style={styles.menuText}>Planning</Text>
-                </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.gridItem}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate('History')}
+            >
+              <LinearGradient colors={[C.brand, '#E55A00']} style={styles.gridIcon}>
+                <Ionicons name="stats-chart" size={22} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.gridLabel}>Activité</Text>
+              <Text style={styles.gridSub}>Stats & CA</Text>
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('History')}>
-                    <View style={[styles.menuIcon, {backgroundColor: C.brand+'22'}]}>
-                      <Ionicons name="stats-chart" size={26} color={C.brand}/>
-                    </View>
-                    <Text style={styles.menuText}>Activité</Text>
-                </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.gridItem}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate('Patients')}
+            >
+              <LinearGradient colors={[C.green, '#059669']} style={styles.gridIcon}>
+                <Ionicons name="people" size={22} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.gridLabel}>Patients</Text>
+              <Text style={styles.gridSub}>Carnet</Text>
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Patients')}>
-                    <View style={[styles.menuIcon, {backgroundColor: C.green+'22'}]}>
-                      <Ionicons name="people" size={26} color={C.green}/>
-                    </View>
-                    <Text style={styles.menuText}>Patients</Text>
-                </TouchableOpacity>
+            <TouchableOpacity
+              style={styles.gridItem}
+              activeOpacity={0.82}
+              onPress={() => navigation.navigate('Facturation')}
+            >
+              <LinearGradient colors={[C.purple, '#7C3AED']} style={styles.gridIcon}>
+                <Ionicons name="receipt-outline" size={22} color="#FFF" />
+              </LinearGradient>
+              <Text style={styles.gridLabel}>Facturation</Text>
+              <Text style={styles.gridSub}>CPAM</Text>
+            </TouchableOpacity>
 
-                <TouchableOpacity style={styles.menuItem} onPress={() => navigation.navigate('Settings')}>
-                    <View style={[styles.menuIcon, {backgroundColor: '#8B5CF6'+'22'}]}>
-                      <Ionicons name="options" size={26} color="#8B5CF6"/>
-                    </View>
-                    <Text style={styles.menuText}>Réglages</Text>
-                </TouchableOpacity>
-            </View>
+          </View>
 
         </View>
       </ScrollView>
@@ -342,173 +406,265 @@ export default function HomeScreen({ navigation }) {
   );
 }
 
+// ─── Styles ──────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: C.bg },
-  scrollContent: { paddingBottom: 120 },
+  root: { flex: 1, backgroundColor: C.bg },
+  scroll: { paddingBottom: 120 },
 
-  // ── HEADER ──
+  // ── HEADER ──────────────────────────────────────────────────────────────
   header: {
-    backgroundColor: C.bg,
-    paddingHorizontal: 18,
-    paddingTop: Platform.OS === 'ios' ? 62 : 50,
-    paddingBottom: 24,
-    borderBottomWidth: 1,
-    borderBottomColor: C.border,
+    paddingTop: Platform.OS === 'ios' ? 64 : 50,
+    paddingHorizontal: 20,
+    paddingBottom: 28,
+    overflow: 'hidden',
+  },
+  accentBlob: {
+    position: 'absolute',
+    width: 220,
+    height: 220,
+    borderRadius: 110,
+    backgroundColor: C.brand,
+    opacity: 0.06,
+    top: -60,
+    right: -50,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 22,
+    alignItems: 'flex-start',
+    marginBottom: 24,
   },
-  greeting: { color: C.text2, fontSize: 14, fontWeight: '500' },
-  date: { color: C.text, fontSize: 24, fontWeight: '800', textTransform: 'capitalize', letterSpacing: -0.5, marginTop: 2 },
-  avatarBtn: {
-    width: 40, height: 40,
-    backgroundColor: C.card,
+  greeting: {
+    color: C.hText2,
+    fontSize: 13,
+    fontWeight: '500',
+    letterSpacing: 0.2,
+  },
+  dateText: {
+    color: C.hText,
+    fontSize: 26,
+    fontWeight: '800',
+    textTransform: 'capitalize',
+    letterSpacing: -0.5,
+    marginTop: 2,
+  },
+  settingsBtn: {
+    width: 38, height: 38,
     borderRadius: 12,
+    backgroundColor: C.hCard,
+    borderWidth: 1, borderColor: C.hBorder,
     justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: C.border,
   },
 
-  // ── STATS ──
-  statsContainer: { gap: 10 },
-
-  statCardRow: {
-    flexDirection: 'row',
-    gap: 10,
-  },
-  statCardHalf: {
+  // Stats row
+  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
+  glassCard: {
     flex: 1,
-    backgroundColor: C.card,
-    borderRadius: 16,
+    backgroundColor: C.hCard,
+    borderWidth: 1, borderColor: C.hBorder,
+    borderRadius: 18,
     padding: 14,
-    borderWidth: 1,
-    borderColor: C.border,
-    gap: 4,
+    gap: 2,
   },
-  statIconBox: {
-    width: 34, height: 34, borderRadius: 10,
-    backgroundColor: C.card2,
-    justifyContent: 'center', alignItems: 'center',
-    marginBottom: 4,
-    borderWidth: 1, borderColor: C.border,
+  glassCardAccent: {
+    borderColor: C.brand + '33',
+    backgroundColor: 'rgba(255,107,0,0.06)',
   },
-  statLabelSmall: { color: C.text3, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 },
-  statValueLarge: { color: C.text, fontSize: 22, fontWeight: '900', letterSpacing: -0.5 },
-  monthRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 },
-  monthText: { color: C.text2, fontSize: 11, fontWeight: '700', textTransform: 'capitalize' },
-  billedCard: {
+  glassCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
-    backgroundColor: C.green + '11',
+    justifyContent: 'space-between',
+    marginBottom: 8,
+  },
+  glassIconBox: {
+    width: 30, height: 30,
+    borderRadius: 9,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  glassLabel: { color: C.hText2, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
+  glassValue: { color: C.hText, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
+  glassUnit: { color: C.hText2, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
+
+  // Month picker
+  monthPicker: { flexDirection: 'row', alignItems: 'center', gap: 6 },
+  monthPickerText: { color: C.hText2, fontSize: 11, fontWeight: '700', textTransform: 'capitalize', minWidth: 44, textAlign: 'center' },
+
+  // Billing bar
+  billingBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: C.hCard,
+    borderWidth: 1, borderColor: C.hBorder,
     borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: C.green + '33',
+    padding: 12,
+  },
+  billingLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  billingLabel: { color: C.hText2, fontSize: 11, fontWeight: '600' },
+  billingAmount: { color: C.green, fontSize: 16, fontWeight: '800', marginTop: 1 },
+  billingRight: { alignItems: 'flex-end', gap: 6 },
+  billingPct: { color: C.hText, fontSize: 13, fontWeight: '800' },
+  progressTrack: {
+    width: 80, height: 4,
+    backgroundColor: 'rgba(255,255,255,0.1)',
+    borderRadius: 2,
+    overflow: 'hidden',
+  },
+  progressFill: {
+    height: 4,
+    backgroundColor: C.green,
+    borderRadius: 2,
+    maxWidth: '100%',
   },
 
-  // ── BODY ──
-  bodyContainer: { paddingHorizontal: 18, paddingTop: 24 },
+  // ── BODY ──────────────────────────────────────────────────────────────────
+  body: { paddingHorizontal: 18, paddingTop: 24 },
+  sectionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   sectionTitle: {
-    fontSize: 16, fontWeight: '800', color: C.text,
-    marginBottom: 12, marginTop: 8, letterSpacing: -0.2,
+    fontSize: 17, fontWeight: '800', color: C.text,
+    letterSpacing: -0.3, marginBottom: 12,
   },
+  sectionLink: { fontSize: 13, fontWeight: '600', color: C.brand },
 
-  // ── NEXT RIDE CARD ──
+  // ── NEXT RIDE ──────────────────────────────────────────────────────────────
   nextRideCard: {
     flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 20,
-    marginBottom: 22,
+    borderRadius: 22,
+    marginBottom: 24,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: C.border,
-    minHeight: 110,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.07,
+    shadowRadius: 12,
+    elevation: 4,
   },
-  ticketLeft: {
-    width: 80,
+  nextRideStripe: {
+    width: 76,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: C.brand + '15',
-    borderRightWidth: 1,
-    borderRightColor: C.border,
-    gap: 4,
+    gap: 3,
+    paddingVertical: 20,
   },
-  bigTime: { fontSize: 22, fontWeight: '900', color: C.brand },
-  timeLabel: { fontSize: 8, color: C.brand + 'AA', fontWeight: '800', letterSpacing: 1.2 },
-  ticketDivider: { width: 1, backgroundColor: C.border, marginVertical: 12 },
-  dashedLine: { flex: 1, borderLeftWidth: 1, borderLeftColor: C.border, borderStyle: 'dashed' },
-  ticketRight: { flex: 1, paddingHorizontal: 14, paddingVertical: 14, justifyContent: 'center' },
-  patientName: { fontSize: 15, fontWeight: '700', color: C.text, flex: 1, marginRight: 8 },
-  typeBadge: {
-    backgroundColor: C.brand + '22', paddingHorizontal: 8, paddingVertical: 3,
-    borderRadius: 6, borderWidth: 1, borderColor: C.brand + '44',
+  nextRideTime: {
+    fontSize: 22, fontWeight: '900', color: '#FFF',
+    letterSpacing: -0.5,
   },
-  typeBadgeText: { color: C.brand, fontWeight: '700', fontSize: 10 },
-  routeMini: { gap: 6 },
-  routePoint: { flexDirection: 'row', alignItems: 'center', gap: 7 },
-  routeDot: { width: 6, height: 6, borderRadius: 3, flexShrink: 0 },
-  routeText: { fontSize: 12, color: C.text2, flex: 1 },
-
-  // ── EMPTY ──
-  emptyCard: {
-    backgroundColor: C.card,
-    borderRadius: 20,
-    padding: 30,
+  nextRideTimeLabel: {
+    fontSize: 8, color: 'rgba(255,255,255,0.75)',
+    fontWeight: '800', letterSpacing: 1.5,
+  },
+  nextRideContent: { flex: 1, paddingHorizontal: 14, paddingVertical: 14 },
+  nextRideHeader: {
+    flexDirection: 'row',
     alignItems: 'center',
-    marginBottom: 22,
-    borderWidth: 1,
-    borderColor: C.border,
+    justifyContent: 'space-between',
+    marginBottom: 4,
   },
-  emptyCircle: {
-    width: 68, height: 68, borderRadius: 34,
-    backgroundColor: C.brand + '15',
-    alignItems: 'center', justifyContent: 'center',
-    marginBottom: 14, borderWidth: 1, borderColor: C.brand + '22',
+  nextRidePatient: { fontSize: 16, fontWeight: '800', color: C.text, flex: 1, marginRight: 8 },
+  typePill: {
+    backgroundColor: C.brand + '18',
+    paddingHorizontal: 8, paddingVertical: 2,
+    borderRadius: 20, borderWidth: 1, borderColor: C.brand + '33',
   },
-  emptyText: { color: C.text, fontWeight: '800', fontSize: 16 },
-  emptySubText: { color: C.text2, marginTop: 4, fontSize: 13 },
+  typePillText: { color: C.brand, fontSize: 10, fontWeight: '800' },
+  nextRideIn: { fontSize: 12, color: C.brand, fontWeight: '600', marginBottom: 10 },
+  routeBlock: { gap: 0 },
+  routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  routeDot: { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
+  routeConnector: { paddingLeft: 3, paddingVertical: 2 },
+  routeLine: { width: 1, height: 10, backgroundColor: C.border, marginLeft: 0 },
+  routeAddr: { fontSize: 12, color: C.text2, flex: 1, fontWeight: '500' },
 
-  // ── SCANNER ──
+  // ── FREE CARD ──────────────────────────────────────────────────────────────
+  freeCard: {
+    borderRadius: 22,
+    marginBottom: 24,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: C.brand + '22',
+  },
+  freeCardInner: {
+    alignItems: 'center',
+    paddingVertical: 28,
+    paddingHorizontal: 20,
+  },
+  freeIconWrap: {
+    width: 60, height: 60,
+    borderRadius: 18,
+    backgroundColor: C.brand + '20',
+    alignItems: 'center', justifyContent: 'center',
+    marginBottom: 12,
+    borderWidth: 1, borderColor: C.brand + '30',
+  },
+  freeTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4 },
+  freeSub: { fontSize: 13, color: C.text2 },
+
+  // ── SCANNER ──────────────────────────────────────────────────────────────
   scannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     backgroundColor: C.card,
     padding: 14,
-    borderRadius: 18,
-    marginBottom: 22,
+    borderRadius: 20,
+    marginBottom: 24,
     borderWidth: 1,
-    borderColor: C.green + '33',
+    borderColor: C.green + '30',
+    shadowColor: C.green,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  scannerIconBox: {
-    width: 46, height: 46,
-    backgroundColor: C.green,
-    borderRadius: 14,
+  scannerGradIcon: {
+    width: 48, height: 48,
+    borderRadius: 15,
     justifyContent: 'center', alignItems: 'center',
   },
-  scannerTitle: { fontWeight: '700', fontSize: 15, color: C.text },
-  scannerSub: { fontSize: 12, color: C.green, marginTop: 2 },
+  scannerTitle: { fontSize: 15, fontWeight: '700', color: C.text },
+  scannerSub: { fontSize: 12, color: C.text2, marginTop: 2 },
+  scannerArrow: {
+    width: 28, height: 28,
+    borderRadius: 8,
+    backgroundColor: C.green + '15',
+    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1, borderColor: C.green + '25',
+  },
 
-  // ── MENU GRILLE ──
-  gridMenu: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
-  menuItem: {
+  // ── GRID ──────────────────────────────────────────────────────────────────
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: 12,
+  },
+  gridItem: {
     width: '47.5%',
     backgroundColor: C.card,
-    borderRadius: 20,
+    borderRadius: 22,
     paddingVertical: 20,
     paddingHorizontal: 16,
-    alignItems: 'center',
     borderWidth: 1,
     borderColor: C.border,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 8,
+    elevation: 1,
   },
-  menuIcon: {
-    width: 54, height: 54,
+  gridIcon: {
+    width: 50, height: 50,
     borderRadius: 16,
     justifyContent: 'center', alignItems: 'center',
-    marginBottom: 10,
+    marginBottom: 12,
   },
-  menuText: { fontWeight: '700', color: C.text, fontSize: 13 },
+  gridLabel: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 2 },
+  gridSub: { fontSize: 11, color: C.text3, fontWeight: '600' },
 });
