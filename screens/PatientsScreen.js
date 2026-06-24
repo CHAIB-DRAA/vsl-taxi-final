@@ -619,7 +619,7 @@ export default function PatientsScreen() {
             <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
               <Ionicons name="close" size={20} color={C.hText} />
             </TouchableOpacity>
-          </LinearGradient>
+          </View>
 
           <View style={styles.tabsContainer}>
             {['profil', 'docs', 'history'].map((tab) => (
@@ -682,7 +682,7 @@ export default function PatientsScreen() {
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShareModalVisible(false)}>
                 <Ionicons name="close" size={20} color={C.hText} />
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
             <FlatList data={contacts} keyExtractor={item => item._id} renderItem={renderContactItem} contentContainerStyle={{padding: 20}} />
         </View>
       </Modal>
@@ -696,7 +696,7 @@ export default function PatientsScreen() {
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setDocSelectionModal(false)}>
                 <Ionicons name="close" size={20} color={C.hText} />
               </TouchableOpacity>
-            </LinearGradient>
+            </View>
             <FlatList data={patientDocs} keyExtractor={item => item._id} renderItem={renderDocSelectionItem} contentContainerStyle={{padding:20}} />
             <View style={styles.actionFooter}>
                 {shareTarget === 'colleague' ? (
