@@ -326,8 +326,6 @@ export default function TodayRidesScreen({ navigation }) {
             <Text style={styles.pillValue}>{headerStats.total}</Text>
             <Text style={styles.pillLabel}>total</Text>
           </View>
-
-      </View>
           <View style={styles.pillDivider} />
           <View style={styles.pill}>
             <Text style={[styles.pillValue, { color: C.electric }]}>{headerStats.upcoming}</Text>
