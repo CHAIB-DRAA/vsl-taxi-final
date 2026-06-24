@@ -95,7 +95,7 @@ export default function LoginScreen({ navigation, onSignIn }) {
 
   return (
     <LinearGradient
-      colors={['#0A0F1E', '#111827']}
+      colors={['#020710', '#060E1E']}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -274,10 +274,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(80,160,255,0.18)',
     marginBottom: 14,
     paddingHorizontal: 14,
     height: 54,

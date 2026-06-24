@@ -13,10 +13,10 @@ import api from '../services/api';
 const AVATAR_COLORS = [
   ['#3B82F6', '#2563EB'],
   ['#8B5CF6', '#7C3AED'],
-  ['#10B981', '#059669'],
+  ['#00D68F', '#00B87A'],
   ['#F59E0B', '#D97706'],
   ['#EF4444', '#DC2626'],
-  ['#FF6B00', '#E55A00'],
+  ['#FF5500', '#E55A00'],
 ];
 
 const getAvatarColors = (name = '') => {
@@ -119,7 +119,7 @@ export default function ContactScreen({ navigation }) {
 
         {isSearch ? (
           <TouchableOpacity style={styles.addBtnWrap} onPress={() => addContact(item._id)}>
-            <LinearGradient colors={[C.green, '#059669']} style={styles.addBtn}>
+            <LinearGradient colors={[C.green, '#00B87A']} style={styles.addBtn}>
               <Ionicons name="person-add" size={16} color="#FFF" />
               <Text style={styles.addBtnText}>Ajouter</Text>
             </LinearGradient>
@@ -138,7 +138,7 @@ export default function ContactScreen({ navigation }) {
       <StatusBar barStyle="light-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
+      <LinearGradient colors={[C.hBg1, C.hBg2, '#0D1A30']} style={styles.header}>
         {/* Accent blob */}
 
         <View style={styles.headerTop}>

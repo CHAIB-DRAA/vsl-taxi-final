@@ -2,7 +2,7 @@ import React from 'react';
 import { View, TouchableOpacity, Text, ActivityIndicator, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 
-const THEME = { primary: '#FF6B00', card: '#FFFFFF', text: '#1F2937' };
+const THEME = { primary: '#FF5500', card: '#FFFFFF', text: '#1F2937' };
 
 export default function AgendaToolbar({ onImport, analyzing, onGroupList, onSettings }) {
   return (

@@ -8,10 +8,10 @@ const C = {
   card:   '#FFFFFF',
   card2:  '#F5F7FB',
   border: '#E2E5EC',
-  text:   '#111827',
+  text:   '#060E1E',
   text2:  '#6B7280',
   text3:  '#9CA3AF',
-  brand:  '#FF6B00',
+  brand:  '#FF5500',
 };
 
 export default function AgendaList({ rides, loading, onRefresh, onCardPress, onStatusChange, onSync, onImport, onRespond }) {

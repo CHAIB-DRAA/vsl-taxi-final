@@ -48,7 +48,7 @@ function CopyField({ label, value, mono = false, badge = null }) {
           <Ionicons
             name={copied ? 'checkmark' : 'copy-outline'}
             size={18}
-            color={copied ? '#4CAF50' : '#FF6B00'}
+            color={copied ? '#4CAF50' : '#FF5500'}
           />
           <Text style={[styles.copyBtnText, copied && { color: '#4CAF50' }]}>
             {copied ? 'Copié !' : 'Copier'}
@@ -205,7 +205,7 @@ export default function BonTransportScannerModal({ visible, onClose, onPatientAd
                   icon="camera"
                   label="Caméra"
                   sub="Photographier le bon papier"
-                  color="#FF6B00"
+                  color="#FF5500"
                   onPress={handleCamera}
                 />
                 <SourceButton
@@ -237,7 +237,7 @@ export default function BonTransportScannerModal({ visible, onClose, onPatientAd
           {/* ── SCANNING ── */}
           {(step === 'scanning') && (
             <View style={styles.centered}>
-              <ActivityIndicator size="large" color="#FF6B00" />
+              <ActivityIndicator size="large" color="#FF5500" />
               <Text style={styles.scanningText}>Lecture en cours…</Text>
               <Text style={styles.scanningSubText}>Analyse du document</Text>
             </View>
@@ -273,7 +273,7 @@ export default function BonTransportScannerModal({ visible, onClose, onPatientAd
 
               <View style={styles.actionsRow}>
                 <TouchableOpacity style={styles.retryBtn} onPress={reset}>
-                  <Ionicons name="refresh" size={18} color="#FF6B00" />
+                  <Ionicons name="refresh" size={18} color="#FF5500" />
                   <Text style={styles.retryText}>Reprendre</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={styles.addBtn} onPress={handleCreatePatient}>
@@ -309,7 +309,7 @@ const styles = StyleSheet.create({
   },
   headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12 },
   headerIcon: {
-    width: 40, height: 40, borderRadius: 12, backgroundColor: '#FF6B00',
+    width: 40, height: 40, borderRadius: 12, backgroundColor: '#FF5500',
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontSize: 17, fontWeight: 'bold', color: '#333' },
@@ -369,18 +369,18 @@ const styles = StyleSheet.create({
 
   copyBtn: {
     flexDirection: 'row', alignItems: 'center', gap: 4,
-    borderWidth: 1.5, borderColor: '#FF6B00', borderRadius: 8,
+    borderWidth: 1.5, borderColor: '#FF5500', borderRadius: 8,
     paddingHorizontal: 10, paddingVertical: 7, marginLeft: 10,
   },
   copyBtnDone: { borderColor: '#4CAF50' },
-  copyBtnText: { fontSize: 12, color: '#FF6B00', fontWeight: '700' },
+  copyBtnText: { fontSize: 12, color: '#FF5500', fontWeight: '700' },
 
   actionsRow: { flexDirection: 'row', gap: 12 },
   retryBtn: {
     flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6,
-    borderWidth: 1.5, borderColor: '#FF6B00', borderRadius: 12, paddingVertical: 14,
+    borderWidth: 1.5, borderColor: '#FF5500', borderRadius: 12, paddingVertical: 14,
   },
-  retryText: { color: '#FF6B00', fontWeight: 'bold', fontSize: 15 },
+  retryText: { color: '#FF5500', fontWeight: 'bold', fontSize: 15 },
   addBtn: {
     flex: 2, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8,
     backgroundColor: '#4CAF50', borderRadius: 12, paddingVertical: 14,

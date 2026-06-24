@@ -9,8 +9,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 
 import { useData } from '../contexts/DataContext';
 import api, { deleteRide, startRideById, finishRideById, shareRide, createRide } from '../services/api';

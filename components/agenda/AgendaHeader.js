@@ -20,9 +20,9 @@ const C = {
   bg:     '#F2F3F7',
   card:   '#FFFFFF',
   border: '#E2E5EC',
-  text:   '#111827',
+  text:   '#060E1E',
   text2:  '#6B7280',
-  brand:  '#FF6B00',
+  brand:  '#FF5500',
 };
 
 export default function AgendaHeader({ selectedDate, onDateSelect, showCalendar, toggleCalendar, markedDates }) {

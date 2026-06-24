@@ -67,7 +67,7 @@ const RideHistoryCard = ({ item, hasConflict, onPress }) => {
               onPress={(e) => copyAddr(e, item.endLocation, 'Adresse d\'arrivée copiée')}
               activeOpacity={0.7}
             >
-              <View style={[styles.routeDot, { backgroundColor: '#FF6B00', borderRadius: 2 }]} />
+              <View style={[styles.routeDot, { backgroundColor: '#FF5500', borderRadius: 2 }]} />
               <Text style={styles.routeText} numberOfLines={1}>{item.endLocation}</Text>
               <Ionicons name="copy-outline" size={11} color={C.text3} />
             </TouchableOpacity>
@@ -110,8 +110,8 @@ export default memo(RideHistoryCard);
 
 const C = {
   bg: '#F2F3F7', card: '#FFFFFF', card2: '#F5F7FB',
-  border: '#E2E5EC', text: '#111827', text2: '#6B7280', text3: '#9CA3AF',
-  brand: '#FF6B00', green: '#16A34A', red: '#EF4444',
+  border: '#E2E5EC', text: '#060E1E', text2: '#6B7280', text3: '#9CA3AF',
+  brand: '#FF5500', green: '#16A34A', red: '#EF4444',
 };
 
 const styles = StyleSheet.create({

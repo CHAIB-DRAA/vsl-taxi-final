@@ -7,9 +7,7 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
 import BonTransportScannerModal from '../components/BonTransportScannerModal';
-dayjs.locale('fr');
 
 // Composants & Services
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -327,7 +325,7 @@ export default function CreateRideScreen({ navigation, route }) {
             style={styles.headerScanBtn}
             activeOpacity={0.8}
           >
-            <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.headerScanGrad}>
+            <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.headerScanGrad}>
               <Ionicons name="scan-outline" size={18} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
@@ -417,7 +415,7 @@ export default function CreateRideScreen({ navigation, route }) {
                   activeOpacity={0.8}
                 >
                   {type === t ? (
-                    <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.pillActive}>
+                    <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.pillActive}>
                       <Text style={styles.pillTextActive}>{t}</Text>
                     </LinearGradient>
                   ) : (
@@ -442,7 +440,7 @@ export default function CreateRideScreen({ navigation, route }) {
                   activeOpacity={0.8}
                 >
                   {motif === m ? (
-                    <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.pillActive}>
+                    <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.pillActive}>
                       <Text style={styles.pillTextActive}>{m}</Text>
                     </LinearGradient>
                   ) : (
@@ -690,7 +688,7 @@ export default function CreateRideScreen({ navigation, route }) {
               </TouchableOpacity>
             ) : (
               <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : null}>
-                <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.mainButton}>
+                <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.mainButton}>
                   {loading ? (
                     <ActivityIndicator color="#FFF" />
                   ) : (
@@ -758,7 +756,7 @@ export default function CreateRideScreen({ navigation, route }) {
                 <Text style={styles.cancelTxt}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={saveNewPatient} activeOpacity={0.85} style={{ flex: 1 }}>
-                <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.saveBtn}>
+                <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.saveBtn}>
                   <Text style={styles.saveTxt}>Enregistrer</Text>
                 </LinearGradient>
               </TouchableOpacity>
@@ -801,7 +799,7 @@ const styles = StyleSheet.create({
   },
   headerBack: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(80,160,255,0.18)',
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontSize: 20, fontWeight: '800', color: C.hText, letterSpacing: 0.3 },

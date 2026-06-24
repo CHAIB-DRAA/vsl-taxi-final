@@ -70,7 +70,7 @@ export default function SettingAppScreen() {
 
       {/* HEADER DARK GRADIENT */}
       <LinearGradient
-        colors={['#0A0F1E', '#111827']}
+        colors={['#020710', '#060E1E']}
         style={styles.header}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
@@ -116,7 +116,7 @@ export default function SettingAppScreen() {
         <View style={styles.sectionCard}>
           <SettingItem
             icon="notifications"
-            gradientColors={['#FF6B00', '#FF8C00']}
+            gradientColors={['#FF5500', '#FF8800']}
             title="Notifications Push"
             subtitle="Alertes courses et départs"
             type="switch"
@@ -186,13 +186,13 @@ export default function SettingAppScreen() {
                   </LinearGradient>
                   <Text style={[
                     styles.themeText,
-                    themeMode === t && { color: '#FF6B00', fontWeight: '700' }
+                    themeMode === t && { color: '#FF5500', fontWeight: '700' }
                   ]}>
                     {t === 'light' ? 'Clair' : t === 'dark' ? 'Sombre' : 'Système'}
                   </Text>
                 </View>
                 {themeMode === t && (
-                  <Ionicons name="checkmark-circle" size={22} color="#FF6B00" />
+                  <Ionicons name="checkmark-circle" size={22} color="#FF5500" />
                 )}
               </TouchableOpacity>
             ))}
@@ -220,11 +220,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backBtnInner: {
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(80,160,255,0.18)',
     borderRadius: 12,
     padding: 8,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(80,160,255,0.18)',
   },
   headerCenter: {
     alignItems: 'center',

@@ -57,11 +57,11 @@ export default function ScanVitalScreen() {
 
       {/* HEADER DARK */}
       <LinearGradient
-        colors={['#0A0F1E', '#111827']}
+        colors={['#020710', '#060E1E']}
         style={styles.header}
       >
         <LinearGradient
-          colors={['#10B981', '#059669']}
+          colors={['#00D68F', '#00B87A']}
           style={styles.headerIcon}
         >
           <Ionicons name="shield-checkmark" size={28} color="#FFF" />
@@ -113,7 +113,7 @@ export default function ScanVitalScreen() {
             style={styles.scanBtnWrapper}
           >
             <LinearGradient
-              colors={['#10B981', '#059669']}
+              colors={['#00D68F', '#00B87A']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={styles.scanBtn}
@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 12,
-    shadowColor: '#10B981',
+    shadowColor: '#00D68F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -257,7 +257,7 @@ const styles = StyleSheet.create({
     width: '100%',
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#10B981',
+    shadowColor: '#00D68F',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,

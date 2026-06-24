@@ -6,8 +6,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -333,7 +331,7 @@ export default function PatientsScreen() {
     } else { imagesHtml = `<p>Aucun document joint.</p>`; }
 
     const html = `<html><body style="font-family: Helvetica; padding: 40px;">
-          <h1 style="color: #FF6B00;">Fiche Patient</h1><h2>${selectedPatient.fullName}</h2>
+          <h1 style="color: #FF5500;">Fiche Patient</h1><h2>${selectedPatient.fullName}</h2>
           <p>Tél: ${selectedPatient.phone}</p><h3>Documents</h3>${imagesHtml}</body></html>`;
     const { uri } = await Print.printToFileAsync({ html });
     return uri;
@@ -422,7 +420,7 @@ export default function PatientsScreen() {
              </View>
 
              {/* ANTI-FRAUDE */}
-             <LinearGradient colors={['#059669', '#047857']} style={styles.antiFraudBtn}>
+             <LinearGradient colors={['#00B87A', '#047857']} style={styles.antiFraudBtn}>
                <TouchableOpacity style={styles.antiFraudInner} onPress={handleAntiFraudScan} disabled={uploading}>
                 <View style={styles.antiFraudIcon}><Ionicons name="shield-checkmark" size={22} color="#FFF" /></View>
                 <View style={{flex:1}}>
@@ -439,7 +437,7 @@ export default function PatientsScreen() {
              <View style={styles.inputGroup}><Text style={styles.label}>Adresse</Text><TextInput style={styles.input} value={formData.address} multiline onChangeText={t => setFormData({...formData, address: t})} /></View>
 
              <TouchableOpacity style={styles.saveBtnWrap} onPress={handleSave}>
-               <LinearGradient colors={[C.green, '#059669']} style={styles.saveBtn}>
+               <LinearGradient colors={[C.green, '#00B87A']} style={styles.saveBtn}>
                  <Ionicons name="checkmark" size={18} color="#FFF" style={{marginRight:8}} />
                  <Text style={styles.saveBtnText}>Enregistrer</Text>
                </LinearGradient>
@@ -466,7 +464,7 @@ export default function PatientsScreen() {
         return (
           <View style={{flex:1}}>
             <View style={styles.scanGrid}>
-                <DocumentScannerButton title="PMT" docType="PMT" color="#FF6B00" onScan={handleDocumentScanned} isLoading={uploading}/>
+                <DocumentScannerButton title="PMT" docType="PMT" color="#FF5500" onScan={handleDocumentScanned} isLoading={uploading}/>
                 <DocumentScannerButton title="Vitale" docType="CarteVitale" color="#4CAF50" onScan={handleDocumentScanned} isLoading={uploading}/>
                 <DocumentScannerButton title="Mutuelle" docType="Mutuelle" color="#2196F3" onScan={handleDocumentScanned} isLoading={uploading}/>
             </View>
@@ -478,7 +476,7 @@ export default function PatientsScreen() {
                 <View style={styles.docCardContainer}>
                     <TouchableOpacity style={styles.docCard} onPress={() => { setSelectedDoc(item); setViewerVisible(true); }}>
                         <LinearGradient
-                          colors={item.type === 'PMT' ? [C.purple, '#7C3AED'] : [C.green, '#059669']}
+                          colors={item.type === 'PMT' ? [C.purple, '#7C3AED'] : [C.green, '#00B87A']}
                           style={styles.docIconBox}
                         >
                           <Ionicons name={item.type === 'PMT' ? 'document-text' : 'card'} size={22} color="#FFF" />
@@ -688,7 +686,7 @@ export default function PatientsScreen() {
                           </LinearGradient>
                         </TouchableOpacity>
                         <TouchableOpacity style={{flex:1, borderRadius:12, overflow:'hidden'}} onPress={handleSystemShare}>
-                          <LinearGradient colors={[C.green, '#059669']} style={styles.actionBtn}>
+                          <LinearGradient colors={[C.green, '#00B87A']} style={styles.actionBtn}>
                             <Ionicons name="share-outline" size={18} color="#FFF" style={{marginRight:6}}/>
                             <Text style={styles.actionBtnText}>Partager…</Text>
                           </LinearGradient>

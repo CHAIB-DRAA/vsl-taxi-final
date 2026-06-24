@@ -136,7 +136,7 @@ export default function EditRideScreen({ navigation, route }) {
 
           {/* ── BOUTON SOUMETTRE ── */}
           <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.saveBtn}>
+            <LinearGradient colors={['#FF5500', '#FF8800']} style={styles.saveBtn}>
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
   headerBack: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(255,255,255,0.10)',
+    backgroundColor: 'rgba(80,160,255,0.18)',
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontSize: 20, fontWeight: '800', color: C.hText, letterSpacing: 0.2 },

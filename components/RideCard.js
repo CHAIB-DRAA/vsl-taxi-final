@@ -2,8 +2,6 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 import * as Clipboard from 'expo-clipboard';
 import { calculatePrice } from '../utils/pricing';
 
@@ -12,16 +10,16 @@ const C = {
   card:   '#FFFFFF',
   card2:  '#F5F7FB',
   border: '#E2E5EC',
-  text:   '#111827',
+  text:   '#060E1E',
   text2:  '#6B7280',
   text3:  '#9CA3AF',
-  brand:  '#FF6B00',
+  brand:  '#FF5500',
   green:  '#16A34A',
   red:    '#EF4444',
 };
 
 const TYPE_COLOR = {
-  Aller:        '#FF6B00',
+  Aller:        '#FF5500',
   Retour:       '#3B82F6',
   Consultation: '#F59E0B',
   Hospit:       '#8B5CF6',
@@ -340,7 +338,7 @@ billedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundCol
   actionRow: { marginTop: 12, paddingTop: 12, borderTopWidth: 1, borderTopColor: C.border },
   btnStart: {
     flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    backgroundColor: '#111827', paddingVertical: 14, borderRadius: 12, gap: 8,
+    backgroundColor: '#060E1E', paddingVertical: 14, borderRadius: 12, gap: 8,
   },
   btnStartText: { color: '#FFF', fontWeight: '800', fontSize: 14, letterSpacing: 0.5 },
   btnFinish: {
@@ -366,6 +364,6 @@ billedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundCol
   priceFooterValue: { fontSize: 24, fontWeight: '800', color: C.brand },
   btnRefuse: { flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: C.card2, paddingVertical: 12, borderRadius: 12, borderWidth: 1, borderColor: C.red + '44', gap: 5 },
   btnRefuseText: { color: C.red, fontWeight: '700', fontSize: 14 },
-  btnAccept: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#111827', paddingVertical: 12, borderRadius: 12, gap: 5 },
+  btnAccept: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#060E1E', paddingVertical: 12, borderRadius: 12, gap: 5 },
   btnAcceptText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
 });

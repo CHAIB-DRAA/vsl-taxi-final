@@ -2,27 +2,25 @@ import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 
 const C = {
   bg:     '#F2F3F7',
   card:   '#FFFFFF',
   card2:  '#F5F7FB',
   border: '#E2E5EC',
-  text:   '#111827',
+  text:   '#060E1E',
   text2:  '#6B7280',
-  brand:  '#FF6B00',
+  brand:  '#FF5500',
 };
 
 const ACTIONS = [
-  { key: 'edit',       label: 'Modifier',  icon: 'create-outline',             bg: '#F5F7FB', color: '#111827' },
-  { key: 'return',     label: 'Retour',    icon: 'swap-horizontal-outline',     bg: '#F5F7FB', color: '#111827' },
-  { key: 'sms',        label: 'SMS',       icon: 'chatbubble-ellipses-outline', bg: '#F5F7FB', color: '#111827' },
-  { key: 'calendar',   label: 'Agenda',    icon: 'calendar-outline',            bg: '#F5F7FB', color: '#111827' },
-  { key: 'dispatch',   label: 'Envoyer',   icon: 'paper-plane-outline',         bg: '#F5F7FB', color: '#111827' },
-  { key: 'docs',       label: 'Dossier',   icon: 'folder-open-outline',         bg: '#F5F7FB', color: '#111827' },
-  { key: 'share',      label: 'Partager',  icon: 'share-social-outline',        bg: '#F5F7FB', color: '#111827' },
+  { key: 'edit',       label: 'Modifier',  icon: 'create-outline',             bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'return',     label: 'Retour',    icon: 'swap-horizontal-outline',     bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'sms',        label: 'SMS',       icon: 'chatbubble-ellipses-outline', bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'calendar',   label: 'Agenda',    icon: 'calendar-outline',            bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'dispatch',   label: 'Envoyer',   icon: 'paper-plane-outline',         bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'docs',       label: 'Dossier',   icon: 'folder-open-outline',         bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'share',      label: 'Partager',  icon: 'share-social-outline',        bg: '#F5F7FB', color: '#060E1E' },
   { key: 'delete',     label: 'Supprimer', icon: 'trash-outline',               bg: '#FFF1F2', color: '#EF4444' },
 ];
 

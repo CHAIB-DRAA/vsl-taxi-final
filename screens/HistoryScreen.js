@@ -7,7 +7,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
 
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
@@ -20,7 +19,6 @@ import C from '../styles/tokens';
 import RideHistoryCard from '../components/RideHistoryCard';
 import RideDetailsModal from '../components/RideDetailsModal';
 
-dayjs.locale('fr');
 
 export default function HistoryScreen() {
   const [rides, setRides] = useState([]);
@@ -323,7 +321,7 @@ export default function HistoryScreen() {
 
       {/* ── HEADER GRADIENT SOMBRE ── */}
       <LinearGradient
-        colors={[C.hBg1, C.hBg2, '#1a2235']}
+        colors={[C.hBg1, C.hBg2, '#0D1A30']}
         style={styles.header}
       >
         {/* Titre + actions */}
@@ -414,7 +412,7 @@ export default function HistoryScreen() {
           <View style={styles.statDivider} />
 
           <View style={styles.statCard}>
-            <LinearGradient colors={[C.green, '#059669']} style={styles.statIcon}>
+            <LinearGradient colors={[C.green, '#00B87A']} style={styles.statIcon}>
               <Ionicons name="cash-outline" size={14} color="#FFF" />
             </LinearGradient>
             <View>

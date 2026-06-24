@@ -3,14 +3,12 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput,
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 import { calculatePrice, calculatePriceDetailed } from '../utils/pricing';
 
 // ─── Composants internes du détail de tarification ───────────────────────────
 
 const C_LOCAL = {
-  brand: '#FF6B00', green: '#16A34A', text: '#111827',
+  brand: '#FF5500', green: '#16A34A', text: '#060E1E',
   text2: '#6B7280', text3: '#9CA3AF', border: '#E2E5EC',
 };
 
@@ -346,7 +344,7 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
 
             {/* Arrivée */}
             <View style={styles.timelineItem}>
-              <View style={[styles.dot, { backgroundColor: '#FF6B00' }]} />
+              <View style={[styles.dot, { backgroundColor: '#FF5500' }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.addrLabel}>ARRIVÉE</Text>
                 <TouchableOpacity
@@ -446,8 +444,8 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
 
 const C = {
   bg: '#F2F3F7', card: '#FFFFFF', card2: '#F5F7FB',
-  border: '#E2E5EC', text: '#111827', text2: '#6B7280', text3: '#9CA3AF',
-  brand: '#FF6B00', green: '#16A34A', red: '#EF4444',
+  border: '#E2E5EC', text: '#060E1E', text2: '#6B7280', text3: '#9CA3AF',
+  brand: '#FF5500', green: '#16A34A', red: '#EF4444',
 };
 
 const styles = StyleSheet.create({

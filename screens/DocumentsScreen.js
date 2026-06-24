@@ -17,9 +17,9 @@ import api from '../services/api';
 const DOC_GRADIENTS = {
   Permis:          ['#3B82F6', '#2563EB'],
   CartePro:        ['#8B5CF6', '#7C3AED'],
-  VisiteMedicale:  ['#10B981', '#059669'],
+  VisiteMedicale:  ['#00D68F', '#00B87A'],
   Assurance:       ['#F59E0B', '#D97706'],
-  Kbis:            ['#FF6B00', '#E55A00'],
+  Kbis:            ['#FF5500', '#E55A00'],
   Formation:       ['#EF4444', '#DC2626'],
 };
 
@@ -186,7 +186,7 @@ export default function DocumentsScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
+      <LinearGradient colors={[C.hBg1, C.hBg2, '#0D1A30']} style={styles.header}>
         {/* Accent blob */}
 
         <View style={styles.headerTop}>
@@ -205,7 +205,7 @@ export default function DocumentsScreen() {
         <View style={styles.progressWrap}>
           <View style={styles.progressTrack}>
             <LinearGradient
-              colors={progressPct === 1 ? [C.green, '#059669'] : [C.brand, '#E55A00']}
+              colors={progressPct === 1 ? [C.green, '#00B87A'] : [C.brand, '#E55A00']}
               style={[styles.progressFill, { width: `${Math.round(progressPct * 100)}%` }]}
               start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }}
             />

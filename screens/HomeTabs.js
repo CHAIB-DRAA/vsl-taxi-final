@@ -7,8 +7,6 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -133,7 +131,7 @@ export default function HomeScreen({ navigation }) {
       >
         {/* ════════════════════════ HEADER GRADIENT ════════════════════════ */}
         <LinearGradient
-          colors={[C.hBg1, C.hBg2, '#1a2235']}
+          colors={[C.hBg1, C.hBg2, '#0D1A30']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={styles.header}
@@ -157,7 +155,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.statsRow}>
 
             {/* Courses du jour */}
-            <View style={styles.glassCard}>
+            <View style={[styles.glassCard, { borderLeftWidth: 2, borderLeftColor: C.electric }]}>
               <View style={styles.glassCardTop}>
                 <View style={[styles.glassIconBox, { backgroundColor: C.brand + '22' }]}>
                   <Ionicons name="car-sport" size={16} color={C.brand} />
@@ -169,7 +167,7 @@ export default function HomeScreen({ navigation }) {
             </View>
 
             {/* CA mensuel */}
-            <View style={[styles.glassCard, styles.glassCardAccent]}>
+            <View style={[styles.glassCard, styles.glassCardAccent, { borderLeftWidth: 2, borderLeftColor: C.brand }]}>
               <View style={styles.glassCardTop}>
                 {/* Sélecteur de mois */}
                 <View style={styles.monthPicker}>
@@ -230,7 +228,7 @@ export default function HomeScreen({ navigation }) {
             >
               {/* Bande gauche orange */}
               <LinearGradient
-                colors={[C.brand, C.brandGrad]}
+                colors={['#FF5500', '#FF0066']}
                 style={styles.nextRideStripe}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
@@ -460,6 +458,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     backgroundColor: C.hCard,
     borderWidth: 1, borderColor: C.hBorder,
+    borderLeftWidth: 3, borderLeftColor: C.green,
     borderRadius: 16,
     padding: 12,
   },
@@ -476,7 +475,7 @@ const styles = StyleSheet.create({
   },
   progressFill: {
     height: 4,
-    backgroundColor: C.green,
+    backgroundColor: '#00D68F',
     borderRadius: 2,
     maxWidth: '100%',
   },
@@ -539,7 +538,7 @@ const styles = StyleSheet.create({
     borderRadius: 20, borderWidth: 1, borderColor: C.brand + '33',
   },
   typePillText: { color: C.brand, fontSize: 10, fontWeight: '800' },
-  nextRideIn: { fontSize: 12, color: C.brand, fontWeight: '600', marginBottom: 10 },
+  nextRideIn: { fontSize: 12, color: C.electric, fontWeight: '600', marginBottom: 10 },
   routeBlock: { gap: 0 },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   routeDot: { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },

@@ -45,7 +45,7 @@ export default function SignUpScreen({ navigation, onSignUp }) {
 
   return (
     <LinearGradient
-      colors={['#0A0F1E', '#111827']}
+      colors={['#020710', '#060E1E']}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -60,7 +60,7 @@ export default function SignUpScreen({ navigation, onSignUp }) {
           {/* LOGO */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={['#FF6B00', C.brandGrad]}
+              colors={['#FF5500', C.brandGrad]}
               style={styles.logoCircle}
             >
               <Ionicons name="person-add" size={40} color="#FFF" />
@@ -131,7 +131,7 @@ export default function SignUpScreen({ navigation, onSignUp }) {
             </View>
 
             {loading ? (
-              <ActivityIndicator size="large" color="#FF6B00" style={{ marginVertical: 16 }} />
+              <ActivityIndicator size="large" color="#FF5500" style={{ marginVertical: 16 }} />
             ) : (
               <>
                 {/* BOUTON S'INSCRIRE */}
@@ -141,7 +141,7 @@ export default function SignUpScreen({ navigation, onSignUp }) {
                   style={[styles.submitWrapper, loading && { opacity: 0.6 }]}
                 >
                   <LinearGradient
-                    colors={['#FF6B00', C.brandGrad]}
+                    colors={['#FF5500', C.brandGrad]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.submitBtn}
@@ -192,7 +192,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: '#FF5500',
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 16,
@@ -214,11 +214,11 @@ const styles = StyleSheet.create({
 
   // FORMULAIRE
   formCard: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 24,
     padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(80,160,255,0.18)',
   },
   title: {
     fontSize: 26,
@@ -238,10 +238,10 @@ const styles = StyleSheet.create({
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(80,160,255,0.18)',
     marginBottom: 14,
     paddingHorizontal: 14,
     height: 54,
@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#FF6B00',
+    shadowColor: '#FF5500',
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   loginTextBold: {
-    color: '#FF6B00',
+    color: '#FF5500',
     fontWeight: '700',
   },
 });

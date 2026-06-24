@@ -7,8 +7,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
@@ -168,20 +166,20 @@ export default function FacturationScreen() {
           <td>${r.startLocation || '—'}<br><span class="arr">▸ ${r.endLocation || '—'}</span></td>
           <td style="text-align:right">${r.realDistance ? r.realDistance + ' km' : '—'}</td>
           <td style="text-align:right">${r.tolls ? r.tolls.toFixed(2) + ' €' : '—'}</td>
-          <td style="text-align:right;font-weight:700;color:#FF6B00">${price.toFixed(2)} €</td>
+          <td style="text-align:right;font-weight:700;color:#FF5500">${price.toFixed(2)} €</td>
         </tr>`;
       }).join('');
 
       const html = `<html><head><meta charset="utf-8">
         <style>
           body{font-family:Helvetica,sans-serif;padding:30px;font-size:11px}
-          h1{color:#FF6B00;border-bottom:2px solid #FF6B00;padding-bottom:8px;margin-bottom:4px}
+          h1{color:#FF5500;border-bottom:2px solid #FF5500;padding-bottom:8px;margin-bottom:4px}
           p{color:#555;margin:0 0 16px}
           table{width:100%;border-collapse:collapse}
-          th{background:#FF6B00;color:#FFF;padding:8px 6px;text-align:left;font-size:10px}
+          th{background:#FF5500;color:#FFF;padding:8px 6px;text-align:left;font-size:10px}
           td{padding:7px 6px;border-bottom:1px solid #EEE;vertical-align:top}
           tr:nth-child(even) td{background:#F9FAFB}
-          .foot td{font-weight:700;background:#FFF3E0;border-top:2px solid #FF6B00}
+          .foot td{font-weight:700;background:#FFF3E0;border-top:2px solid #FF5500}
           .bt{font-size:9px;color:#999;font-style:italic}
           .arr{color:#888;font-size:10px}
           .note{margin-top:24px;font-size:9px;color:#999;text-align:center}
@@ -351,7 +349,7 @@ export default function FacturationScreen() {
                 ? <ActivityIndicator size="small" color={C.green} />
                 : (
                   <TouchableOpacity onPress={() => markBilled(r._id)} activeOpacity={0.85}>
-                    <LinearGradient colors={['#10B981', '#34D399']} style={styles.factBtn}>
+                    <LinearGradient colors={['#00D68F', '#34D399']} style={styles.factBtn}>
                       <Ionicons name="checkmark" size={13} color="#FFF" />
                       <Text style={styles.factBtnText}>Facturer</Text>
                     </LinearGradient>
@@ -443,7 +441,7 @@ export default function FacturationScreen() {
           activeOpacity={0.85}
           style={{ opacity: generating || unbilled.length === 0 ? 0.5 : 1 }}
         >
-          <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.pdfAllBtn}>
+          <LinearGradient colors={['#FF5500', '#FF8800']} style={styles.pdfAllBtn}>
             {generating
               ? <ActivityIndicator size="small" color="#FFF" />
               : <>
@@ -468,7 +466,7 @@ export default function FacturationScreen() {
             activeOpacity={0.8}
           >
             {activeTab === t.key ? (
-              <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.tabActive}>
+              <LinearGradient colors={['#FF5500', '#FF8800']} style={styles.tabActive}>
                 <Text style={styles.tabTextActive}>{t.label}</Text>
                 <View style={styles.tabBadgeActive}>
                   <Text style={styles.tabBadgeTextActive}>{t.count}</Text>

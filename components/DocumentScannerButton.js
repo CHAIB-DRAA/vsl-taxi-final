@@ -7,11 +7,11 @@ import * as ImagePicker from 'expo-image-picker';
  * Composant Bouton Scanner Réutilisable
  * @param {string} title - Le nom du bouton (ex: "PMT")
  * @param {string} docType - Le type technique (ex: "PMT", "CarteVitale")
- * @param {string} color - La couleur du bouton (ex: "#FF6B00")
+ * @param {string} color - La couleur du bouton (ex: "#FF5500")
  * @param {function} onScan - Fonction callback (uri, docType) => void
  * @param {boolean} isLoading - Si un upload est en cours globalement
  */
-export default function DocumentScannerButton({ title, docType, color = "#FF6B00", onScan, isLoading }) {
+export default function DocumentScannerButton({ title, docType, color = "#FF5500", onScan, isLoading }) {
   const [localLoading, setLocalLoading] = useState(false);
 
   const handleScan = async () => {

@@ -91,7 +91,7 @@ export default function AddressAutocomplete({
         />
         
         {loading ? (
-          <ActivityIndicator size="small" color="#FF6B00" />
+          <ActivityIndicator size="small" color="#FF5500" />
         ) : query.length > 0 ? (
           <TouchableOpacity onPress={clearInput}>
             <Ionicons name="close-circle" size={18} color="#CCC" />
@@ -108,7 +108,7 @@ export default function AddressAutocomplete({
               style={styles.suggestionItem}
               onPress={() => handleSelect(item)}
             >
-              <Ionicons name="location" size={16} color="#FF6B00" style={{marginTop: 2}} />
+              <Ionicons name="location" size={16} color="#FF5500" style={{marginTop: 2}} />
               <View style={{marginLeft: 10, flex: 1}}>
                 <Text style={styles.mainText} numberOfLines={1}>{item.properties.name}</Text>
                 <Text style={styles.subText} numberOfLines={1}>{item.properties.city} ({item.properties.postcode})</Text>

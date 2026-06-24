@@ -51,7 +51,7 @@ export default function GlobalInvitationModal() {
 const styles = StyleSheet.create({
   overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 },
   card: { width: '100%', backgroundColor: '#FFF', borderRadius: 20, overflow: 'hidden', elevation: 10 },
-  header: { backgroundColor: '#FF6B00', padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
+  header: { backgroundColor: '#FF5500', padding: 15, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' },
   title: { color: '#FFF', fontSize: 18, fontWeight: 'bold', marginLeft: 10 },
   body: { padding: 20, alignItems: 'center' },
   text: { fontSize: 16, color: '#333', marginBottom: 15, textAlign: 'center' },

@@ -7,8 +7,6 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 import { startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
 import { useData } from '../contexts/DataContext';
 import C from '../styles/tokens';
@@ -16,7 +14,7 @@ import C from '../styles/tokens';
 const STATUS_CONFIG = {
   'À venir':    { color: C.blue,  bg: '#EFF6FF', icon: 'time-outline',              grad: [C.blue, '#2563EB'] },
   'En attente': { color: C.amber, bg: '#FFFBEB', icon: 'hourglass-outline',         grad: [C.amber,'#D97706'] },
-  'En cours':   { color: C.green, bg: '#F0FDF4', icon: 'navigate-outline',          grad: [C.green,'#059669'] },
+  'En cours':   { color: C.green, bg: '#F0FDF4', icon: 'navigate-outline',          grad: [C.green,'#00B87A'] },
   'Terminée':   { color: C.text3, bg: '#F8FAFC', icon: 'checkmark-circle-outline',  grad: ['#94A3B8','#64748B'] },
   'Annulée':    { color: C.red,   bg: '#FFF1F2', icon: 'close-circle-outline',      grad: [C.red, '#DC2626'] },
 };
@@ -253,7 +251,7 @@ export default function TodayRidesScreen({ navigation }) {
           {isWebPending && (
             <View style={styles.webActions}>
               <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)} activeOpacity={0.85}>
-                <LinearGradient colors={[C.green, '#059669']} style={styles.btnGrad}>
+                <LinearGradient colors={[C.green, '#00B87A']} style={styles.btnGrad}>
                   <Ionicons name="checkmark" size={16} color="#FFF" />
                   <Text style={styles.btnGradText}>Accepter</Text>
                 </LinearGradient>
@@ -307,7 +305,7 @@ export default function TodayRidesScreen({ navigation }) {
 
       {/* ═══ HEADER GRADIENT ═══ */}
       <LinearGradient
-        colors={[C.hBg1, C.hBg2, '#1a2235']}
+        colors={[C.hBg1, C.hBg2, '#0D1A30']}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}

@@ -5,8 +5,6 @@ import {
 import { getRides, startRideById, finishRideById, updateRide } from '../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import dayjs from 'dayjs';
-import 'dayjs/locale/fr';
-dayjs.locale('fr');
 
 moment.locale('fr');
 
