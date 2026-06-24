@@ -38,7 +38,7 @@ export default function ContactScreen({ navigation }) {
       const res = await api.get('/contacts');
       setContacts(res.data);
     } catch (err) {
-      console.error("Erreur chargement contacts:", err);
+      // échec silencieux — liste vide affichée
     } finally {
       setLoading(false);
     }
@@ -57,7 +57,6 @@ export default function ContactScreen({ navigation }) {
       });
       setSearchResults(res.data);
     } catch (err) {
-      console.error("Erreur recherche:", err);
       Alert.alert("Erreur", "Problème lors de la recherche");
     } finally {
       setLoading(false);

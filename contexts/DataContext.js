@@ -57,7 +57,6 @@ export const DataProvider = ({ children }) => {
       }
       setContacts(contactsRes.status === 'fulfilled' ? contactsRes.value.data : []);
     } catch (error) {
-      console.error("Erreur chargement global :", error);
       setRidesError('network');
     } finally {
       isLoadingRef.current = false;

@@ -103,7 +103,7 @@ exports.addContact = async (req, res) => {
 exports.getMyContacts = async (req, res) => {
   try {
     const user = await User.findById(req.user.id)
-      .populate('contacts', 'fullName email pushToken');
+      .populate('contacts', 'fullName email');  // pushToken exclu : usage serveur uniquement
 
     if (!user) return res.status(404).json({ message: "Utilisateur introuvable" });
 
@@ -132,7 +132,9 @@ exports.searchUsers = async (req, res) => {
     const query = req.query.q?.trim();
     if (!query || query.length < 3) return res.json([]);
 
-    const regex = new RegExp(query, 'i');
+    // Échapper les métacaractères regex (protection ReDoS)
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
     const users = await User.find({
       $or: [{ email: regex }, { fullName: regex }]
     })

@@ -120,7 +120,7 @@ const AppNavigator = () => {
     try {
       await api.put('/auth/push-token', { pushToken: token });
     } catch (e) {
-      console.log("Erreur token notif");
+      // Échec silencieux — non bloquant
     }
   };
 
@@ -131,7 +131,7 @@ const AppNavigator = () => {
         const savedSession = await SecureStore.getItemAsync(SESSION_KEY);
         if (savedSession) setSession(JSON.parse(savedSession));
       } catch (e) {
-        console.error(e);
+        // Session corrompue — on reste déconnecté
       } finally {
         setLoading(false);
       }
@@ -177,23 +177,23 @@ const AppNavigator = () => {
     try {
       await SecureStore.setItemAsync(SESSION_KEY, JSON.stringify(data));
       setSession(data);
-    } catch (e) { console.error(e); }
+    } catch (e) { /* échec sauvegarde session */ }
   };
 
   // 4. Logout
   const handleLogout = async () => {
     try {
       await SecureStore.deleteItemAsync(SESSION_KEY);
+      await SecureStore.deleteItemAsync('token');
       setSession(null);
-      setTodayRidesCount(0);
-    } catch (error) { console.error(error); }
+    } catch (error) { /* échec suppression session */ }
   };
 
 
   if (loading) {
     return (
       <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color="#FF6B00" />
+        <ActivityIndicator size="large" color="#F05A28" />
       </View>
     );
   }

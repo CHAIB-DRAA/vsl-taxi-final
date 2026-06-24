@@ -77,7 +77,6 @@ export const addRideToCalendar = async (ride) => {
         ]
     );
   } catch (error) {
-    console.error("Erreur ajout calendrier:", error);
     Alert.alert("Erreur", "Impossible de créer l'événement. Vérifiez que votre application d'agenda est bien configurée.");
   }
 };
@@ -110,7 +109,6 @@ export const syncBatchRides = async (rides) => {
 
     Alert.alert("Succès", `${count} courses synchronisées dans votre calendrier !`);
   } catch (error) {
-    console.error("Erreur syncBatch:", error);
     Alert.alert("Erreur", "La synchronisation de masse a échoué.");
   }
 };
@@ -149,7 +147,6 @@ export const fetchGoogleCalendarEvents = async (daysInPast = 30, daysInFuture = 
 
     return validEvents;
   } catch (error) {
-    console.error("Erreur lecture calendrier :", error);
     return [];
   }
 };

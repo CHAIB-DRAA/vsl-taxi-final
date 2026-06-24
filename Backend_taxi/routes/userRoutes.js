@@ -49,9 +49,8 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
   if (!email) return res.status(400).json({ message: "Email requis." });
 
   try {
-    const user = await User.findOne({
-      email: { $regex: new RegExp(`^${email.trim()}$`, 'i') }
-    });
+    // Recherche exacte insensible à la casse (toLowerCase évite l'injection regex)
+    const user = await User.findOne({ email: email.trim().toLowerCase() });
 
     // On répond toujours avec le même message pour éviter l'énumération de comptes
     if (!user) {

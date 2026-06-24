@@ -453,6 +453,10 @@ exports.finishRide = async (req, res) => {
     const km  = parseFloat(realDistance) || 0;
     const tls = parseFloat(tolls) || 0;
 
+    // Bornes de sécurité (protection fraude & données corrompues)
+    if (km < 0 || km > 2000) return res.status(400).json({ message: "Distance invalide (0–2000 km)." });
+    if (tls < 0 || tls > 500) return res.status(400).json({ message: "Péages invalides (0–500 €)." });
+
     const existing = await Ride.findOne({ _id: req.params.id, chauffeurId: req.user.id, status: 'En cours' });
     if (!existing) return res.status(404).json({ message: "Course introuvable ou non démarrée." });
 

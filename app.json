@@ -3,7 +3,7 @@
     "name": "vsl-mobile",
     "slug": "taxi-vsl",
     "owner": "chaibdraa",
-    "version": "1.0.0",
+    "version": "1.1.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
@@ -11,17 +11,19 @@
     "splash": {
       "image": "./assets/splash-icon.png",
       "resizeMode": "contain",
-      "backgroundColor": "#FF6B00"
+      "backgroundColor": "#FAF9F6"
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.mostafa27001.vslmobile"
+      "bundleIdentifier": "com.mostafa27001.vslmobile",
+      "buildNumber": "2"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#ffffff"
+        "backgroundColor": "#FAF9F6"
       },
+      "versionCode": 2,
       "edgeToEdgeEnabled": true,
       "package": "com.mostafa27001.vslmobile",
       "permissions": [
@@ -55,7 +57,7 @@
         }
       ]
     ],
-    "runtimeVersion": "1.0.0",
+    "runtimeVersion": "1.1.0",
     "updates": {
       "url": "https://u.expo.dev/f68975be-b983-42cc-a7f9-0588c132f989"
     }

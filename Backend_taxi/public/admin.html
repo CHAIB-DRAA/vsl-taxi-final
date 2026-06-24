@@ -123,12 +123,14 @@
                     if (ride.status === 'En attente') statusColor = 'bg-yellow-100 text-yellow-700';
                     if (ride.status === 'Terminée') statusColor = 'bg-green-100 text-green-700';
 
+                    // esc() protège contre XSS stored (données provenant de l'API)
+                    const esc = s => s == null ? '' : String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
                     tbody.innerHTML += `
                         <tr class="hover:bg-slate-50 transition-colors">
                             <td class="px-6 py-4 font-medium text-sm text-slate-900">${dateStr}</td>
-                            <td class="px-6 py-4 font-bold text-sm text-slate-800">${ride.patientName}</td>
-                            <td class="px-6 py-4 text-sm text-slate-600">${ride.startLocation} ➔ ${ride.endLocation}</td>
-                            <td class="px-6 py-4"><span class="px-3 py-1 text-xs font-bold rounded-full ${statusColor}">${ride.status}</span></td>
+                            <td class="px-6 py-4 font-bold text-sm text-slate-800">${esc(ride.patientName)}</td>
+                            <td class="px-6 py-4 text-sm text-slate-600">${esc(ride.startLocation)} ➔ ${esc(ride.endLocation)}</td>
+                            <td class="px-6 py-4"><span class="px-3 py-1 text-xs font-bold rounded-full ${statusColor}">${esc(ride.status)}</span></td>
                         </tr>
                     `;
                 });

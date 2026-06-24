@@ -36,7 +36,6 @@ export default function SignUpScreen({ navigation, onSignUp }) {
       // Remonter la session complète { token, user } à App.js
       onSignUp({ token, user });
     } catch (err) {
-      console.error('Signup error:', err.response?.data || err.message);
       Alert.alert('Erreur', err.response?.data?.error || 'Impossible de créer le compte');
     } finally {
       setLoading(false);

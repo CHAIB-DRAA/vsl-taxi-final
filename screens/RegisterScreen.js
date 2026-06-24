@@ -12,11 +12,9 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     try {
       const data = await registerUser({ name, email, password });
-      console.log('Inscription réussie:', data);
       await AsyncStorage.setItem('token', data.token);
       navigation.replace('Home');
     } catch (err) {
-      console.log('Erreur inscription:', err.response?.data || err.message);
       Alert.alert('Erreur', err.response?.data?.message || 'Impossible de créer le compte');
     }
   };

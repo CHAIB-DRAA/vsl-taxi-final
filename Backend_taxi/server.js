@@ -16,7 +16,8 @@ if (missing.length > 0) {
 }
 
 if (process.env.JWT_SECRET.length < 32) {
-  console.warn("⚠️  JWT_SECRET trop court. Utilisez au moins 32 caractères.");
+  console.error("❌ JWT_SECRET trop court (< 32 caractères). Risque de forge de token. Arrêt.");
+  process.exit(1);
 }
 
 const app = express();

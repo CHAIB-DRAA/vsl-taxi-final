@@ -79,7 +79,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
               await SecureStore.deleteItemAsync('user_session');
               if (onLogout) onLogout();
             } catch (err) {
-              console.error("Erreur", err);
+              // échec suppression session
             } finally {
               setLoggingOut(false);
             }

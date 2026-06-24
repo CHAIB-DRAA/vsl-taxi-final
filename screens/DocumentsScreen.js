@@ -52,7 +52,7 @@ export default function DocumentsScreen() {
       const res = await api.get('/documents/driver/me');
       setMyDocs(res.data);
     } catch (err) {
-      console.error(err);
+      // échec chargement documents chauffeur
     } finally {
       setLoading(false);
     }

@@ -62,7 +62,7 @@ export default function HistoryScreen() {
       const history = allRides.filter(r => r.status === 'Terminée');
       history.sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date));
       setRides(history);
-    } catch(e) { console.error("Erreur historique:", e); setLoadError(true); }
+    } catch(e) { setLoadError(true); }
     finally {
       setLoading(false);
       setRefreshing(false);

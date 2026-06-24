@@ -82,7 +82,7 @@ export default function PatientsScreen() {
       const sorted = data.sort((a, b) => a.fullName.localeCompare(b.fullName));
       setPatients(sorted);
       setFilteredPatients(sorted);
-    } catch (err) { console.error(err); }
+    } catch (err) { /* échec chargement patients */ }
     finally { setLoading(false); }
   }, []);
 
@@ -143,7 +143,7 @@ export default function PatientsScreen() {
       });
       setPatientDocs(finalDocs);
 
-    } catch (err) { console.log("Erreur détails", err); }
+    } catch (err) { /* échec chargement détails patient */ }
     finally { setLoadingDetails(false); }
   };
 
@@ -272,7 +272,6 @@ export default function PatientsScreen() {
       fetchPatientDetails(selectedPatient);
 
     } catch (error) {
-      console.error(error);
       Alert.alert("Erreur", "Echec de l'envoi.");
     } finally {
       setUploading(false);

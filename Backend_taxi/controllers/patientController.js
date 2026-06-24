@@ -53,15 +53,25 @@ exports.createPatient = async (req, res) => {
   }
 };
 
+// Champs autorisés en mise à jour (whitelist anti-mass-assignment)
+const PATIENT_UPDATE_WHITELIST = [
+  'fullName', 'address', 'phone', 'nir',
+  'prescriberCode', 'prescriberName', 'mutuelle', 'tiersPayant',
+  'notesMedicales', 'pmtActif',
+];
+
 // 3. Modifier un patient
 exports.updatePatient = async (req, res) => {
   try {
     const { id } = req.params;
-    const updates = req.body;
-    const userId = req.user.id; // Pas besoin de convertir en ObjectId ici pour findOne, Mongoose gère souvent ça, mais userId est une string ici
+    const userId = req.user.id;
 
-    // On cherche le patient si on est le créateur OU si on a les droits de partage
-    // Note: Pour update, souvent seul le créateur a le droit, mais si tu veux permettre aux collègues de modifier, garde le $or
+    // Whitelist : n'accepter que les champs autorisés (interdit chauffeurId, sharedWith, _id)
+    const updates = {};
+    PATIENT_UPDATE_WHITELIST.forEach(k => {
+      if (req.body[k] !== undefined) updates[k] = req.body[k];
+    });
+
     const patient = await Patient.findOne({
       _id: id,
       $or: [{ chauffeurId: userId }, { sharedWith: userId }]
@@ -69,13 +79,12 @@ exports.updatePatient = async (req, res) => {
 
     if (!patient) return res.status(404).json({ message: "Patient introuvable ou accès refusé" });
 
-    // Mise à jour
     Object.assign(patient, updates);
     await patient.save();
 
     res.json(patient);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 

@@ -13,7 +13,6 @@ const RideDetailScreen = ({ route, navigation }) => {
         { text: 'OK', onPress: () => navigation.goBack() }
       ]);
     } catch (error) {
-      console.error('Erreur mise à jour :', error);
       Alert.alert('Erreur', 'Impossible de mettre à jour le statut.');
     }
   };

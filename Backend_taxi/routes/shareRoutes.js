@@ -7,15 +7,22 @@ const Patient = require('../models/Patient');
 router.post('/transfert-patient', auth, async (req, res) => {
   try {
     const { patientId, targetUserId } = req.body;
+    if (!patientId || !targetUserId) {
+      return res.status(400).json({ error: "patientId et targetUserId requis" });
+    }
 
-    // 1. Mettre à jour le Patient pour donner l'accès au collègue
+    // Vérification de propriété : seul le propriétaire peut partager son patient (anti-IDOR)
+    const patient = await Patient.findOne({ _id: patientId, chauffeurId: req.user.id });
+    if (!patient) {
+      return res.status(403).json({ error: "Accès refusé ou patient introuvable" });
+    }
+
     await Patient.findByIdAndUpdate(patientId, {
-      $addToSet: { sharedWith: targetUserId } // $addToSet évite les doublons
+      $addToSet: { sharedWith: targetUserId }
     });
 
     res.status(200).json({ message: "Dossier partagé avec succès" });
   } catch (err) {
-    console.error("Erreur share:", err);
     res.status(500).json({ error: "Erreur serveur lors du partage" });
   }
 });

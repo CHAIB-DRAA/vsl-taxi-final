@@ -55,7 +55,6 @@ export const extractSecuNumber = async (imageUri) => {
     return null;
 
   } catch (error) {
-    console.error("Erreur OCR NIR:", error);
     return null;
   }
 };
@@ -93,7 +92,6 @@ export const extractName = async (imageUri) => {
     }
     return ""; // Rien trouvé
   } catch (e) {
-    console.error("Erreur OCR NOM:", e);
     return "";
   }
 };

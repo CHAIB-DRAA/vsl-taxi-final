@@ -26,7 +26,7 @@ api.interceptors.request.use(
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.log("Erreur token:", error);
+      // Impossible de lire le token SecureStore
     }
     return config;
   },

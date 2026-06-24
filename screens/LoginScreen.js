@@ -38,17 +38,14 @@ async function registerForPushNotificationsAsync() {
     }
 
     if (finalStatus !== 'granted') {
-      console.log('Permission refusée pour les notifications push !');
       return null;
     }
 
     try {
       token = (await Notifications.getExpoPushTokenAsync({})).data;
     } catch (e) {
-      console.error("Erreur lors de la génération du token Expo :", e);
+      // Échec silencieux — non bloquant pour la connexion
     }
-  } else {
-    console.log('Les notifications Push nécessitent un appareil physique.');
   }
 
   return token;

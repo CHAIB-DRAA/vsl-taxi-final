@@ -55,7 +55,6 @@ export async function scheduleDepartureAlert(ride, minutesBefore = ALERT_MINUTES
 
     return true;
   } catch (e) {
-    console.log('[DepartureAlert] schedule error:', e.message);
     return false;
   }
 }
