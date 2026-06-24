@@ -323,7 +323,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.grid}>
 
             <TouchableOpacity
-              style={styles.gridItem}
+              style={[styles.gridItem, { shadowColor: C.blue, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Agenda')}
             >
@@ -335,7 +335,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.gridItem}
+              style={[styles.gridItem, { shadowColor: C.brand, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('History')}
             >
@@ -347,7 +347,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.gridItem}
+              style={[styles.gridItem, { shadowColor: C.green, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Patients')}
             >
@@ -359,7 +359,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={styles.gridItem}
+              style={[styles.gridItem, { shadowColor: C.purple, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Facturation')}
             >
@@ -580,10 +580,10 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: C.green + '30',
-    shadowColor: C.green,
+    borderColor: C.electric + '40',
+    shadowColor: C.electric,
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.08,
+    shadowOpacity: 0.20,
     shadowRadius: 8,
     elevation: 2,
   },

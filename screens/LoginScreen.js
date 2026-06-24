@@ -110,7 +110,7 @@ export default function LoginScreen({ navigation, onSignIn }) {
           {/* LOGO */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={[C.brand, C.brandGrad]}
+              colors={['#FF5500', '#FF0055']}
               style={styles.logoCircle}
             >
               <Ionicons name="car" size={44} color="#FFF" />
@@ -228,18 +228,18 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: C.brand,
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 12,
+    shadowColor: '#FF5500',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.7,
+    shadowRadius: 24,
+    elevation: 16,
   },
   appName: {
     fontSize: 28,
     fontWeight: '800',
     color: '#F1F5F9',
     marginTop: 14,
-    letterSpacing: -0.5,
+    letterSpacing: 1.5,
   },
   appTagline: {
     fontSize: 14,
@@ -254,7 +254,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(80,160,255,0.20)',
   },
   title: {
     fontSize: 26,
@@ -299,11 +299,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: C.brand,
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
-    elevation: 8,
+    shadowColor: '#FF5500',
+    shadowOffset: { width: 0, height: 0 },
+    shadowOpacity: 0.60,
+    shadowRadius: 20,
+    elevation: 12,
   },
   submitBtn: {
     height: 56,

@@ -183,7 +183,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
       >
         {/* AVATAR INITIALES */}
         <LinearGradient
-          colors={[C.brand, C.brandGrad]}
+          colors={['#FF5500', '#FF0055']}
           style={styles.avatarCircle}
         >
           <Ionicons name="person" size={32} color="#FFF" />
@@ -221,7 +221,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           disabled={loggingOut}
         >
           <LinearGradient
-            colors={[C.red, '#DC2626']}
+            colors={['#FF3355', '#CC0033']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.logoutBtn}
@@ -379,9 +379,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: C.red,
+    shadowColor: '#FF3355',
     shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.35,
+    shadowOpacity: 0.40,
     shadowRadius: 12,
     elevation: 8,
   },

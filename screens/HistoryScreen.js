@@ -321,7 +321,7 @@ export default function HistoryScreen() {
 
       {/* ── HEADER GRADIENT SOMBRE ── */}
       <LinearGradient
-        colors={[C.hBg1, C.hBg2, '#0D1A30']}
+        colors={[C.hBg1, C.hBg2, C.hBg3]}
         style={styles.header}
       >
         {/* Titre + actions */}
@@ -388,7 +388,7 @@ export default function HistoryScreen() {
         {/* Stats du jour */}
         <View style={styles.statsRow}>
           <View style={styles.statCard}>
-            <LinearGradient colors={[C.brand, '#E55A00']} style={styles.statIcon}>
+            <LinearGradient colors={[C.brand, C.brandGrad]} style={styles.statIcon}>
               <Ionicons name="car-outline" size={14} color="#FFF" />
             </LinearGradient>
             <View>
@@ -400,7 +400,7 @@ export default function HistoryScreen() {
           <View style={styles.statDivider} />
 
           <View style={styles.statCard}>
-            <LinearGradient colors={[C.blue, '#2563EB']} style={styles.statIcon}>
+            <LinearGradient colors={[C.electric, C.electricGrad]} style={styles.statIcon}>
               <Ionicons name="navigate-outline" size={14} color="#FFF" />
             </LinearGradient>
             <View>
@@ -531,7 +531,7 @@ export default function HistoryScreen() {
 
             {isAuditing ? (
               <View style={styles.auditLoadingContainer}>
-                <LinearGradient colors={[C.brand, '#E55A00']} style={styles.auditLoadingIcon}>
+                <LinearGradient colors={[C.brand, C.brandGrad]} style={styles.auditLoadingIcon}>
                   <Ionicons name="navigate" size={28} color="#FFF" />
                 </LinearGradient>
                 <ActivityIndicator size="large" color={C.brand} style={{ marginTop: 20 }} />
@@ -580,7 +580,7 @@ export default function HistoryScreen() {
 
             {!isAuditing && auditProposals.length > 0 && (
               <TouchableOpacity style={styles.applyBtnWrapper} onPress={applyAuditCorrections} activeOpacity={0.85}>
-                <LinearGradient colors={[C.brand, '#E55A00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.applyBtn}>
+                <LinearGradient colors={[C.brand, C.brandGrad]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.applyBtn}>
                   <Ionicons name="checkmark-circle" size={18} color="#FFF" />
                   <Text style={styles.applyBtnText}>APPLIQUER LES CORRECTIONS</Text>
                 </LinearGradient>
@@ -752,11 +752,13 @@ const styles = StyleSheet.create({
   listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 120 },
 
   errorBanner: {
-    backgroundColor: C.red,
+    backgroundColor: 'rgba(255,51,85,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(255,51,85,0.30)',
     paddingHorizontal: 16,
     paddingVertical: 10,
   },
-  errorBannerText: { color: '#FFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
+  errorBannerText: { color: C.red, fontSize: 13, fontWeight: '600', textAlign: 'center' },
 
   // Loader
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },

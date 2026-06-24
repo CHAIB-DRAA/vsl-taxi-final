@@ -12,11 +12,11 @@ import { useData } from '../contexts/DataContext';
 import C from '../styles/tokens';
 
 const STATUS_CONFIG = {
-  'À venir':    { color: C.blue,  bg: '#EFF6FF', icon: 'time-outline',              grad: [C.blue, '#2563EB'] },
-  'En attente': { color: C.amber, bg: '#FFFBEB', icon: 'hourglass-outline',         grad: [C.amber,'#D97706'] },
-  'En cours':   { color: C.green, bg: '#F0FDF4', icon: 'navigate-outline',          grad: [C.green,'#00B87A'] },
-  'Terminée':   { color: C.text3, bg: '#F8FAFC', icon: 'checkmark-circle-outline',  grad: ['#94A3B8','#64748B'] },
-  'Annulée':    { color: C.red,   bg: '#FFF1F2', icon: 'close-circle-outline',      grad: [C.red, '#DC2626'] },
+  'À venir':    { color: '#3D7FFF', bg: '#EBF0FF', icon: 'time-outline',              grad: ['#3D7FFF', '#2255DD'] },
+  'En attente': { color: '#FFB800', bg: '#FFF8E0', icon: 'hourglass-outline',         grad: ['#FFB800', '#FF8800'] },
+  'En cours':   { color: '#00D68F', bg: '#E0FFF5', icon: 'navigate-outline',          grad: ['#00D68F', '#00B87A'] },
+  'Terminée':   { color: '#7A90B2', bg: '#F0F4FF', icon: 'checkmark-circle-outline',  grad: ['#7A90B2', '#4B5E7A'] },
+  'Annulée':    { color: '#FF3355', bg: '#FFF0F3', icon: 'close-circle-outline',      grad: ['#FF3355', '#CC0033'] },
 };
 
 const RIDE_ORDER = { 'En cours': 0, 'À venir': 1, 'En attente': 1, 'Terminée': 2, 'Annulée': 3 };
@@ -272,7 +272,7 @@ export default function TodayRidesScreen({ navigation }) {
                   onPress={() => handleStart(item._id)}
                   activeOpacity={loading ? 1 : 0.85}
                 >
-                  <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.btnGrad}>
+                  <LinearGradient colors={['#040C1E', '#0D1A30']} style={styles.btnGrad}>
                     <Ionicons name="play" size={15} color="#FFF" />
                     <Text style={styles.btnGradText}>Démarrer</Text>
                   </LinearGradient>
@@ -283,7 +283,7 @@ export default function TodayRidesScreen({ navigation }) {
                   onPress={() => openFinishModal(item)}
                   activeOpacity={loading ? 1 : 0.85}
                 >
-                  <LinearGradient colors={[C.brand, '#E55A00']} style={styles.btnGrad}>
+                  <LinearGradient colors={['#FF5500', '#FF0055']} style={styles.btnGrad}>
                     <Ionicons name="flag" size={15} color="#FFF" />
                     <Text style={styles.btnGradText}>Terminer</Text>
                   </LinearGradient>
@@ -305,7 +305,7 @@ export default function TodayRidesScreen({ navigation }) {
 
       {/* ═══ HEADER GRADIENT ═══ */}
       <LinearGradient
-        colors={[C.hBg1, C.hBg2, '#0D1A30']}
+        colors={[C.hBg1, C.hBg2, C.hBg3]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.header}
@@ -331,7 +331,7 @@ export default function TodayRidesScreen({ navigation }) {
           </View>
           <View style={styles.pillDivider} />
           <View style={styles.pill}>
-            <Text style={[styles.pillValue, { color: C.brand }]}>{headerStats.upcoming}</Text>
+            <Text style={[styles.pillValue, { color: C.electric }]}>{headerStats.upcoming}</Text>
             <Text style={styles.pillLabel}>à venir</Text>
           </View>
           <View style={styles.pillDivider} />
@@ -433,7 +433,7 @@ export default function TodayRidesScreen({ navigation }) {
                 <Text style={styles.sheetBtnCancelText}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity style={styles.sheetBtnPrimary} onPress={submitFinish} activeOpacity={0.85}>
-                <LinearGradient colors={[C.brand, '#E55A00']} style={styles.sheetBtnGrad}>
+                <LinearGradient colors={['#FF5500', '#FF0055']} style={styles.sheetBtnGrad}>
                   <Ionicons name="flag" size={16} color="#FFF" />
                   <Text style={styles.sheetBtnPrimaryText}>Valider</Text>
                 </LinearGradient>
@@ -543,10 +543,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: C.border,
     overflow: 'hidden',
-    shadowColor: '#000',
+    shadowColor: '#1A2550',
     shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
+    shadowOpacity: 0.10,
+    shadowRadius: 14,
     elevation: 3,
   },
   cardDim: { opacity: 0.72 },
@@ -649,7 +649,7 @@ const styles = StyleSheet.create({
 
   // ── MODALS ──
   overlay: {
-    flex: 1, backgroundColor: 'rgba(10,15,30,0.75)',
+    flex: 1, backgroundColor: 'rgba(2,7,16,0.85)',
     justifyContent: 'flex-end',
   },
   sheet: {

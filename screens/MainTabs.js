@@ -22,7 +22,7 @@ const CustomPostButton = ({ children, onPress }) => (
     activeOpacity={0.88}
   >
     <LinearGradient
-      colors={[C.brand, C.brandGrad]}
+      colors={['#FF5500', '#FF0055']}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.centralBtnGradient}
@@ -46,18 +46,18 @@ export default function MainTabs({ webPendingCount = 0 }) {
           bottom: 18,
           left: 16,
           right: 16,
-          backgroundColor: '#FFFFFF',
-          borderRadius: 28,
-          height: 70,
+          backgroundColor: 'rgba(4,12,30,0.92)',
+          borderRadius: 26,
+          height: 68,
           borderTopWidth: 0,
+          borderWidth: 1,
+          borderColor: 'rgba(80,160,255,0.20)',
           elevation: 20,
-          shadowColor: C.brand,
-          shadowOffset: { width: 0, height: 8 },
-          shadowOpacity: 0.18,
+          shadowColor: '#00CCFF',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.25,
           shadowRadius: 20,
           zIndex: 999,
-          borderWidth: 1,
-          borderColor: '#F0F3FA',
         },
       }}
     >
@@ -71,7 +71,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={24}
-                color={focused ? C.brand : '#94A3B8'}
+                color={focused ? '#FF5500' : '#94A3B8'}
               />
               {focused && <Text style={styles.activeLabel}>Accueil</Text>}
               {!focused && <View style={styles.inactiveDot} />}
@@ -91,7 +91,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'calendar' : 'calendar-outline'}
                   size={24}
-                  color={focused ? C.brand : '#94A3B8'}
+                  color={focused ? '#FF5500' : '#94A3B8'}
                 />
                 {pendingInvitation && <View style={styles.badge} />}
               </View>
@@ -113,7 +113,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'notifications' : 'notifications-outline'}
                   size={24}
-                  color={focused ? C.brand : '#94A3B8'}
+                  color={focused ? '#FF5500' : '#94A3B8'}
                 />
                 {webPendingCount > 0 && (
                   <View style={styles.badgeCount}>
@@ -152,7 +152,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'pie-chart' : 'pie-chart-outline'}
                 size={24}
-                color={focused ? C.brand : '#94A3B8'}
+                color={focused ? '#FF5500' : '#94A3B8'}
               />
               {focused && <Text style={styles.activeLabel}>Historique</Text>}
               {!focused && <View style={styles.inactiveDot} />}
@@ -170,10 +170,10 @@ const styles = StyleSheet.create({
     top: -28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: C.brand,
+    shadowColor: '#FF5500',
     shadowOffset: { width: 0, height: 10 },
-    shadowOpacity: 0.5,
-    shadowRadius: 14,
+    shadowOpacity: 0.60,
+    shadowRadius: 20,
     elevation: 14,
   },
   centralBtnGradient: {
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 4,
-    borderColor: '#FFFFFF',
+    borderColor: 'rgba(255,255,255,0.20)',
   },
 
   // ICÔNES TABS
@@ -195,7 +195,7 @@ const styles = StyleSheet.create({
   activeLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: C.brand,
+    color: '#FF5500',
     marginTop: 3,
     letterSpacing: 0.3,
   },
