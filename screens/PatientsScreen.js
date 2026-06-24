@@ -98,7 +98,7 @@ export default function PatientsScreen() {
 
   const openPatientModal = (patient) => {
     setSelectedPatient(patient);
-    setFormData({ fullName: patient.fullName, address: patient.address || '', phone: patient.phone || '' });
+    setFormData({ fullName: patient.fullName, address: patient.address || '', phone: patient.phone || '', nir: patient.nir || '' });
     setActiveTab('profil');
     setModalVisible(true);
     fetchPatientDetails(patient);
@@ -158,6 +158,14 @@ export default function PatientsScreen() {
 
     const lastPMT = pmts[0];
     const pmtDate = new Date(lastPMT.uploadDate);
+
+    // PMT expire après 6 mois (convention CPAM standard)
+    const PMT_EXPIRY_DAYS = 180;
+    const pmtAge = pmtDate ? dayjs().diff(dayjs(pmtDate), 'day') : 0;
+    const isExpired = pmtDate && pmtAge > PMT_EXPIRY_DAYS;
+    if (isExpired) {
+      return { status: 'expired', label: `PMT EXPIRÉ (${pmtAge} jours)`, message: `PMT EXPIRÉ (${pmtAge} jours)\nDemandez un renouvellement !`, color: '#FF3355' };
+    }
 
     const maxQuota = lastPMT.maxRides ? parseFloat(lastPMT.maxRides) : 1;
 
@@ -350,7 +358,7 @@ export default function PatientsScreen() {
     try { const pdfUri = await generateCustomPDF(); if (!pdfUri) return; await Sharing.shareAsync(pdfUri, { UTI: '.pdf', mimeType: 'application/pdf' }); } catch (err) { Alert.alert("Erreur", "Impossible"); }
   };
 
-  const handleSave = async () => { try { await updatePatient(selectedPatient._id, formData); setModalVisible(false); loadPatients(); } catch (err) { Alert.alert("Erreur", "Mise à jour impossible"); } };
+  const handleSave = async () => { try { await updatePatient(selectedPatient._id, { ...formData, nir: formData.nir || '' }); setModalVisible(false); loadPatients(); } catch (err) { Alert.alert("Erreur", "Mise à jour impossible"); } };
   const handleDelete = () => { Alert.alert("Attention", "Supprimer ?", [{ text: "Non", style: "cancel" }, { text: "Oui", style: "destructive", onPress: async () => { try { await deletePatient(selectedPatient._id); setModalVisible(false); loadPatients(); } catch (err) {} } }]); };
 
   // ============================================================
@@ -431,10 +439,24 @@ export default function PatientsScreen() {
                </TouchableOpacity>
              </LinearGradient>
 
+             {/* NIR AFFICHÉ si renseigné */}
+             {selectedPatient?.nir ? (
+               <View style={styles.nirRow}>
+                 <View style={{ flex: 1 }}>
+                   <Text style={styles.label}>NIR (N° Sécu)</Text>
+                   <Text style={styles.nirValue}>{selectedPatient.nir}</Text>
+                 </View>
+                 <TouchableOpacity onPress={() => Clipboard.setStringAsync(selectedPatient.nir)} style={styles.nirCopyBtn}>
+                   <Ionicons name="copy-outline" size={16} color={C.brand} />
+                 </TouchableOpacity>
+               </View>
+             ) : null}
+
              {/* FORMULAIRE */}
              <View style={styles.inputGroup}><Text style={styles.label}>Nom</Text><TextInput style={styles.input} value={formData.fullName} onChangeText={t => setFormData({...formData, fullName: t})} /></View>
              <View style={styles.inputGroup}><Text style={styles.label}>Tél</Text><TextInput style={styles.input} value={formData.phone} keyboardType="phone-pad" onChangeText={t => setFormData({...formData, phone: t})} /></View>
              <View style={styles.inputGroup}><Text style={styles.label}>Adresse</Text><TextInput style={styles.input} value={formData.address} multiline onChangeText={t => setFormData({...formData, address: t})} /></View>
+             <View style={styles.inputGroup}><Text style={styles.label}>NIR (N° Sécu)</Text><TextInput style={styles.input} value={formData.nir || ''} keyboardType="numeric" maxLength={15} placeholder="13 chiffres (optionnel)" placeholderTextColor={C.text3} onChangeText={t => setFormData({...formData, nir: t})} /></View>
 
              <TouchableOpacity style={styles.saveBtnWrap} onPress={handleSave}>
                <LinearGradient colors={[C.green, '#00B87A']} style={styles.saveBtn}>
@@ -853,6 +875,11 @@ const styles = StyleSheet.create({
   viewerOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.95)', justifyContent: 'center', alignItems: 'center' },
   fullImage: { width: '100%', height: '80%' },
   viewerClose: { position: 'absolute', top: 50, right: 20, zIndex: 10 },
+
+  // NIR ROW
+  nirRow: { flexDirection: 'row', alignItems: 'center', backgroundColor: C.card2, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: C.border },
+  nirValue: { fontSize: 15, color: C.text, fontWeight: '700', marginTop: 2 },
+  nirCopyBtn: { padding: 8, backgroundColor: C.brand + '15', borderRadius: 10, borderWidth: 1, borderColor: C.brand + '30' },
 
   // PMT INPUT MODAL
   inputModalOverlay: { flex: 1, backgroundColor: 'rgba(10,15,30,0.75)', justifyContent: 'flex-end' },
