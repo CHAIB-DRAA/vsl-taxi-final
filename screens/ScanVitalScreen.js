@@ -53,19 +53,17 @@ export default function ScanVitalScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* HEADER DARK */}
-      <LinearGradient
-        colors={['#020710', '#060E1E']}
-        style={styles.header}
+      <View style={[styles.header, {backgroundColor: C.card}]}
       >
         <LinearGradient
           colors={['#00D68F', '#00B87A']}
           style={styles.headerIcon}
         >
           <Ionicons name="shield-checkmark" size={28} color="#FFF" />
-        </LinearGradient>
+        </View>
         <Text style={styles.headerTitle}>Vérification Droits</Text>
         <Text style={styles.headerSubtitle}>Scan carte Vitale · Anti-fraude</Text>
       </LinearGradient>
@@ -175,7 +173,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 4,
     fontWeight: '500',
   },
@@ -287,7 +285,7 @@ const styles = StyleSheet.create({
   },
   securityText: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#A8A29E',
     textAlign: 'center',
     flex: 1,
   },

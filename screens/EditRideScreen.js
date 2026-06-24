@@ -64,7 +64,7 @@ export default function EditRideScreen({ navigation, route }) {
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={{ flex: 1 }}>
 
         {/* ── HEADER DARK GRADIENT ── */}
-        <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.header}>
+        <View style={[styles.header, {backgroundColor: C.card}]}>
           <TouchableOpacity onPress={() => navigation.goBack()} style={styles.headerBack}>
             <Ionicons name="arrow-back" size={22} color={C.hText} />
           </TouchableOpacity>
@@ -74,7 +74,7 @@ export default function EditRideScreen({ navigation, route }) {
               {ride.patientName} · {dayjs(ride.date).format('DD MMM, HH:mm')}
             </Text>
           </View>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           contentContainerStyle={{ padding: 16, paddingBottom: 60 }}
@@ -179,7 +179,7 @@ const styles = StyleSheet.create({
   },
   headerBack: {
     width: 40, height: 40, borderRadius: 12,
-    backgroundColor: 'rgba(80,160,255,0.18)',
+    backgroundColor: 'rgba(28,25,23,0.08)',
     justifyContent: 'center', alignItems: 'center',
   },
   headerTitle: { fontSize: 20, fontWeight: '800', color: C.hText, letterSpacing: 0.2 },

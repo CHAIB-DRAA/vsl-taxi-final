@@ -366,7 +366,7 @@ export default function FacturationScreen() {
                     <LinearGradient colors={['#00D68F', '#34D399']} style={styles.factBtn}>
                       <Ionicons name="checkmark" size={13} color="#FFF" />
                       <Text style={styles.factBtnText}>Facturer</Text>
-                    </LinearGradient>
+                    </View>
                   </TouchableOpacity>
                 )
             )}
@@ -420,10 +420,10 @@ export default function FacturationScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       {/* ── HEADER DARK GRADIENT ── */}
-      <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.header}>
+      <View style={[styles.header, {backgroundColor: C.card}]}>
         <Text style={styles.headerTitle}>Facturation</Text>
         <Text style={styles.headerSub}>Gestion CPAM & Cofidoc</Text>
 

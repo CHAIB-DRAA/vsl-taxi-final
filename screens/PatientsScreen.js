@@ -369,7 +369,7 @@ export default function PatientsScreen() {
     <TouchableOpacity style={styles.card} onPress={() => openPatientModal(item)} activeOpacity={0.75}>
       <LinearGradient colors={[C.brand, '#E55A00']} style={styles.avatar}>
         <Text style={styles.avatarText}>{item.fullName.charAt(0).toUpperCase()}</Text>
-      </LinearGradient>
+      </View>
       <View style={styles.info}>
         <Text style={styles.name}>{item.fullName}</Text>
         <Text style={styles.subInfo}>{item.phone || "Non renseigné"}</Text>
@@ -382,11 +382,11 @@ export default function PatientsScreen() {
     <TouchableOpacity style={styles.contactRow} onPress={() => initiateShareProcess('colleague', item)}>
       <LinearGradient colors={[C.blue, '#2563EB']} style={styles.contactAvatar}>
         <Text style={styles.contactAvatarText}>{item.contactId?.fullName?.charAt(0)}</Text>
-      </LinearGradient>
+      </View>
       <Text style={styles.contactName}>{item.contactId?.fullName}</Text>
       <LinearGradient colors={[C.brand, '#E55A00']} style={styles.sendBadge}>
         <Ionicons name="send" size={14} color="#FFF" />
-      </LinearGradient>
+      </View>
     </TouchableOpacity>
   );
 
@@ -437,7 +437,7 @@ export default function PatientsScreen() {
                 </View>
                 {uploading && <ActivityIndicator color="#FFF" style={{marginLeft: 10}}/>}
                </TouchableOpacity>
-             </LinearGradient>
+             </View>
 
              {/* NIR AFFICHÉ si renseigné */}
              {selectedPatient?.nir ? (
@@ -544,10 +544,10 @@ export default function PatientsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, C.hBg3]} style={styles.header}>
+      <View style={[styles.header, {backgroundColor: C.card}]}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>Patients</Text>
@@ -611,7 +611,7 @@ export default function PatientsScreen() {
       <Modal visible={modalVisible} animationType="slide" presentationStyle="pageSheet">
         <View style={styles.modalContainer}>
           <View style={styles.modalHandle} />
-          <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+          <View style={[styles.modalHeader, {backgroundColor: "#FFFFFF"}]}>
             <View>
               <Text style={styles.modalTitle}>{selectedPatient?.fullName}</Text>
               <Text style={styles.modalSub}>Fiche patient</Text>
@@ -677,7 +677,7 @@ export default function PatientsScreen() {
       <Modal visible={shareModalVisible} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
-            <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+            <View style={[styles.modalHeader, {backgroundColor: "#FFFFFF"}]}>
               <Text style={styles.modalTitle}>Destinataire</Text>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setShareModalVisible(false)}>
                 <Ionicons name="close" size={20} color={C.hText} />
@@ -691,7 +691,7 @@ export default function PatientsScreen() {
       <Modal visible={docSelectionModal} animationType="slide" presentationStyle="formSheet">
         <View style={styles.modalContainer}>
             <View style={styles.modalHandle} />
-            <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.modalHeader}>
+            <View style={[styles.modalHeader, {backgroundColor: "#FFFFFF"}]}>
               <Text style={styles.modalTitle}>Documents à joindre</Text>
               <TouchableOpacity style={styles.modalCloseBtn} onPress={() => setDocSelectionModal(false)}>
                 <Ionicons name="close" size={20} color={C.hText} />
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
   nirCopyBtn: { padding: 8, backgroundColor: C.brand + '15', borderRadius: 10, borderWidth: 1, borderColor: C.brand + '30' },
 
   // PMT INPUT MODAL
-  inputModalOverlay: { flex: 1, backgroundColor: 'rgba(10,15,30,0.75)', justifyContent: 'flex-end' },
+  inputModalOverlay: { flex: 1, backgroundColor: 'rgba(28,25,23,0.70)', justifyContent: 'flex-end' },
   inputModalCard: { backgroundColor: C.card, padding: 28, borderTopLeftRadius: 30, borderTopRightRadius: 30, alignItems: 'center' },
   inputModalHandle: { width: 40, height: 4, borderRadius: 2, backgroundColor: C.border, marginBottom: 20 },
   inputModalTitle: { fontSize: 20, fontWeight: '800', color: C.text, marginBottom: 6 },

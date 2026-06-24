@@ -46,12 +46,12 @@ export default function MainTabs({ webPendingCount = 0 }) {
           bottom: 18,
           left: 16,
           right: 16,
-          backgroundColor: 'rgba(4,12,30,0.92)',
+          backgroundColor: 'rgba(255,255,255,0.96)',
           borderRadius: 26,
           height: 68,
           borderTopWidth: 0,
           borderWidth: 1,
-          borderColor: 'rgba(80,160,255,0.20)',
+          borderColor: 'rgba(28,25,23,0.08)',
           elevation: 20,
           shadowColor: '#00CCFF',
           shadowOffset: { width: 0, height: 4 },
@@ -71,7 +71,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={24}
-                color={focused ? '#FF5500' : '#94A3B8'}
+                color={focused ? '#FF5500' : '#A8A29E'}
               />
               {focused && <Text style={styles.activeLabel}>Accueil</Text>}
               {!focused && <View style={styles.inactiveDot} />}
@@ -91,7 +91,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'calendar' : 'calendar-outline'}
                   size={24}
-                  color={focused ? '#FF5500' : '#94A3B8'}
+                  color={focused ? '#FF5500' : '#A8A29E'}
                 />
                 {pendingInvitation && <View style={styles.badge} />}
               </View>
@@ -113,7 +113,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'notifications' : 'notifications-outline'}
                   size={24}
-                  color={focused ? '#FF5500' : '#94A3B8'}
+                  color={focused ? '#FF5500' : '#A8A29E'}
                 />
                 {webPendingCount > 0 && (
                   <View style={styles.badgeCount}>
@@ -152,7 +152,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'pie-chart' : 'pie-chart-outline'}
                 size={24}
-                color={focused ? '#FF5500' : '#94A3B8'}
+                color={focused ? '#FF5500' : '#A8A29E'}
               />
               {focused && <Text style={styles.activeLabel}>Historique</Text>}
               {!focused && <View style={styles.inactiveDot} />}

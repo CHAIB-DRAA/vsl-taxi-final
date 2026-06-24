@@ -45,7 +45,6 @@ export default function SignUpScreen({ navigation, onSignUp }) {
 
   return (
     <LinearGradient
-      colors={['#020710', '#060E1E']}
       style={styles.gradient}
     >
       <KeyboardAvoidingView
@@ -207,7 +206,7 @@ const styles = StyleSheet.create({
   },
   appTagline: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 4,
     fontWeight: '500',
   },
@@ -218,7 +217,7 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(80,160,255,0.18)',
+    borderColor: 'rgba(28,25,23,0.08)',
   },
   title: {
     fontSize: 26,
@@ -228,7 +227,7 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 4,
     marginBottom: 28,
     fontWeight: '500',
@@ -241,7 +240,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderRadius: 14,
     borderWidth: 1,
-    borderColor: 'rgba(80,160,255,0.18)',
+    borderColor: 'rgba(28,25,23,0.08)',
     marginBottom: 14,
     paddingHorizontal: 14,
     height: 54,
@@ -289,7 +288,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   loginText: {
-    color: '#94A3B8',
+    color: '#A8A29E',
     fontSize: 15,
   },
   loginTextBold: {

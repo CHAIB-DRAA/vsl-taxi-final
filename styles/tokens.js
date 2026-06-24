@@ -1,5 +1,9 @@
-// Design tokens — source unique. Tous les écrans importent d'ici.
-// ─── PALETTE FUTURISTE 2026 ───────────────────────────────────────────────────
+/**
+ * Design Tokens — "Pro Clair 2026"
+ * Direction : minimalisme professionnel, fond chaud, orange vif sur blanc,
+ * bento grid, typographie massive, zéro gradient de fond, zéro dark mode.
+ * Tendances 2026 : bento layout, clean whites, bold typography, pill accents.
+ */
 
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
@@ -8,67 +12,76 @@ dayjs.extend(relativeTime);
 dayjs.locale('fr');
 
 export const colors = {
-  // ── Light surface ───────────────────────────────────────────────────────────
-  bg:      '#EAEDFF',   // fond bleu-nuit très clair (cosmic white)
+  // ── Surfaces ──────────────────────────────────────────────────────────────
+  bg:      '#FAF9F6',   // crème chaud (whiteboard look)
   card:    '#FFFFFF',
-  card2:   '#F0F3FF',   // teinté bleu froid
-  border:  '#D0D8FF',   // bordure blue-tinted
+  card2:   '#F4F3F0',   // crème secondaire
+  card3:   '#FFFBF7',   // crème orange très clair
+  border:  '#E8E6E1',   // bordure chaude subtile
 
-  // ── Typographie ─────────────────────────────────────────────────────────────
-  text:    '#040C1E',   // near-black bleu profond
-  text2:   '#3D5070',   // bleu-gris medium
-  text3:   '#7A90B2',   // bleu-gris light
+  // ── Typographie ────────────────────────────────────────────────────────────
+  text:    '#1C1917',   // stone-900 (légèrement chaud, pas pur noir)
+  text2:   '#57534E',   // stone-600
+  text3:   '#A8A29E',   // stone-400
 
-  // ── Brand — orange électrique ────────────────────────────────────────────────
-  brand:       '#FF5500',   // orange plus chaud/électrique
-  brandGrad:   '#FF8800',   // dégradé fin brand
-  brandDim:    'rgba(255,85,0,0.12)',
-  brandBorder: 'rgba(255,85,0,0.30)',
-  brandGlow:   'rgba(255,85,0,0.40)',   // pour shadow glow
+  // ── Brand — orange professionnel ──────────────────────────────────────────
+  brand:      '#F05A28',   // orange vif mais professionnel (FedEx/Stripe vibe)
+  brandGrad:  '#FF7A45',   // variante légèrement plus claire
+  brandDim:   'rgba(240,90,40,0.08)',
+  brandBorder:'rgba(240,90,40,0.20)',
+  brandText:  '#FFFFFF',   // texte sur fond brand
 
-  // ── Accent électrique cyan ────────────────────────────────────────────────────
-  electric:    '#00CCFF',   // cyan électrique
-  electricGrad:'#0099FF',   // vers bleu
-  electricDim: 'rgba(0,204,255,0.12)',
-  electricGlow:'rgba(0,204,255,0.35)',
+  // ── Semantic ───────────────────────────────────────────────────────────────
+  green:    '#16A34A',    // emerald-600
+  greenDim: 'rgba(22,163,74,0.08)',
+  greenBg:  '#F0FDF4',
+  red:      '#DC2626',    // red-600
+  redDim:   'rgba(220,38,38,0.08)',
+  redBg:    '#FEF2F2',
+  blue:     '#2563EB',    // blue-600
+  blueDim:  'rgba(37,99,235,0.08)',
+  blueBg:   '#EFF6FF',
+  purple:   '#7C3AED',    // violet-600
+  purpleDim:'rgba(124,58,237,0.08)',
+  purpleBg: '#F5F3FF',
+  amber:    '#D97706',    // amber-600
+  amberDim: 'rgba(217,119,6,0.08)',
+  amberBg:  '#FFFBEB',
 
-  // ── Semantic ────────────────────────────────────────────────────────────────
-  green:    '#00D68F',   // neon emerald
-  greenGrad:'#00B87A',
-  greenDim: 'rgba(0,214,143,0.12)',
-  greenGlow:'rgba(0,214,143,0.35)',
-  red:      '#FF3355',   // rouge plus vif
-  redDim:   'rgba(255,51,85,0.12)',
-  blue:     '#3D7FFF',   // bleu électrique
-  blueDim:  'rgba(61,127,255,0.12)',
-  purple:   '#9B5FFF',   // violet plasma
-  purpleDim:'rgba(155,95,255,0.12)',
-  amber:    '#FFB800',   // ambre plus saturé
-  amberDim: 'rgba(255,184,0,0.12)',
+  // ── Header — BLANC, pas sombre ────────────────────────────────────────────
+  // En 2026 le header est blanc avec typo massive bold, pas un fond sombre
+  hBg:     '#FFFFFF',
+  hBorder: '#F4F3F0',
+  hText:   '#1C1917',
+  hText2:  '#78716C',   // stone-500
+  hAccent: '#F05A28',   // accent brand sur fond blanc
 
-  // ── Dark header — espace profond ────────────────────────────────────────────
-  hBg1:    '#020710',   // near-black cosmique
-  hBg2:    '#060E1E',   // bleu-nuit profond
-  hBg3:    '#0D1A30',   // légèrement plus clair
-  hCard:   'rgba(255,255,255,0.06)',
-  hBorder: 'rgba(80,160,255,0.18)',   // bordure glass bleue
-  hText:   '#E8F0FF',   // blanc légèrement bleuté
-  hText2:  '#6A88B8',   // bleu-gris
-
-  // ── Glow overlays ────────────────────────────────────────────────────────────
-  glowBrand:    'rgba(255,85,0,0.08)',
-  glowElectric: 'rgba(0,204,255,0.08)',
-  glowGreen:    'rgba(0,214,143,0.08)',
+  // ── Conservés pour rétrocompatibilité (screens qui lisent hBg1 etc.) ──────
+  // Toutes les valeurs sombres remplacées par des équivalents clairs
+  hBg1:    '#FFFFFF',
+  hBg2:    '#FAF9F6',
+  hBg3:    '#F4F3F0',
+  hCard:   'rgba(240,90,40,0.05)',
+  hBorder2:'rgba(240,90,40,0.12)',
+  electric:       '#2563EB',   // blue plutôt que cyan
+  electricDim:    'rgba(37,99,235,0.08)',
+  electricGlow:   'rgba(37,99,235,0.15)',
+  electricGrad:   '#1D4ED8',
+  greenGrad:      '#15803D',
+  glowBrand:      'rgba(240,90,40,0.12)',
+  glowElectric:   'rgba(37,99,235,0.12)',
+  glowGreen:      'rgba(22,163,74,0.12)',
 };
 
-// ── Échelle typographique ─────────────────────────────────────────────────────
+// ── Typographie — échelle généreuse bold ──────────────────────────────────────
 export const fontSize = {
   xs:   11,
   sm:   13,
   base: 16,
   lg:   20,
   xl:   24,
-  xxl:  28,
+  xxl:  30,   // plus grand pour les stats
+  hero: 40,   // nombres héros (CA mensuel)
 };
 
 // ── Grille 8pt ────────────────────────────────────────────────────────────────
@@ -80,82 +93,53 @@ export const spacing = {
   5: 20,
   6: 24,
   8: 32,
+  10: 40,
   12: 48,
   tabBarClearance: 120,
 };
 
-// ── Rayons ────────────────────────────────────────────────────────────────────
+// ── Rayons — généreux et modernes ─────────────────────────────────────────────
 export const radius = {
-  sm:   10,
-  md:   14,
-  lg:   20,
-  xl:   28,
+  sm:  8,
+  md:  14,
+  lg:  20,
+  xl:  28,
+  pill:50,   // pills/badges
 };
 
-// ── Ombres / Glows ────────────────────────────────────────────────────────────
+// ── Ombres — douces et chaudes (pas noires froides) ──────────────────────────
 export const shadow = {
   card: {
-    shadowColor: '#1A2550',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.08,
-    shadowRadius: 12,
-    elevation: 4,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  cardHover: {
-    shadowColor: '#1A2550',
+  float: {
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.14,
+    shadowOpacity: 0.10,
     shadowRadius: 20,
-    elevation: 8,
+    elevation: 6,
   },
-  brandGlow: {
-    shadowColor: '#FF5500',
-    shadowOffset: { width: 0, height: 6 },
-    shadowOpacity: 0.45,
-    shadowRadius: 16,
-    elevation: 10,
-  },
-  electricGlow: {
-    shadowColor: '#00CCFF',
+  brand: {
+    shadowColor: '#F05A28',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.40,
-    shadowRadius: 14,
-    elevation: 8,
-  },
-  greenGlow: {
-    shadowColor: '#00D68F',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.40,
-    shadowRadius: 14,
-    elevation: 8,
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+    elevation: 6,
   },
 };
 
-// ── Gradients prédéfinis ──────────────────────────────────────────────────────
+// ── Gradients (utilisés avec parcimonie — seulement sur les boutons CTA) ──────
 export const gradients = {
-  header:    [colors.hBg1, colors.hBg2, colors.hBg3],
-  brand:     [colors.brand, colors.brandGrad],
-  electric:  [colors.electric, colors.electricGrad],
-  green:     [colors.green, colors.greenGrad],
-  dark:      ['#1A2550', '#0D1A30'],
-  plasma:    ['#9B5FFF', '#5B2FBF'],
-  fire:      ['#FF5500', '#FF0055'],
+  brand:   ['#F05A28', '#FF7A45'],
+  green:   ['#16A34A', '#15803D'],
+  red:     ['#DC2626', '#B91C1C'],
+  dark:    ['#1C1917', '#292524'],
 };
 
-// ── Alias court (usage: import C from '../styles/tokens') ─────────────────────
-const C = {
-  ...colors,
-  // gardés pour rétrocompatibilité
-  hBg3: colors.hBg3,
-  greenGrad: colors.greenGrad,
-  brandDim: colors.brandDim,
-  brandBorder: colors.brandBorder,
-  electricDim: colors.electricDim,
-  greenDim: colors.greenDim,
-  redDim: colors.redDim,
-  blueDim: colors.blueDim,
-  purpleDim: colors.purpleDim,
-  amberDim: colors.amberDim,
-};
-
+// ── Alias court ───────────────────────────────────────────────────────────────
+const C = { ...colors };
 export default C;

@@ -300,7 +300,7 @@ export default function AgendaScreen({ navigation }) {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       <AgendaHeader
         selectedDate={selectedDate}
@@ -723,7 +723,7 @@ const styles = StyleSheet.create({
   // ── Bottom Sheet ──
   sheetOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(10,15,30,0.75)',
+    backgroundColor: 'rgba(28,25,23,0.70)',
     justifyContent: 'flex-end',
   },
   sheetCard: {

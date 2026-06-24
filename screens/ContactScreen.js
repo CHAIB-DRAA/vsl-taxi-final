@@ -105,7 +105,7 @@ export default function ContactScreen({ navigation }) {
       <View style={styles.card}>
         <LinearGradient colors={avatarColors} style={styles.avatarPlaceholder}>
           <Text style={styles.avatarText}>{initial}</Text>
-        </LinearGradient>
+        </View>
 
         <View style={{ flex: 1, marginLeft: 14 }}>
           <Text style={styles.name}>{name}</Text>
@@ -135,10 +135,10 @@ export default function ContactScreen({ navigation }) {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, '#0D1A30']} style={styles.header}>
+      <View style={[styles.header, {backgroundColor: "#FFFFFF"}]}>
         {/* Accent blob */}
 
         <View style={styles.headerTop}>

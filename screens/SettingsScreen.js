@@ -177,9 +177,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
     <View style={[styles.container, { paddingTop: insets.top }]}>
 
       {/* HEADER SOMBRE GRADIENT */}
-      <LinearGradient
-        colors={[C.hBg1, C.hBg2]}
-        style={styles.header}
+      <View style={[styles.header, {backgroundColor: C.card}]}
       >
         {/* AVATAR INITIALES */}
         <LinearGradient
@@ -187,7 +185,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           style={styles.avatarCircle}
         >
           <Ionicons name="person" size={32} color="#FFF" />
-        </LinearGradient>
+        </View>
         <Text style={styles.headerTitle}>Mon Profil</Text>
         <Text style={styles.headerSubtitle}>Gérez vos préférences</Text>
       </LinearGradient>

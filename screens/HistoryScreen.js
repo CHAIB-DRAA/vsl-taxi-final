@@ -317,12 +317,10 @@ export default function HistoryScreen() {
 
   return (
     <View style={styles.container}>
-      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       {/* ── HEADER GRADIENT SOMBRE ── */}
-      <LinearGradient
-        colors={[C.hBg1, C.hBg2, C.hBg3]}
-        style={styles.header}
+      <View style={[styles.header, {backgroundColor: C.card}]}
       >
         {/* Titre + actions */}
         <View style={styles.headerTop}>
@@ -390,7 +388,7 @@ export default function HistoryScreen() {
           <View style={styles.statCard}>
             <LinearGradient colors={[C.brand, C.brandGrad]} style={styles.statIcon}>
               <Ionicons name="car-outline" size={14} color="#FFF" />
-            </LinearGradient>
+            </View>
             <View>
               <Text style={styles.statValue}>{stats.count}</Text>
               <Text style={styles.statLabel}>COURSES</Text>
@@ -402,7 +400,7 @@ export default function HistoryScreen() {
           <View style={styles.statCard}>
             <LinearGradient colors={[C.electric, C.electricGrad]} style={styles.statIcon}>
               <Ionicons name="navigate-outline" size={14} color="#FFF" />
-            </LinearGradient>
+            </View>
             <View>
               <Text style={styles.statValue}>{stats.km}</Text>
               <Text style={styles.statLabel}>KM</Text>
@@ -513,7 +511,7 @@ export default function HistoryScreen() {
         <View style={styles.auditContainer}>
 
           {/* Header audit */}
-          <LinearGradient colors={[C.hBg1, C.hBg2]} style={styles.auditHeader}>
+          <View style={[styles.auditHeader, {backgroundColor: "#FFFFFF"}]}>
             <TouchableOpacity onPress={() => setShowAuditModal(false)} style={styles.auditCloseBtn}>
               <Ionicons name="close" size={22} color={C.hText} />
             </TouchableOpacity>
@@ -602,8 +600,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 58 : 48,
     paddingBottom: 20,
     paddingHorizontal: 20,
-    overflow: 'hidden',
-  },
+    },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',

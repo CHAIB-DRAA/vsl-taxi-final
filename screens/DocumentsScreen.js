@@ -183,10 +183,10 @@ export default function DocumentsScreen() {
 
   return (
     <SafeAreaView style={styles.container}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, '#0D1A30']} style={styles.header}>
+      <View style={[styles.header, {backgroundColor: "#FFFFFF"}]}>
         {/* Accent blob */}
 
         <View style={styles.headerTop}>

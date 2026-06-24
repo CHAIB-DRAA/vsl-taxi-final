@@ -301,14 +301,11 @@ export default function TodayRidesScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       {/* ═══ HEADER GRADIENT ═══ */}
       <LinearGradient
-        colors={[C.hBg1, C.hBg2, C.hBg3]}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={styles.header}
+        style={[styles.header, {backgroundColor: "#FFFFFF"}]}
       >
         <View style={styles.headerTop}>
           <View>
@@ -340,7 +337,7 @@ export default function TodayRidesScreen({ navigation }) {
             <Text style={styles.pillLabel}>terminées</Text>
           </View>
         </View>
-      </LinearGradient>
+      </View>
 
       {/* ═══ LISTE ═══ */}
       {loading && rides.length === 0 ? (
@@ -501,8 +498,7 @@ const styles = StyleSheet.create({
     paddingTop: Platform.OS === 'ios' ? 64 : 50,
     paddingHorizontal: 20,
     paddingBottom: 24,
-    overflow: 'hidden',
-  },
+    },
   headerTop: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'flex-start', marginBottom: 20,
@@ -649,7 +645,7 @@ const styles = StyleSheet.create({
 
   // ── MODALS ──
   overlay: {
-    flex: 1, backgroundColor: 'rgba(2,7,16,0.85)',
+    flex: 1, backgroundColor: 'rgba(28,25,23,0.72)',
     justifyContent: 'flex-end',
   },
   sheet: {

@@ -39,7 +39,7 @@ export default function SettingAppScreen() {
     >
       <LinearGradient colors={gradientColors} style={styles.itemIconBox}>
         <Ionicons name={icon} size={20} color="#FFF" />
-      </LinearGradient>
+      </View>
 
       <View style={styles.itemTextBox}>
         <Text style={styles.itemTitle}>{title}</Text>
@@ -66,12 +66,10 @@ export default function SettingAppScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <StatusBar barStyle="light-content" />
+      <StatusBar barStyle="dark-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient
-        colors={['#020710', '#060E1E']}
-        style={styles.header}
+      <View style={[styles.header, {backgroundColor: C.card}]}
       >
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <View style={styles.backBtnInner}>
@@ -220,11 +218,11 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   backBtnInner: {
-    backgroundColor: 'rgba(80,160,255,0.18)',
+    backgroundColor: 'rgba(28,25,23,0.08)',
     borderRadius: 12,
     padding: 8,
     borderWidth: 1,
-    borderColor: 'rgba(80,160,255,0.18)',
+    borderColor: 'rgba(28,25,23,0.08)',
   },
   headerCenter: {
     alignItems: 'center',
@@ -250,7 +248,7 @@ const styles = StyleSheet.create({
   },
   headerSubtitle: {
     fontSize: 13,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 4,
     fontWeight: '500',
   },
@@ -266,7 +264,7 @@ const styles = StyleSheet.create({
   sectionLabel: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: '#A8A29E',
     letterSpacing: 1,
     marginBottom: 10,
     marginLeft: 4,
@@ -316,7 +314,7 @@ const styles = StyleSheet.create({
   },
   itemSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 2,
   },
   selectRight: {
@@ -332,7 +330,7 @@ const styles = StyleSheet.create({
   footerText: {
     textAlign: 'center',
     fontSize: 12,
-    color: '#94A3B8',
+    color: '#A8A29E',
     marginTop: 28,
   },
 

@@ -5,7 +5,6 @@ import {
 } from 'react-native';
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
 
 import * as ImagePicker from 'expo-image-picker';
@@ -115,7 +114,7 @@ export default function HomeScreen({ navigation }) {
 
   return (
     <View style={styles.root}>
-      <StatusBar barStyle="light-content" backgroundColor={C.hBg1} />
+      <StatusBar barStyle="dark-content" backgroundColor={C.bg} />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -129,14 +128,8 @@ export default function HomeScreen({ navigation }) {
           />
         }
       >
-        {/* ════════════════════════ HEADER GRADIENT ════════════════════════ */}
-        <LinearGradient
-          colors={[C.hBg1, C.hBg2, '#0D1A30']}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-          style={styles.header}
-        >
-          {/* Top row */}
+        {/* ════════════════════════ HEADER BLANC ════════════════════════ */}
+        <View style={styles.header}>
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>{getGreeting()}</Text>
@@ -147,65 +140,53 @@ export default function HomeScreen({ navigation }) {
               style={styles.settingsBtn}
               activeOpacity={0.7}
             >
-              <Ionicons name="settings-outline" size={18} color={C.hText2} />
+              <Ionicons name="settings-outline" size={20} color={C.text2} />
             </TouchableOpacity>
           </View>
 
-          {/* ── STATS GLASS CARDS ── */}
+          {/* ── BENTO STATS GRID ── */}
           <View style={styles.statsRow}>
 
-            {/* Courses du jour */}
-            <View style={[styles.glassCard, { borderLeftWidth: 2, borderLeftColor: C.electric }]}>
-              <View style={styles.glassCardTop}>
-                <View style={[styles.glassIconBox, { backgroundColor: C.brand + '22' }]}>
-                  <Ionicons name="car-sport" size={16} color={C.brand} />
+            {/* Card gauche — Aujourd'hui */}
+            <View style={styles.statCard}>
+              <View style={styles.statCardTop}>
+                <View style={[styles.statIconBox, { backgroundColor: C.brandDim }]}>
+                  <Ionicons name="car-sport" size={18} color={C.brand} />
                 </View>
-                <Text style={styles.glassLabel}>Aujourd'hui</Text>
+                <Text style={styles.statLabel}>AUJOURD'HUI</Text>
               </View>
-              <Text style={styles.glassValue}>{stats.todayCount}</Text>
-              <Text style={styles.glassUnit}>courses</Text>
+              <Text style={styles.statValueHero}>{stats.todayCount}</Text>
+              <Text style={styles.statUnit}>courses</Text>
             </View>
 
-            {/* CA mensuel */}
-            <View style={[styles.glassCard, styles.glassCardAccent, { borderLeftWidth: 2, borderLeftColor: C.brand }]}>
-              <View style={styles.glassCardTop}>
-                {/* Sélecteur de mois */}
-                <View style={styles.monthPicker}>
-                  <TouchableOpacity onPress={goToPreviousMonth} hitSlop={{ top:8,right:8,bottom:8,left:8 }}>
-                    <Ionicons name="chevron-back" size={14} color={C.hText2} />
-                  </TouchableOpacity>
-                  <Text style={styles.monthPickerText}>{selectedMonth.format('MMM YY')}</Text>
-                  <TouchableOpacity onPress={goToNextMonth} hitSlop={{ top:8,right:8,bottom:8,left:8 }}>
-                    <Ionicons name="chevron-forward" size={14} color={C.hText2} />
-                  </TouchableOpacity>
-                </View>
+            {/* Card droite — CA Mois */}
+            <View style={styles.statCard}>
+              <View style={styles.monthPickerRow}>
+                <TouchableOpacity onPress={goToPreviousMonth} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                  <Ionicons name="chevron-back" size={16} color={C.text3} />
+                </TouchableOpacity>
+                <Text style={styles.monthPickerText}>
+                  {selectedMonth.format('MMM YY')}
+                </Text>
+                <TouchableOpacity onPress={goToNextMonth} hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}>
+                  <Ionicons name="chevron-forward" size={16} color={C.text3} />
+                </TouchableOpacity>
               </View>
-              <Text style={[styles.glassValue, { color: C.brand }]}>{stats.monthEarnings} €</Text>
-              <Text style={styles.glassUnit}>CA estimé</Text>
+              <Text style={styles.statValueCA}>{stats.monthEarnings} €</Text>
+              <Text style={styles.statLabel}>CA ESTIMÉ</Text>
             </View>
 
           </View>
 
-          {/* ── BARRE FACTURATION ── */}
-          <View style={styles.billingBar}>
-            <View style={styles.billingLeft}>
-              <View style={[styles.glassIconBox, { backgroundColor: C.green + '25', width: 28, height: 28, borderRadius: 8 }]}>
-                <Ionicons name="checkmark-done" size={13} color={C.green} />
-              </View>
-              <View>
-                <Text style={styles.billingLabel}>Facturé ce mois</Text>
-                <Text style={styles.billingAmount}>{stats.monthBilledEarnings} €</Text>
-              </View>
+          {/* ── CARD FACTURÉ ── */}
+          <View style={styles.billedCard}>
+            <View style={[styles.billedIconBox, { backgroundColor: C.greenDim }]}>
+              <Ionicons name="checkmark-done" size={16} color={C.green} />
             </View>
-            <View style={styles.billingRight}>
-              <Text style={styles.billingPct}>{billedPct}%</Text>
-              <View style={styles.progressTrack}>
-                <View style={[styles.progressFill, { width: `${billedPct}%` }]} />
-              </View>
-            </View>
+            <Text style={styles.billedLabel}>Déjà facturé ce mois</Text>
+            <Text style={styles.billedAmount}>{stats.monthBilledEarnings} €</Text>
           </View>
-
-        </LinearGradient>
+        </View>
 
         {/* ════════════════════════ BODY ════════════════════════ */}
         <View style={styles.body}>
@@ -226,18 +207,13 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.88}
               onPress={() => navigation.navigate('Agenda')}
             >
-              {/* Bande gauche orange */}
-              <LinearGradient
-                colors={['#FF5500', '#FF0066']}
-                style={styles.nextRideStripe}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 0, y: 1 }}
-              >
+              {/* Bande gauche orange solide */}
+              <View style={styles.nextRideStripe}>
                 <Text style={styles.nextRideTime}>
                   {dayjs(stats.nextRide.date).format('HH:mm')}
                 </Text>
                 <Text style={styles.nextRideTimeLabel}>DÉPART</Text>
-              </LinearGradient>
+              </View>
 
               {/* Contenu */}
               <View style={styles.nextRideContent}>
@@ -275,18 +251,11 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
           ) : (
             <View style={styles.freeCard}>
-              <LinearGradient
-                colors={[C.brand + '18', C.brand + '08']}
-                style={styles.freeCardInner}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-              >
-                <View style={styles.freeIconWrap}>
-                  <Ionicons name="sunny-outline" size={28} color={C.brand} />
-                </View>
-                <Text style={styles.freeTitle}>Journée libre</Text>
-                <Text style={styles.freeSub}>Aucune course à venir aujourd'hui</Text>
-              </LinearGradient>
+              <View style={styles.freeIconWrap}>
+                <Ionicons name="sunny-outline" size={28} color={C.brand} />
+              </View>
+              <Text style={styles.freeTitle}>Journée libre</Text>
+              <Text style={styles.freeSub}>Aucune course à venir aujourd'hui</Text>
             </View>
           )}
 
@@ -298,17 +267,12 @@ export default function HomeScreen({ navigation }) {
             disabled={scanning}
             activeOpacity={0.82}
           >
-            <LinearGradient
-              colors={[C.green, '#0EA572']}
-              style={styles.scannerGradIcon}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 1 }}
-            >
+            <View style={styles.scannerIconBox}>
               {scanning
-                ? <ActivityIndicator color="#FFF" size="small" />
-                : <Ionicons name="scan-outline" size={20} color="#FFF" />
+                ? <ActivityIndicator color={C.green} size="small" />
+                : <Ionicons name="scan-outline" size={22} color={C.green} />
               }
-            </LinearGradient>
+            </View>
             <View style={{ flex: 1 }}>
               <Text style={styles.scannerTitle}>Scanner Droits Ameli</Text>
               <Text style={styles.scannerSub}>Carte Vitale · Attestation CPAM</Text>
@@ -323,7 +287,7 @@ export default function HomeScreen({ navigation }) {
           <View style={styles.grid}>
 
             <TouchableOpacity
-              style={[styles.gridItem, { shadowColor: C.blue, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
+              style={styles.gridItem}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Agenda')}
             >
@@ -335,7 +299,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.gridItem, { shadowColor: C.brand, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
+              style={styles.gridItem}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('History')}
             >
@@ -347,7 +311,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.gridItem, { shadowColor: C.green, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
+              style={styles.gridItem}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Patients')}
             >
@@ -359,7 +323,7 @@ export default function HomeScreen({ navigation }) {
             </TouchableOpacity>
 
             <TouchableOpacity
-              style={[styles.gridItem, { shadowColor: C.purple, shadowOpacity: 0.20, shadowRadius: 8, shadowOffset: { width: 0, height: 4 }, elevation: 4 }]}
+              style={styles.gridItem}
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Facturation')}
             >
@@ -383,101 +347,148 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: C.bg },
   scroll: { paddingBottom: 120 },
 
-  // ── HEADER ──────────────────────────────────────────────────────────────
+  // ── HEADER BLANC ──────────────────────────────────────────────────────────
   header: {
-    paddingTop: Platform.OS === 'ios' ? 64 : 50,
+    backgroundColor: C.card,
+    paddingTop: Platform.OS === 'ios' ? 56 : 44,
     paddingHorizontal: 20,
-    paddingBottom: 28,
-    overflow: 'hidden',
+    paddingBottom: 20,
+    borderBottomWidth: 1,
+    borderBottomColor: C.border,
   },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'flex-start',
-    marginBottom: 24,
+    marginBottom: 20,
   },
   greeting: {
-    color: C.hText2,
     fontSize: 13,
+    color: C.text3,
     fontWeight: '500',
-    letterSpacing: 0.2,
   },
   dateText: {
-    color: C.hText,
-    fontSize: 26,
-    fontWeight: '800',
+    fontSize: 28,
+    fontWeight: '900',
+    color: C.text,
     textTransform: 'capitalize',
     letterSpacing: -0.5,
     marginTop: 2,
   },
   settingsBtn: {
-    width: 38, height: 38,
+    width: 40,
+    height: 40,
+    backgroundColor: C.card2,
     borderRadius: 12,
-    backgroundColor: C.hCard,
-    borderWidth: 1, borderColor: C.hBorder,
-    justifyContent: 'center', alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.border,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 
-  // Stats row
-  statsRow: { flexDirection: 'row', gap: 10, marginBottom: 14 },
-  glassCard: {
+  // ── BENTO STATS ROW ────────────────────────────────────────────────────────
+  statsRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginBottom: 12,
+  },
+  statCard: {
     flex: 1,
-    backgroundColor: C.hCard,
-    borderWidth: 1, borderColor: C.hBorder,
-    borderRadius: 18,
-    padding: 14,
-    gap: 2,
+    backgroundColor: C.card,
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: C.border,
+    shadowColor: '#1C1917',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
-  glassCardAccent: {
-    borderColor: C.brand + '33',
-    backgroundColor: 'rgba(255,107,0,0.06)',
-  },
-  glassCardTop: {
+  statCardTop: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 8,
+    marginBottom: 10,
   },
-  glassIconBox: {
-    width: 30, height: 30,
-    borderRadius: 9,
-    justifyContent: 'center', alignItems: 'center',
+  statIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  glassLabel: { color: C.hText2, fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.6 },
-  glassValue: { color: C.hText, fontSize: 26, fontWeight: '900', letterSpacing: -0.8 },
-  glassUnit: { color: C.hText2, fontSize: 10, fontWeight: '600', textTransform: 'uppercase', letterSpacing: 0.5 },
-
-  // Month picker
-  monthPicker: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  monthPickerText: { color: C.hText2, fontSize: 11, fontWeight: '700', textTransform: 'capitalize', minWidth: 44, textAlign: 'center' },
-
-  // Billing bar
-  billingBar: {
+  statLabel: {
+    fontSize: 10,
+    color: C.text3,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  statValueHero: {
+    fontSize: 42,
+    fontWeight: '900',
+    color: C.text,
+    letterSpacing: -2,
+    lineHeight: 46,
+  },
+  statUnit: {
+    fontSize: 12,
+    color: C.text3,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  monthPickerRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    backgroundColor: C.hCard,
-    borderWidth: 1, borderColor: C.hBorder,
-    borderLeftWidth: 3, borderLeftColor: C.green,
+    marginBottom: 10,
+  },
+  monthPickerText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: C.text2,
+    textTransform: 'capitalize',
+    minWidth: 44,
+    textAlign: 'center',
+  },
+  statValueCA: {
+    fontSize: 28,
+    fontWeight: '900',
+    color: C.brand,
+    letterSpacing: -1,
+    lineHeight: 32,
+    marginBottom: 4,
+  },
+
+  // ── CARD FACTURÉ ───────────────────────────────────────────────────────────
+  billedCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    backgroundColor: C.greenBg,
     borderRadius: 16,
-    padding: 12,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: C.green + '22',
   },
-  billingLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
-  billingLabel: { color: C.hText2, fontSize: 11, fontWeight: '600' },
-  billingAmount: { color: C.green, fontSize: 16, fontWeight: '800', marginTop: 1 },
-  billingRight: { alignItems: 'flex-end', gap: 6 },
-  billingPct: { color: C.hText, fontSize: 13, fontWeight: '800' },
-  progressTrack: {
-    width: 80, height: 4,
-    backgroundColor: 'rgba(255,255,255,0.1)',
-    borderRadius: 2,
-    overflow: 'hidden',
+  billedIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  progressFill: {
-    height: 4,
-    backgroundColor: '#00D68F',
-    borderRadius: 2,
-    maxWidth: '100%',
+  billedLabel: {
+    flex: 1,
+    fontSize: 13,
+    fontWeight: '600',
+    color: C.text2,
+  },
+  billedAmount: {
+    fontSize: 18,
+    fontWeight: '900',
+    color: C.green,
   },
 
   // ── BODY ──────────────────────────────────────────────────────────────────
@@ -489,40 +500,50 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 17, fontWeight: '800', color: C.text,
-    letterSpacing: -0.3, marginBottom: 12,
+    fontSize: 18,
+    fontWeight: '800',
+    color: C.text,
+    letterSpacing: -0.3,
+    marginBottom: 12,
   },
   sectionLink: { fontSize: 13, fontWeight: '600', color: C.brand },
 
-  // ── NEXT RIDE ──────────────────────────────────────────────────────────────
+  // ── NEXT RIDE CARD ─────────────────────────────────────────────────────────
   nextRideCard: {
     flexDirection: 'row',
     backgroundColor: C.card,
-    borderRadius: 22,
+    borderRadius: 20,
     marginBottom: 24,
     overflow: 'hidden',
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.07,
-    shadowRadius: 12,
+    shadowOpacity: 0.08,
+    shadowRadius: 16,
     elevation: 4,
   },
   nextRideStripe: {
-    width: 76,
+    width: 70,
+    backgroundColor: C.brand,
     justifyContent: 'center',
     alignItems: 'center',
     gap: 3,
     paddingVertical: 20,
+    borderTopLeftRadius: 20,
+    borderBottomLeftRadius: 20,
   },
   nextRideTime: {
-    fontSize: 22, fontWeight: '900', color: '#FFF',
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#FFF',
     letterSpacing: -0.5,
   },
   nextRideTimeLabel: {
-    fontSize: 8, color: 'rgba(255,255,255,0.75)',
-    fontWeight: '800', letterSpacing: 1.5,
+    fontSize: 8,
+    color: 'rgba(255,255,255,0.75)',
+    fontWeight: '800',
+    letterSpacing: 1.5,
   },
   nextRideContent: { flex: 1, paddingHorizontal: 14, paddingVertical: 14 },
   nextRideHeader: {
@@ -533,12 +554,15 @@ const styles = StyleSheet.create({
   },
   nextRidePatient: { fontSize: 16, fontWeight: '800', color: C.text, flex: 1, marginRight: 8 },
   typePill: {
-    backgroundColor: C.brand + '18',
-    paddingHorizontal: 8, paddingVertical: 2,
-    borderRadius: 20, borderWidth: 1, borderColor: C.brand + '33',
+    backgroundColor: C.brandDim,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: C.brandBorder,
   },
   typePillText: { color: C.brand, fontSize: 10, fontWeight: '800' },
-  nextRideIn: { fontSize: 12, color: C.electric, fontWeight: '600', marginBottom: 10 },
+  nextRideIn: { fontSize: 12, color: C.brand, fontWeight: '600', marginBottom: 10 },
   routeBlock: { gap: 0 },
   routeRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   routeDot: { width: 7, height: 7, borderRadius: 4, flexShrink: 0 },
@@ -548,61 +572,70 @@ const styles = StyleSheet.create({
 
   // ── FREE CARD ──────────────────────────────────────────────────────────────
   freeCard: {
-    borderRadius: 22,
-    marginBottom: 24,
-    overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: C.brand + '22',
-  },
-  freeCardInner: {
     alignItems: 'center',
     paddingVertical: 28,
     paddingHorizontal: 20,
+    borderRadius: 20,
+    marginBottom: 24,
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.brand + '22',
   },
   freeIconWrap: {
-    width: 60, height: 60,
+    width: 60,
+    height: 60,
     borderRadius: 18,
-    backgroundColor: C.brand + '20',
-    alignItems: 'center', justifyContent: 'center',
+    backgroundColor: C.brandDim,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 12,
-    borderWidth: 1, borderColor: C.brand + '30',
+    borderWidth: 1,
+    borderColor: C.brandBorder,
   },
   freeTitle: { fontSize: 17, fontWeight: '800', color: C.text, marginBottom: 4 },
   freeSub: { fontSize: 13, color: C.text2 },
 
-  // ── SCANNER ──────────────────────────────────────────────────────────────
+  // ── SCANNER CARD ──────────────────────────────────────────────────────────
   scannerCard: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 14,
     backgroundColor: C.card,
     padding: 14,
-    borderRadius: 20,
+    borderRadius: 18,
     marginBottom: 24,
     borderWidth: 1,
-    borderColor: C.electric + '40',
-    shadowColor: C.electric,
+    borderColor: C.green + '22',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.20,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
     elevation: 2,
   },
-  scannerGradIcon: {
-    width: 48, height: 48,
-    borderRadius: 15,
-    justifyContent: 'center', alignItems: 'center',
+  scannerIconBox: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: C.greenDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.green + '22',
   },
   scannerTitle: { fontSize: 15, fontWeight: '700', color: C.text },
   scannerSub: { fontSize: 12, color: C.text2, marginTop: 2 },
   scannerArrow: {
-    width: 28, height: 28,
+    width: 28,
+    height: 28,
     borderRadius: 8,
-    backgroundColor: C.green + '15',
-    justifyContent: 'center', alignItems: 'center',
-    borderWidth: 1, borderColor: C.green + '25',
+    backgroundColor: C.greenDim,
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: C.green + '22',
   },
 
-  // ── GRID ──────────────────────────────────────────────────────────────────
+  // ── NAVIGATION GRID ───────────────────────────────────────────────────────
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
@@ -611,21 +644,23 @@ const styles = StyleSheet.create({
   gridItem: {
     width: '47.5%',
     backgroundColor: C.card,
-    borderRadius: 22,
+    borderRadius: 20,
     paddingVertical: 20,
     paddingHorizontal: 16,
     borderWidth: 1,
     borderColor: C.border,
-    shadowColor: '#000',
+    shadowColor: '#1C1917',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
+    shadowOpacity: 0.06,
     shadowRadius: 8,
-    elevation: 1,
+    elevation: 2,
   },
   gridIcon: {
-    width: 50, height: 50,
-    borderRadius: 16,
-    justifyContent: 'center', alignItems: 'center',
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
     marginBottom: 12,
   },
   gridLabel: { fontSize: 14, fontWeight: '800', color: C.text, marginBottom: 2 },
