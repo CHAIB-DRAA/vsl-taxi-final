@@ -360,9 +360,9 @@ export default function CreateRideScreen({ navigation, route }) {
           >
             <LinearGradient colors={['#FF5500', C.brandGrad]} style={styles.headerScanGrad}>
               <Ionicons name="scan-outline" size={18} color="#FFF" />
-            </View>
+            </LinearGradient>
           </TouchableOpacity>
-        </LinearGradient>
+        </View>
 
         <ScrollView
           style={styles.container}

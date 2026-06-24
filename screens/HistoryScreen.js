@@ -388,7 +388,7 @@ export default function HistoryScreen() {
           <View style={styles.statCard}>
             <LinearGradient colors={[C.brand, C.brandGrad]} style={styles.statIcon}>
               <Ionicons name="car-outline" size={14} color="#FFF" />
-            </View>
+            </LinearGradient>
             <View>
               <Text style={styles.statValue}>{stats.count}</Text>
               <Text style={styles.statLabel}>COURSES</Text>
@@ -400,7 +400,7 @@ export default function HistoryScreen() {
           <View style={styles.statCard}>
             <LinearGradient colors={[C.electric, C.electricGrad]} style={styles.statIcon}>
               <Ionicons name="navigate-outline" size={14} color="#FFF" />
-            </View>
+            </LinearGradient>
             <View>
               <Text style={styles.statValue}>{stats.km}</Text>
               <Text style={styles.statLabel}>KM</Text>
@@ -429,7 +429,7 @@ export default function HistoryScreen() {
             </Text>
           </View>
         )}
-      </LinearGradient>
+      </View>
 
       {/* ── BANNIÈRE ERREUR ── */}
       {loadError && !loading && rides.length === 0 && (
@@ -517,7 +517,7 @@ export default function HistoryScreen() {
             </TouchableOpacity>
             <Text style={styles.auditTitle}>Lissage Intelligent</Text>
             <View style={{ width: 36 }} />
-          </LinearGradient>
+          </View>
 
           <ScrollView contentContainerStyle={styles.auditContent}>
             <View style={styles.auditDescCard}>

@@ -214,7 +214,7 @@ export default function DocumentsScreen() {
             {progressPct === 1 ? 'Dossier complet ✓' : `${totalCount - validCount} document(s) manquant(s)`}
           </Text>
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={C.brand} style={{marginTop: 50}} />

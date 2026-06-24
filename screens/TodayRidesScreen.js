@@ -304,7 +304,7 @@ export default function TodayRidesScreen({ navigation }) {
       <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
       {/* ═══ HEADER GRADIENT ═══ */}
-      <LinearGradient
+      <View
         style={[styles.header, {backgroundColor: "#FFFFFF"}]}
       >
         <View style={styles.headerTop}>
@@ -326,6 +326,8 @@ export default function TodayRidesScreen({ navigation }) {
             <Text style={styles.pillValue}>{headerStats.total}</Text>
             <Text style={styles.pillLabel}>total</Text>
           </View>
+
+      </View>
           <View style={styles.pillDivider} />
           <View style={styles.pill}>
             <Text style={[styles.pillValue, { color: C.electric }]}>{headerStats.upcoming}</Text>

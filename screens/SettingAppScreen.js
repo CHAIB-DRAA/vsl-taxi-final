@@ -39,7 +39,7 @@ export default function SettingAppScreen() {
     >
       <LinearGradient colors={gradientColors} style={styles.itemIconBox}>
         <Ionicons name={icon} size={20} color="#FFF" />
-      </View>
+      </LinearGradient>
 
       <View style={styles.itemTextBox}>
         <Text style={styles.itemTitle}>{title}</Text>
@@ -87,7 +87,7 @@ export default function SettingAppScreen() {
           <Text style={styles.headerTitle}>Paramètres</Text>
           <Text style={styles.headerSubtitle}>Personnalisez votre expérience</Text>
         </View>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

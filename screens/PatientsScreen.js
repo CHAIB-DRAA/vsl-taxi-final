@@ -369,7 +369,7 @@ export default function PatientsScreen() {
     <TouchableOpacity style={styles.card} onPress={() => openPatientModal(item)} activeOpacity={0.75}>
       <LinearGradient colors={[C.brand, '#E55A00']} style={styles.avatar}>
         <Text style={styles.avatarText}>{item.fullName.charAt(0).toUpperCase()}</Text>
-      </View>
+      </LinearGradient>
       <View style={styles.info}>
         <Text style={styles.name}>{item.fullName}</Text>
         <Text style={styles.subInfo}>{item.phone || "Non renseigné"}</Text>
@@ -382,11 +382,11 @@ export default function PatientsScreen() {
     <TouchableOpacity style={styles.contactRow} onPress={() => initiateShareProcess('colleague', item)}>
       <LinearGradient colors={[C.blue, '#2563EB']} style={styles.contactAvatar}>
         <Text style={styles.contactAvatarText}>{item.contactId?.fullName?.charAt(0)}</Text>
-      </View>
+      </LinearGradient>
       <Text style={styles.contactName}>{item.contactId?.fullName}</Text>
       <LinearGradient colors={[C.brand, '#E55A00']} style={styles.sendBadge}>
         <Ionicons name="send" size={14} color="#FFF" />
-      </View>
+      </LinearGradient>
     </TouchableOpacity>
   );
 
@@ -437,7 +437,7 @@ export default function PatientsScreen() {
                 </View>
                 {uploading && <ActivityIndicator color="#FFF" style={{marginLeft: 10}}/>}
                </TouchableOpacity>
-             </View>
+             </LinearGradient>
 
              {/* NIR AFFICHÉ si renseigné */}
              {selectedPatient?.nir ? (
@@ -579,7 +579,7 @@ export default function PatientsScreen() {
             </TouchableOpacity>
           )}
         </View>
-      </LinearGradient>
+      </View>
 
       {loading ? (
         <ActivityIndicator size="large" color={C.brand} style={{marginTop: 50}} />

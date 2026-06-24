@@ -185,10 +185,10 @@ export default function SettingsScreen({ navigation, onLogout }) {
           style={styles.avatarCircle}
         >
           <Ionicons name="person" size={32} color="#FFF" />
-        </View>
+        </LinearGradient>
         <Text style={styles.headerTitle}>Mon Profil</Text>
         <Text style={styles.headerSubtitle}>Gérez vos préférences</Text>
-      </LinearGradient>
+      </View>
 
       <ScrollView
         contentContainerStyle={styles.scrollContent}

@@ -103,7 +103,7 @@ export default function ContactScreen({ navigation }) {
 
     return (
       <View style={styles.card}>
-        <LinearGradient colors={avatarColors} style={styles.avatarPlaceholder}>
+        <View style={[styles.avatarPlaceholder, {backgroundColor: avatarColors[0]}]}>
           <Text style={styles.avatarText}>{initial}</Text>
         </View>
 
@@ -170,7 +170,7 @@ export default function ContactScreen({ navigation }) {
             <Text style={[styles.tabText, activeTab === 'search' && styles.activeTabText]}>Ajouter</Text>
           </TouchableOpacity>
         </View>
-      </LinearGradient>
+      </View>
 
       <View style={styles.content}>
         {/* BARRE DE RECHERCHE — onglet Ajouter */}

@@ -366,7 +366,7 @@ export default function FacturationScreen() {
                     <LinearGradient colors={['#00D68F', '#34D399']} style={styles.factBtn}>
                       <Ionicons name="checkmark" size={13} color="#FFF" />
                       <Text style={styles.factBtnText}>Facturer</Text>
-                    </View>
+                    </LinearGradient>
                   </TouchableOpacity>
                 )
             )}
@@ -472,7 +472,7 @@ export default function FacturationScreen() {
             }
           </LinearGradient>
         </TouchableOpacity>
-      </LinearGradient>
+      </View>
 
       {/* ── TABS pills ── */}
       <View style={styles.tabsContainer}>
