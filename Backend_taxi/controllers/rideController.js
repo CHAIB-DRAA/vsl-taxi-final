@@ -89,6 +89,11 @@ function isMetropole(text) {
          ETABLISSEMENTS_FRONTIERES.some(k => lower.includes(k));
 }
 
+// NOTE DE SYNCHRONISATION : utils/pricing.js utilise la syntaxe ES module (export),
+// ce contrôleur est CommonJS (require). Un import direct n'est pas possible sans
+// transpilation ou conversion. La fonction calculerPrix ci-dessous est maintenue
+// en sync manuelle avec pricing.js — toute modification de la logique tarifaire
+// doit être répercutée dans les deux fichiers jusqu'à unification du build.
 function calculerPrix(ride, km, tolls = 0) {
   // ride peut être un objet Ride ou simplement une date (rétrocompat)
   const rideDate     = ride instanceof Date || typeof ride === 'string' ? ride : ride.date;
@@ -105,7 +110,10 @@ function calculerPrix(ride, km, tolls = 0) {
   const metropole     = isMetropole(startLoc) || isMetropole(endLoc);
   const metropoleCost = metropole ? CPAM.FORFAIT_METROPOLE : 0;
 
-  const applyRetour = !isRoundTrip;
+  // Bug A4 fix : hasEmptyReturn prioritaire, fallback excluant le type 'Retour'
+  const applyRetour = ride.hasEmptyReturn !== undefined
+    ? Boolean(ride.hasEmptyReturn)
+    : (!isRoundTrip && ride.type !== 'Retour');
   const tauxRetour  = km < CPAM.SEUIL_RETOUR_VIDE ? CPAM.TAUX_RETOUR_COURT : CPAM.TAUX_RETOUR_LONG;
   const retourCost  = applyRetour ? kmCost * tauxRetour : 0;
 

@@ -1,5 +1,4 @@
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
 
 // --- CONVENTION TAXI 2025-2029 — DÉPARTEMENT 31 (Haute-Garonne) ---
 // Source officielle : Convention CPAM reçue, applicable au 1er novembre 2025
@@ -67,7 +66,7 @@ const getMobileFeries = (year) => {
 };
 
 const isHoliday = (dateObj) => {
-  const d = moment(dateObj);
+  const d = dayjs(dateObj);
   const mmdd = d.format('MM-DD');
   return FERIES_FIXES.includes(mmdd) || getMobileFeries(d.year()).includes(mmdd);
 };
@@ -77,7 +76,7 @@ const isHoliday = (dateObj) => {
 
 const isNightOrWeekend = (dateObj) => {
   if (!dateObj) return false;
-  const d = moment(dateObj);
+  const d = dayjs(dateObj);
   const day = d.day();
   const hour = d.hour();
   if (isHoliday(dateObj)) return true;
@@ -149,7 +148,12 @@ export const calculatePriceDetailed = (ride) => {
   const metropoleCost = metropole ? CONFIG.FORFAIT_METROPOLE : 0;
 
   // Étape 4 : retour à vide (sur coût km, seuil sur distance TOTALE)
-  const applyRetour = !ride.isRoundTrip;
+  // hasEmptyReturn = true  → chauffeur revient à vide (aller simple)
+  // hasEmptyReturn = false → pas de retour à vide (aller-retour, ou type Retour)
+  // Fallback : on exclut le type 'Retour' qui signifie déjà un retour patient
+  const applyRetour = ride.hasEmptyReturn !== undefined
+    ? Boolean(ride.hasEmptyReturn)
+    : (!ride.isRoundTrip && ride.type !== 'Retour');
   const tauxRetour  = totalKm < CONFIG.SEUIL_RETOUR_VIDE
     ? CONFIG.TAUX_RETOUR_COURT
     : CONFIG.TAUX_RETOUR_LONG;

@@ -47,6 +47,16 @@ const rideSchema = mongoose.Schema({
   bonTransport: { type: String, default: '' },
   nbPassengers: { type: Number, default: 1 },
   isTpmr: { type: Boolean, default: false },
+  // NIR du patient (numéro sécurité sociale, 13 chiffres)
+  patientNIR: { type: String, default: '' },
+  // Code prescripteur CPAM (NPPI du médecin qui a prescrit)
+  prescriberCode: { type: String, default: '' },
+  // Le chauffeur revient-il à vide ? (true = aller simple, false = aller-retour ou retour lié)
+  hasEmptyReturn: { type: Boolean, default: true },
+  // Patient seul 30+ km dans véhicule partagé (exception abattement CPAM)
+  longuePortionSeule: { type: Boolean, default: false },
+  // Type de PMT : isolé (1 trajet), série (quota fixe), longue_durée (1000+ trajets)
+  pmtType: { type: String, enum: ['isolé', 'série', 'longue_durée', ''], default: '' },
 
   // --- GESTION DU PARTAGE ---
   isShared: { type: Boolean, default: false }, 
@@ -59,5 +69,6 @@ const rideSchema = mongoose.Schema({
 rideSchema.index({ chauffeurId: 1, date: -1 });               // getTodayRides, getRides
 rideSchema.index({ chauffeurId: 1, status: 1, date: -1 });    // getStats, filtres
 rideSchema.index({ source: 1, status: 1 });                   // demandes web en attente
+rideSchema.index({ chauffeurId: 1, statuFacturation: 1 });    // FacturationScreen
 
 module.exports = mongoose.model('Ride', rideSchema);
