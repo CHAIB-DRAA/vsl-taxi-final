@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { 
-  View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator 
+import {
+  View, Text, TextInput, TouchableOpacity, StyleSheet, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import axios from 'axios';
+import { isGeoResultInMetropole } from '../services/geocodingService';
 
-// Liste des départements d'Occitanie pour le filtrage
 const OCCITANIE_DEPTS = ['31', '81', '82', '32', '09', '65', '46', '12', '11', '34', '66', '48', '30'];
 
 export default function AddressAutocomplete({ 
@@ -65,7 +65,21 @@ export default function AddressAutocomplete({
     setQuery(fullAddress);
     setShowResults(false);
     setSuggestions([]);
-    if (onSelect) onSelect(fullAddress);
+    if (onSelect) {
+      // Passe l'adresse ET les métadonnées geo pour la détection métropole CPAM
+      const geo = {
+        citycode:    item.properties.citycode,
+        postcode:    item.properties.postcode,
+        city:        item.properties.city,
+        lat:         item.geometry?.coordinates?.[1],
+        lon:         item.geometry?.coordinates?.[0],
+        isMetropole: isGeoResultInMetropole({
+          citycode: item.properties.citycode,
+          postcode: item.properties.postcode,
+        }),
+      };
+      onSelect(fullAddress, geo);
+    }
   };
 
   const clearInput = () => {

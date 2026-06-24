@@ -89,6 +89,11 @@ const isNightOrWeekend = (dateObj) => {
 // ─── DÉTECTION FORFAIT GRANDE VILLE TOULOUSE (+15€) ─────────────────────────
 // Source CPAM : +15€ si prise en charge OU dépose dans Toulouse
 // ou dans les cliniques spécifiques : Croix du Sud, l'Union
+//
+// PRIORITÉ : ride.isMetropole (flag geocodé via api-adresse.data.gouv.fr)
+// FALLBACK : isMetropoleKeyword() sur le texte de l'adresse
+// → Le fallback n'est utilisé que si isMetropole === undefined/null
+//   (courses créées avant la mise à jour, ou geocoding échoué)
 
 const TOULOUSE_VILLE = [
   'toulouse',
@@ -96,15 +101,13 @@ const TOULOUSE_VILLE = [
   '31000', '31100', '31200', '31300', '31400', '31500',
 ];
 
-// Établissements hors Toulouse explicitement validés CPAM
 const ETABLISSEMENTS_FRONTIERES = [
-  // Clinique de l'Union — Saint-Jean (31240)
   "clinique de l'union", "clinique de l union", "l'union", "l union", "saint-jean", "31240",
-  // Clinique de la Croix du Sud — Quint-Fonsegrives (31130 partagé avec Balma → pas de CP seul)
   'croix du sud', 'quint-fonsegrives', 'quint fonsegrives',
 ];
 
-const isMetropole = (text) => {
+// Fallback uniquement — préférer ride.isMetropole (geocodé)
+const isMetropoleKeyword = (text) => {
   if (!text) return false;
   const lower = text.toLowerCase();
   return (
@@ -143,8 +146,12 @@ export const calculatePriceDetailed = (ride) => {
   const billableKm = Math.max(0, totalKm - CONFIG.KM_INCLUS);
   const kmCost     = billableKm * CONFIG.PRIX_KM;
 
-  // Étape 2 : supplément grande ville
-  const metropole     = isMetropole(ride.startLocation) || isMetropole(ride.endLocation);
+  // Étape 2 : supplément grande ville Toulouse
+  // Priorité : flag ride.isMetropole (geocodé via INSEE lors de la saisie d'adresse)
+  // Fallback : détection par mots-clés (rétrocompatibilité courses anciennes)
+  const metropole = ride.isMetropole !== undefined && ride.isMetropole !== null
+    ? Boolean(ride.isMetropole)
+    : (isMetropoleKeyword(ride.startLocation) || isMetropoleKeyword(ride.endLocation));
   const metropoleCost = metropole ? CONFIG.FORFAIT_METROPOLE : 0;
 
   // Étape 4 : retour à vide (sur coût km, seuil sur distance TOTALE)

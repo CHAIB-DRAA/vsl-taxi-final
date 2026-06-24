@@ -47,6 +47,8 @@ const rideSchema = mongoose.Schema({
   bonTransport: { type: String, default: '' },
   nbPassengers: { type: Number, default: 1 },
   isTpmr: { type: Boolean, default: false },
+  // Forfait Grande Ville Toulouse détecté par geocodage INSEE (null = non déterminé → fallback keywords)
+  isMetropole: { type: Boolean, default: null },
   // NIR du patient (numéro sécurité sociale, 13 chiffres)
   patientNIR: { type: String, default: '' },
   // Code prescripteur CPAM (NPPI du médecin qui a prescrit)

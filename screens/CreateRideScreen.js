@@ -43,6 +43,8 @@ export default function CreateRideScreen({ navigation, route }) {
 
   const [startLocation, setStartLocation] = useState('');
   const [endLocation, setEndLocation] = useState('');
+  // Flag geocodé via INSEE api-adresse.data.gouv.fr (null = non déterminé → fallback keywords)
+  const [isMetropole, setIsMetropole] = useState(null);
 
   const [notes, setNotes] = useState('');
 
@@ -240,7 +242,7 @@ export default function CreateRideScreen({ navigation, route }) {
     setPatientName(''); setPatientPhone(''); setPatientNIR(''); setPatientAddressMem('');
     setStartLocation(''); setEndLocation(''); setIsRoundTrip(false); setNotes('');
     setEditingRideId(null); setIsRecurring(false); setRecurDays([]);
-    setHasEmptyReturn(true);
+    setHasEmptyReturn(true); setIsMetropole(null);
   };
 
   const submitRide = async () => {
@@ -250,6 +252,7 @@ export default function CreateRideScreen({ navigation, route }) {
         patientName, patientPhone, patientNIR, startLocation, endLocation,
         date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null,
         type, motif, isRoundTrip, hasEmptyReturn, notes,
+        isMetropole,  // null = non déterminé (fallback keywords dans pricing.js)
       };
       if (editingRideId) {
         await updateRide(editingRideId, rideData);
@@ -289,6 +292,7 @@ export default function CreateRideScreen({ navigation, route }) {
                 const rides = dates.map(d => ({
                   patientName, patientPhone, patientNIR, startLocation, endLocation,
                   date: d.toISOString(), type, motif, isRoundTrip: false, hasEmptyReturn, notes,
+                  isMetropole,
                 }));
                 const res = await importMassRides(rides);
                 Alert.alert('Série créée ✓', `${res.addedRidesCount} course${res.addedRidesCount > 1 ? 's' : ''} ajoutée${res.addedRidesCount > 1 ? 's' : ''} au planning.`);
@@ -540,7 +544,11 @@ export default function CreateRideScreen({ navigation, route }) {
                       placeholder="Lieu de prise en charge"
                       placeholderTextColor={C.text3}
                       value={startLocation}
-                      onSelect={setStartLocation}
+                      onSelect={(address, geo) => {
+                        setStartLocation(address);
+                        if (geo?.isMetropole === true) setIsMetropole(true);
+                        else if (geo?.isMetropole === false && isMetropole !== true) setIsMetropole(false);
+                      }}
                       style={{ color: C.text }}
                       textInputProps={{ style: { color: C.text }, placeholderTextColor: C.text3 }}
                     />
@@ -556,7 +564,11 @@ export default function CreateRideScreen({ navigation, route }) {
                       placeholder="Lieu de destination"
                       placeholderTextColor={C.text3}
                       value={endLocation}
-                      onSelect={setEndLocation}
+                      onSelect={(address, geo) => {
+                        setEndLocation(address);
+                        if (geo?.isMetropole === true) setIsMetropole(true);
+                        else if (geo?.isMetropole === false && isMetropole !== true) setIsMetropole(false);
+                      }}
                       style={{ color: C.text }}
                       textInputProps={{ style: { color: C.text }, placeholderTextColor: C.text3 }}
                     />
@@ -568,6 +580,14 @@ export default function CreateRideScreen({ navigation, route }) {
                 <Ionicons name="swap-vertical" size={20} color={C.brand} />
               </TouchableOpacity>
             </View>
+
+            {/* Badge forfait métropole Toulouse détecté */}
+            {isMetropole === true && (
+              <View style={styles.metropoleBadge}>
+                <Ionicons name="location" size={13} color={C.electric} />
+                <Text style={styles.metropoleBadgeText}>Forfait Grande Ville Toulouse +15 € détecté</Text>
+              </View>
+            )}
           </View>
 
           {/* === 4. DATE & HEURE === */}
@@ -960,6 +980,15 @@ const styles = StyleSheet.create({
   inputRow: { height: 55, justifyContent: 'center', flexDirection: 'row', alignItems: 'center' },
   inputLabelSmall: { fontSize: 10, fontWeight: '800', color: C.text3, width: 24, marginRight: 6 },
   separator: { height: 1, backgroundColor: C.border, width: '100%' },
+
+  metropoleBadge: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: C.electricDim, borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 7,
+    marginTop: 10,
+    borderWidth: 1, borderColor: C.electric + '44',
+  },
+  metropoleBadgeText: { fontSize: 12, color: C.electric, fontWeight: '700', flex: 1 },
 
   centeredSwapBtn: {
     position: 'absolute', right: 14, top: '50%', marginTop: -20,
