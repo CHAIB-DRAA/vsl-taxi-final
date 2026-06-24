@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Ionicons } from '@expo/vector-icons';
 import { useData } from '../contexts/DataContext';
+import C from '../styles/tokens';
 
 import HomeScreen from './HomeTabs';
 import AgendaScreen from './AgendaScreen';
@@ -21,7 +22,7 @@ const CustomPostButton = ({ children, onPress }) => (
     activeOpacity={0.88}
   >
     <LinearGradient
-      colors={['#FF6B00', '#FF8C00']}
+      colors={[C.brand, C.brandGrad]}
       start={{ x: 0, y: 0 }}
       end={{ x: 1, y: 1 }}
       style={styles.centralBtnGradient}
@@ -50,7 +51,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
           height: 70,
           borderTopWidth: 0,
           elevation: 20,
-          shadowColor: '#FF6B00',
+          shadowColor: C.brand,
           shadowOffset: { width: 0, height: 8 },
           shadowOpacity: 0.18,
           shadowRadius: 20,
@@ -70,7 +71,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'home' : 'home-outline'}
                 size={24}
-                color={focused ? '#FF6B00' : '#94A3B8'}
+                color={focused ? C.brand : '#94A3B8'}
               />
               {focused && <Text style={styles.activeLabel}>Accueil</Text>}
               {!focused && <View style={styles.inactiveDot} />}
@@ -90,7 +91,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'calendar' : 'calendar-outline'}
                   size={24}
-                  color={focused ? '#FF6B00' : '#94A3B8'}
+                  color={focused ? C.brand : '#94A3B8'}
                 />
                 {pendingInvitation && <View style={styles.badge} />}
               </View>
@@ -101,9 +102,9 @@ export default function MainTabs({ webPendingCount = 0 }) {
         }}
       />
 
-      {/* 3. DEMANDES WEB */}
+      {/* 3. AUJOURD'HUI */}
       <Tab.Screen
-        name="Demandes"
+        name="Aujourd'hui"
         component={TodayRidesScreen}
         options={{
           tabBarIcon: ({ focused }) => (
@@ -112,7 +113,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                 <Ionicons
                   name={focused ? 'notifications' : 'notifications-outline'}
                   size={24}
-                  color={focused ? '#FF6B00' : '#94A3B8'}
+                  color={focused ? C.brand : '#94A3B8'}
                 />
                 {webPendingCount > 0 && (
                   <View style={styles.badgeCount}>
@@ -122,7 +123,7 @@ export default function MainTabs({ webPendingCount = 0 }) {
                   </View>
                 )}
               </View>
-              {focused && <Text style={styles.activeLabel}>Courses</Text>}
+              {focused && <Text style={styles.activeLabel}>Aujourd'hui</Text>}
               {!focused && <View style={styles.inactiveDot} />}
             </View>
           ),
@@ -151,9 +152,9 @@ export default function MainTabs({ webPendingCount = 0 }) {
               <Ionicons
                 name={focused ? 'pie-chart' : 'pie-chart-outline'}
                 size={24}
-                color={focused ? '#FF6B00' : '#94A3B8'}
+                color={focused ? C.brand : '#94A3B8'}
               />
-              {focused && <Text style={styles.activeLabel}>Stats</Text>}
+              {focused && <Text style={styles.activeLabel}>Historique</Text>}
               {!focused && <View style={styles.inactiveDot} />}
             </View>
           ),
@@ -169,7 +170,7 @@ const styles = StyleSheet.create({
     top: -28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.5,
     shadowRadius: 14,
@@ -194,7 +195,7 @@ const styles = StyleSheet.create({
   activeLabel: {
     fontSize: 9,
     fontWeight: '800',
-    color: '#FF6B00',
+    color: C.brand,
     marginTop: 3,
     letterSpacing: 0.3,
   },

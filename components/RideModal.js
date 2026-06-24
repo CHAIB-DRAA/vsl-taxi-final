@@ -1,6 +1,6 @@
 import React from 'react';
 import { View, Text, TextInput, TouchableOpacity, Modal } from 'react-native';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 const RideModal = ({ visible, ride, formData, setFormData, onSave, onDelete, onClose }) => (
   <Modal visible={visible} animationType="slide" transparent>
@@ -11,7 +11,7 @@ const RideModal = ({ visible, ride, formData, setFormData, onSave, onDelete, onC
           <TextInput
             key={i}
             placeholder={field === 'patientName' ? 'Nom du patient' : field === 'startLocation' ? 'Départ' : field === 'endLocation' ? 'Arrivée' : field === 'type' ? 'Type' : 'Date (YYYY-MM-DD HH:mm)'}
-            value={field === 'date' ? moment(formData.date).format('YYYY-MM-DD HH:mm') : formData[field]}
+            value={field === 'date' ? dayjs(formData.date).format('YYYY-MM-DD HH:mm') : formData[field]}
             onChangeText={text => setFormData(prev => ({ ...prev, [field]: field === 'date' ? new Date(text).toISOString() : text }))}
             style={{ borderWidth: 1, borderColor: '#ccc', borderRadius: 8, padding: 10, marginBottom: 10 }}
           />

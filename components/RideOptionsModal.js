@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, Modal, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 
 const C = {
   bg:     '#F2F3F7',
@@ -65,7 +66,7 @@ export default function RideOptionsModal({
                   <View>
                     <Text style={styles.patientName} numberOfLines={1}>{ride.patientName}</Text>
                     <Text style={styles.rideInfo}>
-                      {moment(ride.date).format('HH:mm')}
+                      {dayjs(ride.date).format('HH:mm')}
                       {'  ·  '}
                       {ride.startLocation?.split(',')[0]}
                       {' → '}
@@ -81,7 +82,7 @@ export default function RideOptionsModal({
               {/* ── STATUT ── */}
               <View style={[styles.statusBar, { borderColor: statusColor + '33', backgroundColor: statusColor + '11' }]}>
                 <Text style={[styles.statusText, { color: statusColor }]}>{ride.status || 'À venir'}</Text>
-                <Text style={styles.statusDate}>{moment(ride.date).format('dddd D MMMM')}</Text>
+                <Text style={styles.statusDate}>{dayjs(ride.date).format('dddd D MMMM')}</Text>
               </View>
 
               {/* ── GRILLE ACTIONS ── */}

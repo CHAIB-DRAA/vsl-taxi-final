@@ -2,8 +2,9 @@ import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import OffersNotification from '../OffersNotification';
 
 LocaleConfig.locales['fr'] = {
@@ -25,7 +26,7 @@ const C = {
 };
 
 export default function AgendaHeader({ selectedDate, onDateSelect, showCalendar, toggleCalendar, markedDates }) {
-  const isToday = selectedDate === moment().format('YYYY-MM-DD');
+  const isToday = selectedDate === dayjs().format('YYYY-MM-DD');
 
   return (
     <View style={styles.wrapper}>
@@ -35,7 +36,7 @@ export default function AgendaHeader({ selectedDate, onDateSelect, showCalendar,
         <View>
           <Text style={styles.title}>Planning</Text>
           <Text style={styles.subtitle}>
-            {isToday ? "Aujourd'hui · " : ''}{moment(selectedDate).format('dddd D MMMM')}
+            {isToday ? "Aujourd'hui · " : ''}{dayjs(selectedDate).format('dddd D MMMM')}
           </Text>
         </View>
 
@@ -43,7 +44,7 @@ export default function AgendaHeader({ selectedDate, onDateSelect, showCalendar,
           <OffersNotification />
 
           {!isToday && (
-            <TouchableOpacity style={styles.todayBtn} onPress={() => onDateSelect(moment().format('YYYY-MM-DD'))}>
+            <TouchableOpacity style={styles.todayBtn} onPress={() => onDateSelect(dayjs().format('YYYY-MM-DD'))}>
               <Text style={styles.todayBtnText}>Auj.</Text>
             </TouchableOpacity>
           )}
@@ -102,7 +103,7 @@ export default function AgendaHeader({ selectedDate, onDateSelect, showCalendar,
         <TouchableOpacity style={styles.datePill} onPress={toggleCalendar} activeOpacity={0.7}>
           <Ionicons name="calendar-outline" size={13} color={C.brand} />
           <Text style={styles.datePillText}>
-            {moment(selectedDate).format('dddd D MMMM YYYY')}
+            {dayjs(selectedDate).format('dddd D MMMM YYYY')}
           </Text>
           <Ionicons name="chevron-down" size={13} color={C.text2} />
         </TouchableOpacity>

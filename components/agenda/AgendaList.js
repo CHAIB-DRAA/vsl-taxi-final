@@ -127,7 +127,7 @@ const styles = StyleSheet.create({
   },
   syncText: { color: C.text2, fontWeight: '600', fontSize: 12 },
 
-  listContent: { paddingBottom: 160 },
+  listContent: { paddingBottom: 120 },
 
   // EMPTY
   empty: { alignItems: 'center', paddingTop: 70 },

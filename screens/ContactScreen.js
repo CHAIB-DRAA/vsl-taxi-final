@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import C from '../styles/tokens';
 import {
   View, Text, StyleSheet, FlatList, TextInput, TouchableOpacity,
   ActivityIndicator, Alert, SafeAreaView, Keyboard, StatusBar
@@ -7,27 +8,6 @@ import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import api from '../services/api';
 
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
 
 // Avatar color palette cycling
 const AVATAR_COLORS = [
@@ -160,7 +140,6 @@ export default function ContactScreen({ navigation }) {
       {/* HEADER DARK GRADIENT */}
       <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
         {/* Accent blob */}
-        <View style={styles.headerBlob} />
 
         <View style={styles.headerTop}>
           <View>
@@ -254,11 +233,6 @@ const styles = StyleSheet.create({
 
   // HEADER
   header: { paddingTop: 8, paddingBottom: 20, paddingHorizontal: 20 },
-  headerBlob: {
-    position: 'absolute', top: -30, right: -30,
-    width: 140, height: 140, borderRadius: 70,
-    backgroundColor: C.brand, opacity: 0.06,
-  },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: C.hText, letterSpacing: -0.5 },
   headerSub: { fontSize: 13, color: C.hText2, marginTop: 2 },

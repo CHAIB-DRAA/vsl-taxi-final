@@ -1,7 +1,7 @@
 import React from 'react';
 import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import { useData } from '../contexts/DataContext'; // Connexion au cerveau
 
 export default function GlobalInvitationModal() {
@@ -24,7 +24,7 @@ export default function GlobalInvitationModal() {
             </Text>
             
             <View style={styles.detailBox}>
-              <Text style={styles.detail}>📅 {moment(pendingInvitation.date).format('DD/MM/YYYY à HH:mm')}</Text>
+              <Text style={styles.detail}>📅 {dayjs(pendingInvitation.date).format('DD/MM/YYYY à HH:mm')}</Text>
               <Text style={styles.detailMain}>👤 {pendingInvitation.patientName}</Text>
               <Text style={styles.detail}>📍 {pendingInvitation.startLocation}</Text>
               <Text style={styles.detail}>🏁 {pendingInvitation.endLocation}</Text>

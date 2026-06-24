@@ -5,8 +5,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 
@@ -23,28 +24,7 @@ import api, { getPatients, updatePatient, deletePatient } from '../services/api'
 // Composant Scanner
 import DocumentScannerButton from '../components/DocumentScannerButton';
 import BonTransportScannerModal from '../components/BonTransportScannerModal';
-
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
+import C from '../styles/tokens';
 
 export default function PatientsScreen() {
   const { contacts, allRides } = useData();
@@ -79,6 +59,10 @@ export default function PatientsScreen() {
 
   // Upload & Scan États
   const [uploading, setUploading] = useState(false);
+
+  // Focus states
+  const [focusSearch, setFocusSearch] = useState(false);
+  const [focusPMTInput, setFocusPMTInput] = useState(false);
 
   // Visionneuse Image
   const [viewerVisible, setViewerVisible] = useState(false);
@@ -342,7 +326,7 @@ export default function PatientsScreen() {
         docsToInclude.forEach(doc => {
             imagesHtml += `
                 <div style="margin-bottom: 20px; page-break-inside: avoid; border: 1px solid #ddd; padding: 10px; border-radius: 8px;">
-                    <p><strong>${doc.type}</strong> <span style="font-size:12px; color:#666;">(${moment(doc.uploadDate).format('DD/MM/YYYY')})</span></p>
+                    <p><strong>${doc.type}</strong> <span style="font-size:12px; color:#666;">(${dayjs(doc.uploadDate).format('DD/MM/YYYY')})</span></p>
                     <img src="${doc.imageData}" style="width: 100%; max-height: 800px; object-fit: contain;" />
                 </div>`;
         });
@@ -407,7 +391,7 @@ export default function PatientsScreen() {
          <Ionicons name={isSelected ? "checkbox" : "square-outline"} size={24} color={isSelected ? C.brand : C.text3} />
          <View style={{marginLeft: 15, flex:1}}>
            <Text style={[styles.selectDocTitle, isSelected && {fontWeight:'bold', color: C.text}]}>{item.type}</Text>
-           <Text style={styles.selectDocDate}>{moment(item.uploadDate).format('DD/MM/YYYY')}</Text>
+           <Text style={styles.selectDocDate}>{dayjs(item.uploadDate).format('DD/MM/YYYY')}</Text>
          </View>
       </TouchableOpacity>
     );
@@ -500,7 +484,7 @@ export default function PatientsScreen() {
                           <Ionicons name={item.type === 'PMT' ? 'document-text' : 'card'} size={22} color="#FFF" />
                         </LinearGradient>
                         <Text style={styles.docTitle}>{item.type}</Text>
-                        <Text style={styles.docDate}>{moment(item.uploadDate).format('DD/MM/YY')}</Text>
+                        <Text style={styles.docDate}>{dayjs(item.uploadDate).format('DD/MM/YY')}</Text>
                         {item.type === 'PMT' && item.maxRides > 0 && (
                             <Text style={{fontSize:10, color: item.maxRides >= 1000 ? C.green : C.brand, fontWeight:'bold', textAlign:'center', marginTop:2}}>
                                 {item.maxRides >= 1000 ? 'Illimité' : `${item.maxRides} AR`}
@@ -521,8 +505,8 @@ export default function PatientsScreen() {
             <FlatList data={patientRides} keyExtractor={item => item._id} renderItem={({item}) => (
                 <View style={styles.historyCard}>
                     <View style={styles.historyDateBadge}>
-                      <Text style={styles.historyDateText}>{moment(item.date).format('DD')}</Text>
-                      <Text style={styles.historyMonthText}>{moment(item.date).format('MMM')}</Text>
+                      <Text style={styles.historyDateText}>{dayjs(item.date).format('DD')}</Text>
+                      <Text style={styles.historyMonthText}>{dayjs(item.date).format('MMM')}</Text>
                     </View>
                     <View style={{flex:1, marginLeft:12}}>
                         <Text style={styles.historyType}>{item.type}</Text>
@@ -543,15 +527,13 @@ export default function PatientsScreen() {
       <StatusBar barStyle="light-content" />
 
       {/* HEADER DARK GRADIENT */}
-      <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
-        {/* Accent blob */}
-        <View style={styles.headerBlob} />
+      <LinearGradient colors={[C.hBg1, C.hBg2, C.hBg3]} style={styles.header}>
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerTitle}>Patients</Text>
             <Text style={styles.headerSub}>{filteredPatients.length} dossiers</Text>
           </View>
-          <TouchableOpacity style={styles.scanHeaderBtn} onPress={() => setBtScannerVisible(true)}>
+          <TouchableOpacity style={[styles.scanHeaderBtn, uploading && { opacity: 0.5 }]} onPress={() => setBtScannerVisible(true)} disabled={uploading}>
             <LinearGradient colors={[C.brand, '#E55A00']} style={styles.scanHeaderGradient}>
               <Ionicons name="scan" size={16} color="#FFF" />
               <Text style={styles.scanHeaderText}>Bon de transport</Text>
@@ -560,7 +542,7 @@ export default function PatientsScreen() {
         </View>
 
         {/* SEARCH BAR IN HEADER */}
-        <View style={styles.searchBar}>
+        <View style={[styles.searchBar, focusSearch && { borderColor: C.brand }]}>
           <Ionicons name="search" size={18} color={C.hText2} />
           <TextInput
             style={styles.searchInput}
@@ -568,6 +550,8 @@ export default function PatientsScreen() {
             placeholderTextColor={C.hText2}
             value={search}
             onChangeText={handleSearch}
+            onFocus={() => setFocusSearch(true)}
+            onBlur={() => setFocusSearch(false)}
           />
           {search.length > 0 && (
             <TouchableOpacity onPress={() => handleSearch('')}>
@@ -639,13 +623,15 @@ export default function PatientsScreen() {
                 <Text style={styles.inputModalSub}>Nombre d'Allers-Retours indiqué ?</Text>
 
                 <TextInput
-                    style={styles.bigNumberInput}
+                    style={[styles.bigNumberInput, focusPMTInput && { borderBottomColor: C.brand }]}
                     value={customRideCount}
                     onChangeText={setCustomRideCount}
                     placeholder="Ex: 20"
                     placeholderTextColor={C.text3}
                     keyboardType="numeric"
                     autoFocus={true}
+                    onFocus={() => setFocusPMTInput(true)}
+                    onBlur={() => setFocusPMTInput(false)}
                 />
 
                 <Text style={{fontSize: 12, color: C.text2, marginBottom: 20, textAlign:'center', lineHeight:18}}>
@@ -703,8 +689,8 @@ export default function PatientsScreen() {
                         </TouchableOpacity>
                         <TouchableOpacity style={{flex:1, borderRadius:12, overflow:'hidden'}} onPress={handleSystemShare}>
                           <LinearGradient colors={[C.green, '#059669']} style={styles.actionBtn}>
-                            <Ionicons name="logo-whatsapp" size={18} color="#FFF" style={{marginRight:6}}/>
-                            <Text style={styles.actionBtnText}>WhatsApp</Text>
+                            <Ionicons name="share-outline" size={18} color="#FFF" style={{marginRight:6}}/>
+                            <Text style={styles.actionBtnText}>Partager…</Text>
                           </LinearGradient>
                         </TouchableOpacity>
                     </View>
@@ -744,11 +730,6 @@ const styles = StyleSheet.create({
 
   // HEADER
   header: { paddingTop: 8, paddingBottom: 20, paddingHorizontal: 20 },
-  headerBlob: {
-    position: 'absolute', top: -30, right: -30,
-    width: 140, height: 140, borderRadius: 70,
-    backgroundColor: C.brand, opacity: 0.06,
-  },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: C.hText, letterSpacing: -0.5 },
   headerSub: { fontSize: 13, color: C.hText2, marginTop: 2 },

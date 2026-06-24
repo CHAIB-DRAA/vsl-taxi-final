@@ -5,10 +5,9 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-
-const API_URL = 'https://vsl-taxi.onrender.com/api/user';
+import api from '../services/api';
+import * as SecureStore from 'expo-secure-store';
+import C from '../styles/tokens';
 
 export default function SignUpScreen({ navigation, onSignUp }) {
   const [email, setEmail] = useState('');
@@ -16,6 +15,9 @@ export default function SignUpScreen({ navigation, onSignUp }) {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [focusName, setFocusName] = useState(false);
+  const [focusEmail, setFocusEmail] = useState(false);
+  const [focusPwd, setFocusPwd] = useState(false);
 
   const handleSignUp = async () => {
     if (!email || !password || !fullName) {
@@ -25,12 +27,14 @@ export default function SignUpScreen({ navigation, onSignUp }) {
 
     setLoading(true);
     try {
-      const res = await axios.post(`${API_URL}/signup`, { email, fullName, password });
+      const res = await api.post('/user/signup', { email, fullName, password });
+      const { token, user } = res.data;
 
-      await AsyncStorage.setItem('token', res.data.token);
+      // Sauvegarder le token pour l'intercepteur API
+      await SecureStore.setItemAsync('token', token);
 
-      Alert.alert('Succès', 'Compte créé avec succès');
-      onSignUp(res.data.user);
+      // Remonter la session complète { token, user } à App.js
+      onSignUp({ token, user });
     } catch (err) {
       console.error('Signup error:', err.response?.data || err.message);
       Alert.alert('Erreur', err.response?.data?.error || 'Impossible de créer le compte');
@@ -56,7 +60,7 @@ export default function SignUpScreen({ navigation, onSignUp }) {
           {/* LOGO */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={['#FF6B00', '#FF8C00']}
+              colors={['#FF6B00', C.brandGrad]}
               style={styles.logoCircle}
             >
               <Ionicons name="person-add" size={40} color="#FFF" />
@@ -71,42 +75,48 @@ export default function SignUpScreen({ navigation, onSignUp }) {
             <Text style={styles.subtitle}>Rejoignez-nous dès maintenant</Text>
 
             {/* CHAMP NOM COMPLET */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="person-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, focusName && { borderColor: C.brand }]}>
+              <Ionicons name="person-outline" size={20} color={C.hText2} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Nom complet"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={C.hText2}
                 value={fullName}
                 onChangeText={setFullName}
+                onFocus={() => setFocusName(true)}
+                onBlur={() => setFocusName(false)}
               />
             </View>
 
             {/* CHAMP EMAIL */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="mail-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, focusEmail && { borderColor: C.brand }]}>
+              <Ionicons name="mail-outline" size={20} color={C.hText2} style={styles.inputIcon} />
               <TextInput
                 style={styles.input}
                 placeholder="Adresse email"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={C.hText2}
                 autoCapitalize="none"
                 keyboardType="email-address"
                 value={email}
                 onChangeText={setEmail}
+                onFocus={() => setFocusEmail(true)}
+                onBlur={() => setFocusEmail(false)}
               />
             </View>
 
             {/* CHAMP MOT DE PASSE */}
-            <View style={styles.inputWrapper}>
-              <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
+            <View style={[styles.inputWrapper, focusPwd && { borderColor: C.brand }]}>
+              <Ionicons name="lock-closed-outline" size={20} color={C.hText2} style={styles.inputIcon} />
               <TextInput
                 style={[styles.input, { flex: 1 }]}
                 placeholder="Mot de passe"
-                placeholderTextColor="#94A3B8"
+                placeholderTextColor={C.hText2}
                 secureTextEntry={!showPassword}
                 autoCapitalize="none"
                 value={password}
                 onChangeText={setPassword}
+                onFocus={() => setFocusPwd(true)}
+                onBlur={() => setFocusPwd(false)}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -128,10 +138,10 @@ export default function SignUpScreen({ navigation, onSignUp }) {
                 <TouchableOpacity
                   onPress={handleSignUp}
                   activeOpacity={0.85}
-                  style={styles.submitWrapper}
+                  style={[styles.submitWrapper, loading && { opacity: 0.6 }]}
                 >
                   <LinearGradient
-                    colors={['#FF6B00', '#FF8C00']}
+                    colors={['#FF6B00', C.brandGrad]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={styles.submitBtn}

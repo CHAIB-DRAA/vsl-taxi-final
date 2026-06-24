@@ -1,8 +1,9 @@
 import React from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Linking, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import * as Clipboard from 'expo-clipboard';
 import { calculatePrice } from '../utils/pricing';
 
@@ -43,12 +44,12 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
   const typeColor   = TYPE_COLOR[ride.type] || TYPE_COLOR.Autre;
 
   const duration = isFinished && ride.startTime && ride.endTime
-    ? moment(ride.endTime).diff(moment(ride.startTime), 'minutes')
+    ? dayjs(ride.endTime).diff(dayjs(ride.startTime), 'minutes')
     : null;
 
   const handleCopy = async () => {
     const txt =
-      `${ride.type} — ${moment(ride.date).format('DD/MM à HH:mm')}\n` +
+      `${ride.type} — ${dayjs(ride.date).format('DD/MM à HH:mm')}\n` +
       `${ride.patientName}${ride.patientPhone ? ` · ${ride.patientPhone}` : ''}\n` +
       `${ride.startLocation} → ${ride.endLocation}` +
       (noteContent ? `\n${noteContent}` : '');
@@ -101,7 +102,7 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
       <View style={styles.topRow}>
         <View>
           <Text style={[styles.time, (isFinished || isCancelled) && styles.dimmed]}>
-            {ride.startTime ? moment(ride.startTime).format('HH:mm') : moment(ride.date).format('HH:mm')}
+            {ride.startTime ? dayjs(ride.startTime).format('HH:mm') : dayjs(ride.date).format('HH:mm')}
           </Text>
           {isActive && (
             <View style={styles.liveRow}>
@@ -198,7 +199,7 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
         <View style={styles.doneRow}>
           <Ionicons name="checkmark-circle" size={14} color={C.text3} />
           <Text style={[styles.doneText, { flex: 1 }]}>
-            {ride.endTime ? `${moment(ride.endTime).format('HH:mm')}` : 'Terminée'}
+            {ride.endTime ? `${dayjs(ride.endTime).format('HH:mm')}` : 'Terminée'}
             {duration !== null ? ` · ${duration} min` : ''}
             {ride.realDistance ? ` · ${ride.realDistance} km` : ''}
           </Text>

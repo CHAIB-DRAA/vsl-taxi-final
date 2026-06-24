@@ -3,8 +3,8 @@ import { View, Text, StyleSheet, TouchableOpacity, Modal, ScrollView, TextInput,
 import { Ionicons } from '@expo/vector-icons';
 import * as Clipboard from 'expo-clipboard';
 import dayjs from 'dayjs';
-import moment from 'moment';
-import 'moment/locale/fr';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import { calculatePrice, calculatePriceDetailed } from '../utils/pricing';
 
 // ─── Composants internes du détail de tarification ───────────────────────────
@@ -156,7 +156,7 @@ export default function RideDetailsModal({ visible, selectedRide, onClose, onSav
   const copyFiche = async () => {
     const price = calculatePrice(selectedRide);
     const lines = [
-      `TRANSPORT CPAM — ${moment(selectedRide.date).format('DD/MM/YYYY [à] HH:mm')}`,
+      `TRANSPORT CPAM — ${dayjs(selectedRide.date).format('DD/MM/YYYY [à] HH:mm')}`,
       `Patient    : ${selectedRide.patientName}`,
       `Départ     : ${selectedRide.startLocation}`,
       `Arrivée    : ${selectedRide.endLocation}`,

@@ -1,5 +1,5 @@
 import 'react-native-url-polyfill/auto';
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import {
   NavigationContainer,
@@ -12,7 +12,7 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import * as SecureStore from 'expo-secure-store';
 import { ActivityIndicator, View, Linking } from 'react-native';
-import { DataProvider } from './contexts/DataContext';
+import { DataProvider, useData } from './contexts/DataContext';
 import { ThemeProvider, useTheme } from './contexts/ThemeContext';
 import GlobalInvitationModal from './components/GlobalInvitationModal';
 
@@ -35,7 +35,7 @@ import FacturationScreen from './screens/FacturationScreen';
 import SettingAppScreen from './screens/SettingAppScreen';
 import SettingsScreen from './screens/SettingsScreen';
 
-import api, { getRides, getTodayRides } from './services/api';
+import api from './services/api';
 import { setupNotifications } from './services/notificationService';
 
 export const navigationRef = createNavigationContainerRef();
@@ -55,8 +55,17 @@ const SESSION_KEY = 'user_session';
 const AppNavigator = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [todayRidesCount, setTodayRidesCount] = useState(0);
-  const [webPendingCount, setWebPendingCount] = useState(0);
+  // Counts dérivés de DataContext — plus d'appel API séparé
+  const { allRides } = useData();
+  const todayString = new Date().toDateString();
+  const todayRidesCount = useMemo(() =>
+    allRides.filter(r => new Date(r.date).toDateString() === todayString && r.status !== 'Annulée').length,
+    [allRides, todayString]
+  );
+  const webPendingCount = useMemo(() =>
+    allRides.filter(r => r.source === 'Web' && r.status === 'En attente').length,
+    [allRides]
+  );
 
   // 👇 RÉCUPÉRATION DU THÈME ACTUEL
   const { isDark, colors } = useTheme();
@@ -180,29 +189,6 @@ const AppNavigator = () => {
     } catch (error) { console.error(error); }
   };
 
-  // 5. Courses du jour + demandes web en attente
-  const fetchTodayRidesCount = useCallback(async () => {
-    if (!session?.token || !session?.user?.id) return;
-    try {
-      const data = await getTodayRides();
-      const todayString = new Date().toDateString();
-      const todayRides = data.filter(ride => {
-        const rideDate = new Date(ride.date).toDateString();
-        return rideDate === todayString;
-      });
-      setTodayRidesCount(todayRides.length);
-      const pending = data.filter(r => r.source === 'Web' && r.status === 'En attente');
-      setWebPendingCount(pending.length);
-    } catch (err) {}
-  }, [session]);
-
-  useEffect(() => {
-    if (session) {
-      fetchTodayRidesCount();
-      const interval = setInterval(fetchTodayRidesCount, 60000); 
-      return () => clearInterval(interval);
-    }
-  }, [session, fetchTodayRidesCount]);
 
   if (loading) {
     return (
@@ -233,7 +219,6 @@ const AppNavigator = () => {
                   {...props}
                   todayRidesCount={todayRidesCount}
                   webPendingCount={webPendingCount}
-                  fetchTodayRidesCount={fetchTodayRidesCount}
                 />
               )}
             </Stack.Screen>

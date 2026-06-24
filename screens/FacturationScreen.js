@@ -1,3 +1,4 @@
+import C from '../styles/tokens';
 import React, { useState, useMemo, useCallback } from 'react';
 import {
   View, Text, FlatList, StyleSheet, TouchableOpacity,
@@ -5,8 +6,9 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import * as Print from 'expo-print';
 import * as Sharing from 'expo-sharing';
 import * as Clipboard from 'expo-clipboard';
@@ -15,31 +17,10 @@ import { useData } from '../contexts/DataContext';
 import api from '../services/api';
 import { calculatePrice } from '../utils/pricing';
 
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
 
 // Regroupe par période CPAM : 1-15 ou 16-fin du mois
 function periodeKey(date) {
-  const d = moment(date);
+  const d = dayjs(date);
   return d.date() <= 15
     ? `1–15 ${d.format('MMMM YYYY')}`
     : `16–${d.daysInMonth()} ${d.format('MMMM YYYY')}`;
@@ -58,7 +39,7 @@ const MOTIF_COLOR = {
 function buildFicheCofidoc(r) {
   const price = calculatePrice(r);
   return [
-    `TRANSPORT CPAM — ${moment(r.date).format('DD/MM/YYYY [à] HH:mm')}`,
+    `TRANSPORT CPAM — ${dayjs(r.date).format('DD/MM/YYYY [à] HH:mm')}`,
     `Patient    : ${r.patientName}`,
     `Départ     : ${r.startLocation}`,
     `Arrivée    : ${r.endLocation}`,
@@ -181,7 +162,7 @@ export default function FacturationScreen() {
         const price = parseFloat(calculatePrice(r));
         return `
         <tr>
-          <td>${moment(r.date).format('DD/MM/YY HH:mm')}</td>
+          <td>${dayjs(r.date).format('DD/MM/YY HH:mm')}</td>
           <td><strong>${r.patientName}</strong>${r.bonTransport ? `<br><span class="bt">BT n° ${r.bonTransport}</span>` : ''}</td>
           <td>${r.motif || r.type || '—'}</td>
           <td>${r.startLocation || '—'}<br><span class="arr">▸ ${r.endLocation || '—'}</span></td>
@@ -206,7 +187,7 @@ export default function FacturationScreen() {
           .note{margin-top:24px;font-size:9px;color:#999;text-align:center}
         </style></head><body>
         <h1>BORDEREAU DE TRANSPORT — CPAM</h1>
-        <p>Période : <strong>${label}</strong> &nbsp;·&nbsp; Généré le ${moment().format('DD/MM/YYYY à HH:mm')}</p>
+        <p>Période : <strong>${label}</strong> &nbsp;·&nbsp; Généré le ${dayjs().format('DD/MM/YYYY à HH:mm')}</p>
         <table>
           <thead><tr><th>Date</th><th>Patient / BT</th><th>Motif</th><th>Trajet</th><th>Km</th><th>Péages</th><th>Montant</th></tr></thead>
           <tbody>
@@ -260,7 +241,7 @@ export default function FacturationScreen() {
           {/* ── En-tête : date · motif · patient ── */}
           <View style={styles.rideHeader}>
             <View style={styles.rideTopLine}>
-              <Text style={styles.rideTime}>{moment(r.date).format('DD/MM HH:mm')}</Text>
+              <Text style={styles.rideTime}>{dayjs(r.date).format('DD/MM HH:mm')}</Text>
               {r.motif && (
                 <View style={[styles.motifPill, { backgroundColor: mc + '18', borderColor: mc + '44' }]}>
                   <Text style={[styles.motifText, { color: mc }]}>{r.motif}</Text>
@@ -462,7 +443,7 @@ export default function FacturationScreen() {
           activeOpacity={0.85}
           style={{ opacity: generating || unbilled.length === 0 ? 0.5 : 1 }}
         >
-          <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.pdfAllBtn}>
+          <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.pdfAllBtn}>
             {generating
               ? <ActivityIndicator size="small" color="#FFF" />
               : <>
@@ -487,7 +468,7 @@ export default function FacturationScreen() {
             activeOpacity={0.8}
           >
             {activeTab === t.key ? (
-              <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.tabActive}>
+              <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.tabActive}>
                 <Text style={styles.tabTextActive}>{t.label}</Text>
                 <View style={styles.tabBadgeActive}>
                   <Text style={styles.tabBadgeTextActive}>{t.count}</Text>

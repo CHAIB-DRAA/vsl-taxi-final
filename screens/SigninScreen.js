@@ -9,7 +9,9 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 
-import api, { loginUser } from '../services/api';
+import api from '../services/api';
+import * as SecureStore from 'expo-secure-store';
+import C from '../styles/tokens';
 
 // ============================================================
 // FONCTION DE GÉNÉRATION DU PUSH TOKEN
@@ -55,33 +57,37 @@ async function registerForPushNotificationsAsync() {
 // ============================================================
 // ÉCRAN DE CONNEXION
 // ============================================================
-export default function LoginScreen({ navigation }) {
+export default function LoginScreen({ navigation, onSignIn }) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [focusEmail, setFocusEmail] = useState(false);
+  const [focusPwd, setFocusPwd] = useState(false);
 
   const handleLogin = async () => {
     if (!email || !password) return Alert.alert('Erreur', 'Veuillez remplir tous les champs');
 
     setLoading(true);
     try {
-      await loginUser({ email, password });
+      const response = await api.post('/user/login', { email, password });
+      const { token, user } = response.data;
 
-      const pushToken = await registerForPushNotificationsAsync();
+      // Sauvegarder le token pour l'intercepteur API
+      await SecureStore.setItemAsync('token', token);
 
-      if (pushToken) {
-        try {
-          await api.put('/auth/push-token', { pushToken });
-          console.log("Token Push enregistré sur le serveur :", pushToken);
-        } catch (tokenErr) {
-          console.error("Impossible d'envoyer le Push Token au serveur :", tokenErr);
+      // Enregistrer le push token en arrière-plan (non bloquant)
+      registerForPushNotificationsAsync().then(async (pushToken) => {
+        if (pushToken) {
+          try { await api.put('/user/push-token', { pushToken }); } catch {}
         }
-      }
+      });
 
-      navigation.replace('Agenda');
+      // Remonter la session à App.js qui sauvegarde dans SecureStore + met à jour l'état
+      onSignIn({ token, user });
     } catch (err) {
-      Alert.alert('Erreur', 'Email ou mot de passe invalide');
+      const msg = err.response?.data?.error || 'Email ou mot de passe invalide';
+      Alert.alert('Erreur de connexion', msg);
     } finally {
       setLoading(false);
     }
@@ -104,13 +110,13 @@ export default function LoginScreen({ navigation }) {
           {/* LOGO */}
           <View style={styles.logoSection}>
             <LinearGradient
-              colors={['#FF6B00', '#FF8C00']}
+              colors={[C.brand, C.brandGrad]}
               style={styles.logoCircle}
             >
               <Ionicons name="car" size={44} color="#FFF" />
             </LinearGradient>
-            <Text style={styles.appName}>TaxiApp</Text>
-            <Text style={styles.appTagline}>Votre assistant de transport</Text>
+            <Text style={styles.appName}>VSL Mobile</Text>
+            <Text style={styles.appTagline}>Transport médical VSL</Text>
           </View>
 
           {/* CARD FORMULAIRE */}
@@ -119,7 +125,7 @@ export default function LoginScreen({ navigation }) {
             <Text style={styles.subtitle}>Bon retour parmi nous</Text>
 
             {/* CHAMP EMAIL */}
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, focusEmail && { borderColor: C.brand }]}>
               <Ionicons name="mail-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
               <TextInput
                 value={email}
@@ -129,11 +135,13 @@ export default function LoginScreen({ navigation }) {
                 placeholder="Adresse email"
                 placeholderTextColor="#94A3B8"
                 style={styles.input}
+                onFocus={() => setFocusEmail(true)}
+                onBlur={() => setFocusEmail(false)}
               />
             </View>
 
             {/* CHAMP MOT DE PASSE */}
-            <View style={styles.inputWrapper}>
+            <View style={[styles.inputWrapper, focusPwd && { borderColor: C.brand }]}>
               <Ionicons name="lock-closed-outline" size={20} color="#94A3B8" style={styles.inputIcon} />
               <TextInput
                 value={password}
@@ -142,6 +150,8 @@ export default function LoginScreen({ navigation }) {
                 placeholder="Mot de passe"
                 placeholderTextColor="#94A3B8"
                 style={[styles.input, { flex: 1 }]}
+                onFocus={() => setFocusPwd(true)}
+                onBlur={() => setFocusPwd(false)}
               />
               <TouchableOpacity
                 onPress={() => setShowPassword(!showPassword)}
@@ -160,10 +170,10 @@ export default function LoginScreen({ navigation }) {
               onPress={handleLogin}
               disabled={loading}
               activeOpacity={0.85}
-              style={styles.submitWrapper}
+              style={[styles.submitWrapper, loading && { opacity: 0.6 }]}
             >
               <LinearGradient
-                colors={['#FF6B00', '#FF8C00']}
+                colors={[C.brand, C.brandGrad]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={styles.submitBtn}
@@ -181,7 +191,7 @@ export default function LoginScreen({ navigation }) {
 
             {/* LIEN INSCRIPTION */}
             <TouchableOpacity
-              onPress={() => navigation.navigate('Register')}
+              onPress={() => navigation.navigate('SignUp')}
               style={styles.registerLink}
               activeOpacity={0.7}
             >
@@ -218,7 +228,7 @@ const styles = StyleSheet.create({
     borderRadius: 28,
     justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#FF6B00',
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 8 },
     shadowOpacity: 0.45,
     shadowRadius: 16,
@@ -240,11 +250,11 @@ const styles = StyleSheet.create({
 
   // FORMULAIRE
   formCard: {
-    backgroundColor: 'rgba(255,255,255,0.07)',
+    backgroundColor: 'rgba(255,255,255,0.05)',
     borderRadius: 24,
     padding: 28,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.10)',
+    borderColor: 'rgba(255,255,255,0.12)',
   },
   title: {
     fontSize: 26,
@@ -289,7 +299,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#FF6B00',
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -319,7 +329,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   registerTextBold: {
-    color: '#FF6B00',
+    color: C.brand,
     fontWeight: '700',
   },
 });

@@ -14,34 +14,13 @@ import * as FileSystem from 'expo-file-system';
 
 import api, { getRides, updateRide } from '../services/api';
 import { calculatePrice } from '../utils/pricing';
+import C from '../styles/tokens';
 
 // Import des nouveaux sous-composants
 import RideHistoryCard from '../components/RideHistoryCard';
 import RideDetailsModal from '../components/RideDetailsModal';
 
 dayjs.locale('fr');
-
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
 
 export default function HistoryScreen() {
   const [rides, setRides] = useState([]);
@@ -62,6 +41,10 @@ export default function HistoryScreen() {
   const [auditProposals, setAuditProposals] = useState([]);
   const [isAuditing, setIsAuditing] = useState(false);
 
+  // --- FOCUS SEARCH & ERROR STATE ---
+  const [focusSearch, setFocusSearch] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+
   // --- EFFET DEBOUNCE (Performance) ---
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -75,12 +58,13 @@ export default function HistoryScreen() {
     if (isRefresh) setRefreshing(true);
     else setLoading(true);
 
+    setLoadError(false);
     try {
       const allRides = await getRides();
       const history = allRides.filter(r => r.status === 'Terminée');
       history.sort((a, b) => new Date(a.startTime || a.date) - new Date(b.startTime || b.date));
       setRides(history);
-    } catch(e) { console.error("Erreur historique:", e); }
+    } catch(e) { console.error("Erreur historique:", e); setLoadError(true); }
     finally {
       setLoading(false);
       setRefreshing(false);
@@ -342,9 +326,6 @@ export default function HistoryScreen() {
         colors={[C.hBg1, C.hBg2, '#1a2235']}
         style={styles.header}
       >
-        {/* Accent blob orange */}
-        <View style={styles.headerBlob} />
-
         {/* Titre + actions */}
         <View style={styles.headerTop}>
           <View>
@@ -454,8 +435,15 @@ export default function HistoryScreen() {
         )}
       </LinearGradient>
 
+      {/* ── BANNIÈRE ERREUR ── */}
+      {loadError && !loading && rides.length === 0 && (
+        <View style={styles.errorBanner}>
+          <Text style={styles.errorBannerText}>Impossible de charger les données. Tirez pour réessayer.</Text>
+        </View>
+      )}
+
       {/* ── BARRE DE RECHERCHE ── */}
-      <View style={styles.searchContainer}>
+      <View style={[styles.searchContainer, { borderColor: focusSearch ? C.brand : C.border }]}>
         <Ionicons name="search" size={18} color={C.text3} />
         <TextInput
           style={styles.searchInput}
@@ -463,6 +451,8 @@ export default function HistoryScreen() {
           placeholderTextColor={C.text3}
           value={searchText}
           onChangeText={setSearchText}
+          onFocus={() => setFocusSearch(true)}
+          onBlur={() => setFocusSearch(false)}
         />
         {searchText.length > 0 && (
           <TouchableOpacity onPress={() => setSearchText('')}>
@@ -616,16 +606,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     overflow: 'hidden',
   },
-  headerBlob: {
-    position: 'absolute',
-    top: -30,
-    right: -40,
-    width: 180,
-    height: 180,
-    borderRadius: 90,
-    backgroundColor: C.brand,
-    opacity: 0.07,
-  },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
@@ -771,7 +751,14 @@ const styles = StyleSheet.create({
   },
   searchInput: { flex: 1, fontSize: 15, color: C.text },
 
-  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 },
+  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 120 },
+
+  errorBanner: {
+    backgroundColor: C.red,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+  },
+  errorBannerText: { color: '#FFF', fontSize: 13, fontWeight: '600', textAlign: 'center' },
 
   // Loader
   loaderContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 12 },

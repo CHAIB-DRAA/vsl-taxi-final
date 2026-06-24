@@ -8,8 +8,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 
 import { useData } from '../contexts/DataContext';
 import api, { deleteRide, startRideById, finishRideById, shareRide, createRide } from '../services/api';
@@ -19,28 +20,7 @@ import { calculatePriceDetailed } from '../utils/pricing';
 import AgendaHeader from '../components/agenda/AgendaHeader';
 import AgendaList   from '../components/agenda/AgendaList';
 import RideOptionsModal from '../components/RideOptionsModal';
-
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
+import C from '../styles/tokens';
 
 // Ligne de détail tarification dans le modal "Terminer"
 function BRow({ label, value, bold, sub, color }) {
@@ -59,7 +39,7 @@ function BRow({ label, value, bold, sub, color }) {
 export default function AgendaScreen({ navigation }) {
   const { allRides, loading, ridesError, loadData, addLocalRide, removeLocalRide, updateLocalRide, contacts } = useData();
 
-  const [selectedDate, setSelectedDate]     = useState(moment().format('YYYY-MM-DD'));
+  const [selectedDate, setSelectedDate]     = useState(dayjs().format('YYYY-MM-DD'));
   const [showCalendar, setShowCalendar]     = useState(true);
   const [activeRide, setActiveRide]         = useState(null);
   const [analyzing, setAnalyzing]           = useState(false);
@@ -73,6 +53,10 @@ export default function AgendaScreen({ navigation }) {
 
   // Modal heure de retour
   const [returnTimeStr, setReturnTimeStr]   = useState('');
+
+  // Focus states for finishModal inputs
+  const [focusDistance, setFocusDistance] = useState(false);
+  const [focusTolls, setFocusTolls]       = useState(false);
 
   useFocusEffect(
     useCallback(() => { loadData(false); }, [])
@@ -142,7 +126,7 @@ export default function AgendaScreen({ navigation }) {
   const handleCreateReturn = () => {
     if (!activeRide) return;
     closeOptions();
-    setReturnTimeStr(moment().add(10, 'minutes').format('HH:mm'));
+    setReturnTimeStr(dayjs().add(10, 'minutes').format('HH:mm'));
     setModals(m => ({ ...m, returnTime: true }));
   };
 
@@ -156,7 +140,7 @@ export default function AgendaScreen({ navigation }) {
     if (h < 0 || h > 23 || min < 0 || min > 59) {
       return Alert.alert('Erreur', 'Heure invalide.');
     }
-    const d = moment().hours(h).minutes(min).seconds(0).toISOString();
+    const d = dayjs().hours(h).minutes(min).seconds(0).toISOString();
     setModals(m => ({ ...m, returnTime: false }));
     try {
       const newRide = await createRide({
@@ -186,7 +170,7 @@ export default function AgendaScreen({ navigation }) {
     if (!phone) return Alert.alert('Info', 'Aucun numéro enregistré pour ce patient.');
     const msg =
       `Bonjour ${activeRide.patientName}, votre transport est confirmé le ` +
-      `${moment(activeRide.date).format('DD/MM à HH:mm')}. ` +
+      `${dayjs(activeRide.date).format('DD/MM à HH:mm')}. ` +
       `Prise en charge : ${activeRide.startLocation}. Bonne journée.`;
     const url = Platform.OS === 'ios'
       ? `sms:${phone}&body=${encodeURIComponent(msg)}`
@@ -199,7 +183,7 @@ export default function AgendaScreen({ navigation }) {
     closeOptions();
     const msg =
       `Course : ${activeRide.patientName}\n` +
-      `Date : ${moment(activeRide.date).format('DD/MM à HH:mm')}\n` +
+      `Date : ${dayjs(activeRide.date).format('DD/MM à HH:mm')}\n` +
       `De : ${activeRide.startLocation}\n` +
       `À : ${activeRide.endLocation}`;
     Share.share({ message: msg });
@@ -272,7 +256,7 @@ export default function AgendaScreen({ navigation }) {
   // ── DONNÉES ──
   const dailyRides = useMemo(() =>
     allRides
-      .filter(r => moment(r.date).format('YYYY-MM-DD') === selectedDate && r.status !== 'Annulée' && !(r.source === 'Web' && r.status === 'En attente'))
+      .filter(r => dayjs(r.date).format('YYYY-MM-DD') === selectedDate && r.status !== 'Annulée' && !(r.source === 'Web' && r.status === 'En attente'))
       .sort((a, b) => new Date(a.date) - new Date(b.date)),
     [allRides, selectedDate]
   );
@@ -280,7 +264,7 @@ export default function AgendaScreen({ navigation }) {
   const markedDates = useMemo(() => {
     const marks = {};
     allRides.forEach(r => {
-      const d = moment(r.date).format('YYYY-MM-DD');
+      const d = dayjs(r.date).format('YYYY-MM-DD');
       if (!marks[d]) marks[d] = { dots: [] };
       const color = r.status === 'Terminée' ? C.text3
         : r.status === 'En cours'  ? C.green
@@ -454,7 +438,7 @@ export default function AgendaScreen({ navigation }) {
           <View style={styles.sheetCard}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Heure du retour</Text>
-            <Text style={styles.inputLabel}>Heure de départ (HH:MM)</Text>
+            <Text style={styles.inputLabel}>Heure de départ du retour :</Text>
             <TextInput
               style={styles.sheetInput}
               value={returnTimeStr}
@@ -505,25 +489,29 @@ export default function AgendaScreen({ navigation }) {
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>Distance (km)</Text>
                   <TextInput
-                    style={styles.sheetInput}
+                    style={[styles.sheetInput, { borderColor: focusDistance ? C.brand : C.border }]}
                     value={finishDistance}
                     onChangeText={setFinishDistance}
                     placeholder="Ex : 12.5"
                     placeholderTextColor={C.text3}
                     keyboardType="decimal-pad"
                     autoFocus
+                    onFocus={() => setFocusDistance(true)}
+                    onBlur={() => setFocusDistance(false)}
                   />
                 </View>
                 <View style={{ width: 12 }} />
                 <View style={{ flex: 1 }}>
                   <Text style={styles.inputLabel}>Péages (€)</Text>
                   <TextInput
-                    style={styles.sheetInput}
+                    style={[styles.sheetInput, { borderColor: focusTolls ? C.brand : C.border }]}
                     value={finishTolls}
                     onChangeText={setFinishTolls}
                     placeholder="0.00"
                     placeholderTextColor={C.text3}
                     keyboardType="decimal-pad"
+                    onFocus={() => setFocusTolls(true)}
+                    onBlur={() => setFocusTolls(false)}
                   />
                 </View>
               </View>

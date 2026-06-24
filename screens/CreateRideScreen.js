@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
-  ScrollView, Alert, Switch, KeyboardAvoidingView, Platform, Modal, ActivityIndicator, Dimensions
+  ScrollView, Alert, Switch, KeyboardAvoidingView, Platform, Modal, ActivityIndicator
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
 import BonTransportScannerModal from '../components/BonTransportScannerModal';
+dayjs.locale('fr');
 
 // Composants & Services
 import AddressAutocomplete from '../components/AddressAutocomplete';
@@ -16,28 +17,7 @@ import { createRide, updateRide, getPatients, createPatient, importMassRides } f
 import { scheduleRideReminder } from '../services/notificationService';
 import ScreenWrapper from '../components/ScreenWrapper';
 import { useData } from '../contexts/DataContext';
-
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
+import C from '../styles/tokens';
 
 const DAYS = [
   { label: 'Lu', day: 1 }, { label: 'Ma', day: 2 }, { label: 'Me', day: 3 },
@@ -82,6 +62,13 @@ export default function CreateRideScreen({ navigation, route }) {
   const [loading, setLoading] = useState(false);
   const [patientsLoading, setPatientsLoading] = useState(false);
   const [errorLoading, setErrorLoading] = useState(false);
+
+  // Focus states
+  const [focusName, setFocusName] = useState(false);
+  const [focusNotes, setFocusNotes] = useState(false);
+  const [focusModalFullName, setFocusModalFullName] = useState(false);
+  const [focusModalAddress, setFocusModalAddress] = useState(false);
+  const [focusModalPhone, setFocusModalPhone] = useState(false);
 
   // Récurrences
   const [isRecurring, setIsRecurring]     = useState(false);
@@ -263,7 +250,7 @@ export default function CreateRideScreen({ navigation, route }) {
 
       Alert.alert(
         `Créer ${dates.length} courses ?`,
-        `${patientName}\n${startLocation} → ${endLocation}\nDe ${moment(date).format('DD/MM')} au ${moment(recurEndDate).format('DD/MM/YYYY')}`,
+        `${patientName}\n${startLocation} → ${endLocation}\nDe ${dayjs(date).format('DD/MM')} au ${dayjs(recurEndDate).format('DD/MM/YYYY')}`,
         [
           { text: 'Annuler', style: 'cancel' },
           {
@@ -340,7 +327,7 @@ export default function CreateRideScreen({ navigation, route }) {
             style={styles.headerScanBtn}
             activeOpacity={0.8}
           >
-            <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.headerScanGrad}>
+            <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.headerScanGrad}>
               <Ionicons name="scan-outline" size={18} color="#FFF" />
             </LinearGradient>
           </TouchableOpacity>
@@ -363,7 +350,7 @@ export default function CreateRideScreen({ navigation, route }) {
               </TouchableOpacity>
             </View>
 
-            <View style={styles.inputBox}>
+            <View style={[styles.inputBox, focusName && { borderColor: C.brand }]}>
               <Ionicons name="search" size={18} color={C.text3} style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.inputField}
@@ -371,6 +358,8 @@ export default function CreateRideScreen({ navigation, route }) {
                 placeholderTextColor={C.text3}
                 value={patientName}
                 onChangeText={handleNameChange}
+                onFocus={() => setFocusName(true)}
+                onBlur={() => setFocusName(false)}
               />
               {patientsLoading && <ActivityIndicator size="small" color={C.brand} />}
               {!patientsLoading && patientName.length > 0 && (
@@ -428,7 +417,7 @@ export default function CreateRideScreen({ navigation, route }) {
                   activeOpacity={0.8}
                 >
                   {type === t ? (
-                    <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.pillActive}>
+                    <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.pillActive}>
                       <Text style={styles.pillTextActive}>{t}</Text>
                     </LinearGradient>
                   ) : (
@@ -453,7 +442,7 @@ export default function CreateRideScreen({ navigation, route }) {
                   activeOpacity={0.8}
                 >
                   {motif === m ? (
-                    <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.pillActive}>
+                    <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.pillActive}>
                       <Text style={styles.pillTextActive}>{m}</Text>
                     </LinearGradient>
                   ) : (
@@ -564,8 +553,8 @@ export default function CreateRideScreen({ navigation, route }) {
                   <View style={[styles.dateDot, { backgroundColor: C.green }]} />
                   <Text style={styles.dateLabel}>ALLER</Text>
                 </View>
-                <Text style={styles.dateBig}>{moment(date).format('HH:mm')}</Text>
-                <Text style={styles.dateSmall}>{moment(date).format('DD MMM')}</Text>
+                <Text style={styles.dateBig}>{dayjs(date).format('HH:mm')}</Text>
+                <Text style={styles.dateSmall}>{dayjs(date).format('DD MMM')}</Text>
               </TouchableOpacity>
 
               {isRoundTrip ? (
@@ -574,8 +563,8 @@ export default function CreateRideScreen({ navigation, route }) {
                     <View style={[styles.dateDot, { backgroundColor: C.brand }]} />
                     <Text style={[styles.dateLabel, { color: C.brand }]}>RETOUR</Text>
                   </View>
-                  <Text style={styles.dateBig}>{moment(returnDate).format('HH:mm')}</Text>
-                  <Text style={styles.dateSmall}>{moment(returnDate).format('DD MMM')}</Text>
+                  <Text style={styles.dateBig}>{dayjs(returnDate).format('HH:mm')}</Text>
+                  <Text style={styles.dateSmall}>{dayjs(returnDate).format('DD MMM')}</Text>
                 </TouchableOpacity>
               ) : (
                 <View style={[styles.dateCard, { opacity: 0.35 }]}>
@@ -593,7 +582,7 @@ export default function CreateRideScreen({ navigation, route }) {
           {/* === 5. NOTES === */}
           <View style={[styles.sectionCard, { zIndex: 1 }]}>
             <Text style={styles.sectionTitle}>NOTES (OPTIONNEL)</Text>
-            <View style={styles.notesBox}>
+            <View style={[styles.notesBox, focusNotes && { borderColor: C.brand }]}>
               <Ionicons name="document-text-outline" size={18} color={C.text3} style={{ marginTop: 4, marginRight: 10 }} />
               <TextInput
                 style={styles.notesInput}
@@ -604,6 +593,8 @@ export default function CreateRideScreen({ navigation, route }) {
                 value={notes}
                 onChangeText={setNotes}
                 textAlignVertical="top"
+                onFocus={() => setFocusNotes(true)}
+                onBlur={() => setFocusNotes(false)}
               />
             </View>
           </View>
@@ -656,7 +647,7 @@ export default function CreateRideScreen({ navigation, route }) {
                   <Text style={[styles.recurLabel, { marginTop: 16 }]}>Jusqu'au</Text>
                   <TouchableOpacity style={styles.recurDateBtn} onPress={() => openDatePicker('recurEnd')}>
                     <Ionicons name="calendar-outline" size={16} color={C.brand} />
-                    <Text style={styles.recurDateText}>{moment(recurEndDate).format('DD MMMM YYYY')}</Text>
+                    <Text style={styles.recurDateText}>{dayjs(recurEndDate).format('DD MMMM YYYY')}</Text>
                   </TouchableOpacity>
 
                   {recurDays.length > 0 && (() => {
@@ -670,7 +661,7 @@ export default function CreateRideScreen({ navigation, route }) {
                             {dates.length} course{dates.length > 1 ? 's' : ''} seront créées
                           </Text>
                           <Text style={styles.previewDates} numberOfLines={2}>
-                            {dates.slice(0, 6).map(d => moment(d).format('DD/MM')).join(' · ')}
+                            {dates.slice(0, 6).map(d => dayjs(d).format('DD/MM')).join(' · ')}
                             {dates.length > 6 ? ` ... +${dates.length - 6}` : ''}
                           </Text>
                         </View>
@@ -698,8 +689,8 @@ export default function CreateRideScreen({ navigation, route }) {
                 </LinearGradient>
               </TouchableOpacity>
             ) : (
-              <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.85}>
-                <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.mainButton}>
+              <TouchableOpacity onPress={handleSave} disabled={loading} activeOpacity={0.85} style={loading ? { opacity: 0.6 } : null}>
+                <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.mainButton}>
                   {loading ? (
                     <ActivityIndicator color="#FFF" />
                   ) : (
@@ -724,7 +715,7 @@ export default function CreateRideScreen({ navigation, route }) {
           <View style={styles.modalSheet}>
             <View style={styles.modalHandle} />
             <Text style={styles.modalTitle}>Nouveau dossier patient</Text>
-            <View style={styles.modalInputBox}>
+            <View style={[styles.modalInputBox, focusModalFullName && { borderColor: C.brand }]}>
               <Ionicons name="person-outline" size={16} color={C.text3} style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.modalInputField}
@@ -733,9 +724,11 @@ export default function CreateRideScreen({ navigation, route }) {
                 autoFocus
                 value={newPatient.fullName}
                 onChangeText={t => setNewPatient({ ...newPatient, fullName: t })}
+                onFocus={() => setFocusModalFullName(true)}
+                onBlur={() => setFocusModalFullName(false)}
               />
             </View>
-            <View style={styles.modalInputBox}>
+            <View style={[styles.modalInputBox, focusModalAddress && { borderColor: C.brand }]}>
               <Ionicons name="location-outline" size={16} color={C.text3} style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.modalInputField}
@@ -743,9 +736,11 @@ export default function CreateRideScreen({ navigation, route }) {
                 placeholderTextColor={C.text3}
                 value={newPatient.address}
                 onChangeText={t => setNewPatient({ ...newPatient, address: t })}
+                onFocus={() => setFocusModalAddress(true)}
+                onBlur={() => setFocusModalAddress(false)}
               />
             </View>
-            <View style={styles.modalInputBox}>
+            <View style={[styles.modalInputBox, focusModalPhone && { borderColor: C.brand }]}>
               <Ionicons name="call-outline" size={16} color={C.text3} style={{ marginRight: 10 }} />
               <TextInput
                 style={styles.modalInputField}
@@ -754,6 +749,8 @@ export default function CreateRideScreen({ navigation, route }) {
                 keyboardType="phone-pad"
                 value={newPatient.phone}
                 onChangeText={t => setNewPatient({ ...newPatient, phone: t })}
+                onFocus={() => setFocusModalPhone(true)}
+                onBlur={() => setFocusModalPhone(false)}
               />
             </View>
             <View style={styles.modalBtns}>
@@ -761,7 +758,7 @@ export default function CreateRideScreen({ navigation, route }) {
                 <Text style={styles.cancelTxt}>Annuler</Text>
               </TouchableOpacity>
               <TouchableOpacity onPress={saveNewPatient} activeOpacity={0.85} style={{ flex: 1 }}>
-                <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.saveBtn}>
+                <LinearGradient colors={['#FF6B00', C.brandGrad]} style={styles.saveBtn}>
                   <Text style={styles.saveTxt}>Enregistrer</Text>
                 </LinearGradient>
               </TouchableOpacity>

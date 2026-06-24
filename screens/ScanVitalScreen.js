@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import C from '../styles/tokens';
 import {
   View, Text, StyleSheet, TouchableOpacity, Alert,
   ActivityIndicator, StatusBar,

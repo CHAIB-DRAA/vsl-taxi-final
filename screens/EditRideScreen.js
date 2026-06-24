@@ -1,3 +1,4 @@
+import C from '../styles/tokens';
 import React, { useState } from 'react';
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
@@ -6,25 +7,10 @@ import {
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
+import dayjs from 'dayjs';
 import ScreenWrapper from '../components/ScreenWrapper';
 import api from '../services/api';
 
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
 
 export default function EditRideScreen({ navigation, route }) {
   // On récupère la course transmise par l'Agenda
@@ -85,7 +71,7 @@ export default function EditRideScreen({ navigation, route }) {
           <View style={{ flex: 1 }}>
             <Text style={styles.headerTitle}>Modifier la course</Text>
             <Text style={styles.headerSub}>
-              {ride.patientName} · {moment(ride.date).format('DD MMM, HH:mm')}
+              {ride.patientName} · {dayjs(ride.date).format('DD MMM, HH:mm')}
             </Text>
           </View>
         </LinearGradient>
@@ -124,8 +110,8 @@ export default function EditRideScreen({ navigation, route }) {
                 <Ionicons name="calendar-outline" size={18} color={C.brand} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.dateBtnTime}>{moment(form.date).format('HH:mm')}</Text>
-                <Text style={styles.dateBtnDate}>{moment(form.date).format('dddd DD MMMM YYYY')}</Text>
+                <Text style={styles.dateBtnTime}>{dayjs(form.date).format('HH:mm')}</Text>
+                <Text style={styles.dateBtnDate}>{dayjs(form.date).format('dddd DD MMMM YYYY')}</Text>
               </View>
               <Ionicons name="chevron-forward" size={16} color={C.text3} />
             </TouchableOpacity>
@@ -150,7 +136,7 @@ export default function EditRideScreen({ navigation, route }) {
 
           {/* ── BOUTON SOUMETTRE ── */}
           <TouchableOpacity onPress={handleUpdate} disabled={loading} activeOpacity={0.85}>
-            <LinearGradient colors={['#FF6B00', '#FF8C38']} style={styles.saveBtn}>
+            <LinearGradient colors={['#FF6B00', '#FF8C00']} style={styles.saveBtn}>
               {loading ? (
                 <ActivityIndicator color="#FFF" />
               ) : (

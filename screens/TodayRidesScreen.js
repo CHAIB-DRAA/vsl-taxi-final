@@ -6,32 +6,12 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 import { startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
 import { useData } from '../contexts/DataContext';
-
-// ─── Design tokens (identiques à HomeTabs) ───────────────────────────────────
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
+import C from '../styles/tokens';
 
 const STATUS_CONFIG = {
   'À venir':    { color: C.blue,  bg: '#EFF6FF', icon: 'time-outline',              grad: [C.blue, '#2563EB'] },
@@ -52,6 +32,11 @@ export default function TodayRidesScreen({ navigation }) {
 
   const [cancelModal, setCancelModal] = useState({ visible: false, rideId: null, patientName: '' });
   const [cancelReason, setCancelReason] = useState('');
+
+  // ─── Focus states inputs ────────────────────────────────────────────────
+  const [focusDistance, setFocusDistance] = useState(false);
+  const [focusTolls, setFocusTolls] = useState(false);
+  const [focusCancel, setFocusCancel] = useState(false);
 
   const todayStr = new Date().toDateString();
 
@@ -160,7 +145,7 @@ export default function TodayRidesScreen({ navigation }) {
     const isWebPending = item.source === 'Web' && item.status === 'En attente';
 
     const duration = isFinished && item.startTime && item.endTime
-      ? moment(item.endTime).diff(moment(item.startTime), 'minutes')
+      ? dayjs(item.endTime).diff(dayjs(item.startTime), 'minutes')
       : null;
 
     return (
@@ -187,7 +172,7 @@ export default function TodayRidesScreen({ navigation }) {
           <View style={styles.cardHeader}>
             <View>
               <Text style={[styles.timeText, (isFinished || isCancelled) && styles.dimmed]}>
-                {moment(item.date).format(isWebPending ? 'ddd D · HH:mm' : 'HH:mm')}
+                {dayjs(item.date).format(isWebPending ? 'ddd D · HH:mm' : 'HH:mm')}
               </Text>
               {isActive && (
                 <View style={styles.liveRow}>
@@ -238,7 +223,7 @@ export default function TodayRidesScreen({ navigation }) {
             <View style={styles.finishedRow}>
               <Ionicons name="checkmark-circle" size={13} color={C.text3} />
               <Text style={styles.finishedText}>
-                {item.endTime ? `Terminée à ${moment(item.endTime).format('HH:mm')}` : 'Terminée'}
+                {item.endTime ? `Terminée à ${dayjs(item.endTime).format('HH:mm')}` : 'Terminée'}
                 {duration !== null ? ` · ${duration} min` : ''}
                 {item.realDistance > 0 ? ` · ${item.realDistance} km` : ''}
                 {item.tolls > 0 ? ` · Péages ${item.tolls} €` : ''}
@@ -284,14 +269,22 @@ export default function TodayRidesScreen({ navigation }) {
           {!isFinished && !isCancelled && !isWebPending && (
             <View style={styles.actions}>
               {!isActive ? (
-                <TouchableOpacity style={styles.btnStart} onPress={() => handleStart(item._id)} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={[styles.btnStart, loading && { opacity: 0.5 }]}
+                  onPress={() => handleStart(item._id)}
+                  activeOpacity={loading ? 1 : 0.85}
+                >
                   <LinearGradient colors={['#1E293B', '#0F172A']} style={styles.btnGrad}>
                     <Ionicons name="play" size={15} color="#FFF" />
                     <Text style={styles.btnGradText}>Démarrer</Text>
                   </LinearGradient>
                 </TouchableOpacity>
               ) : (
-                <TouchableOpacity style={styles.btnFinish} onPress={() => openFinishModal(item)} activeOpacity={0.85}>
+                <TouchableOpacity
+                  style={[styles.btnFinish, loading && { opacity: 0.5 }]}
+                  onPress={() => openFinishModal(item)}
+                  activeOpacity={loading ? 1 : 0.85}
+                >
                   <LinearGradient colors={[C.brand, '#E55A00']} style={styles.btnGrad}>
                     <Ionicons name="flag" size={15} color="#FFF" />
                     <Text style={styles.btnGradText}>Terminer</Text>
@@ -319,12 +312,10 @@ export default function TodayRidesScreen({ navigation }) {
         end={{ x: 1, y: 1 }}
         style={styles.header}
       >
-        <View style={styles.accentBlob} />
-
         <View style={styles.headerTop}>
           <View>
             <Text style={styles.headerLabel}>Courses du jour</Text>
-            <Text style={styles.headerDate}>{moment().format('dddd D MMMM')}</Text>
+            <Text style={styles.headerDate}>{dayjs().format('dddd D MMMM')}</Text>
           </View>
           {headerStats.active > 0 && (
             <View style={styles.liveBadge}>
@@ -406,7 +397,7 @@ export default function TodayRidesScreen({ navigation }) {
             )}
 
             <Text style={styles.fieldLabel}>Distance parcourue (km) *</Text>
-            <View style={styles.inputWrap}>
+            <View style={[styles.inputWrap, focusDistance && { borderColor: C.brand }]}>
               <Ionicons name="speedometer-outline" size={18} color={C.text3} />
               <TextInput
                 style={styles.input}
@@ -416,11 +407,13 @@ export default function TodayRidesScreen({ navigation }) {
                 placeholderTextColor={C.text3}
                 keyboardType="decimal-pad"
                 autoFocus
+                onFocus={() => setFocusDistance(true)}
+                onBlur={() => setFocusDistance(false)}
               />
             </View>
 
             <Text style={styles.fieldLabel}>Péages (€) — optionnel</Text>
-            <View style={styles.inputWrap}>
+            <View style={[styles.inputWrap, focusTolls && { borderColor: C.brand }]}>
               <Ionicons name="card-outline" size={18} color={C.text3} />
               <TextInput
                 style={styles.input}
@@ -429,6 +422,8 @@ export default function TodayRidesScreen({ navigation }) {
                 placeholder="Ex : 3.50"
                 placeholderTextColor={C.text3}
                 keyboardType="decimal-pad"
+                onFocus={() => setFocusTolls(true)}
+                onBlur={() => setFocusTolls(false)}
               />
             </View>
 
@@ -464,7 +459,7 @@ export default function TodayRidesScreen({ navigation }) {
             <Text style={styles.sheetSub}>{cancelModal.patientName}</Text>
 
             <Text style={styles.fieldLabel}>Motif (optionnel)</Text>
-            <View style={[styles.inputWrap, { height: 90, alignItems: 'flex-start', paddingTop: 12 }]}>
+            <View style={[styles.inputWrap, { height: 90, alignItems: 'flex-start', paddingTop: 12 }, focusCancel && { borderColor: C.brand }]}>
               <Ionicons name="chatbox-outline" size={18} color={C.text3} style={{ marginTop: 2 }} />
               <TextInput
                 style={[styles.input, { height: 70, textAlignVertical: 'top' }]}
@@ -473,6 +468,8 @@ export default function TodayRidesScreen({ navigation }) {
                 placeholder="Patient hospitalisé, transport annulé..."
                 placeholderTextColor={C.text3}
                 multiline
+                onFocus={() => setFocusCancel(true)}
+                onBlur={() => setFocusCancel(false)}
               />
             </View>
 
@@ -507,10 +504,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 24,
     overflow: 'hidden',
-  },
-  accentBlob: {
-    position: 'absolute', width: 200, height: 200, borderRadius: 100,
-    backgroundColor: C.brand, opacity: 0.06, top: -50, right: -40,
   },
   headerTop: {
     flexDirection: 'row', justifyContent: 'space-between',

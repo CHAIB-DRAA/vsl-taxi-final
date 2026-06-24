@@ -6,8 +6,9 @@ import {
 import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 
 import * as ImagePicker from 'expo-image-picker';
 import * as Clipboard from 'expo-clipboard';
@@ -16,36 +17,12 @@ import * as Linking from 'expo-linking';
 import { extractSecuNumber } from '../services/ocrService';
 import { calculatePrice } from '../utils/pricing';
 import { useData } from '../contexts/DataContext';
-
-// ─── Design tokens ───────────────────────────────────────────────────────────
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  brandDim:'#FF6B0018',
-  green:   '#10B981',
-  greenDim:'#10B98118',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-
-  // Header palette
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
+import C from '../styles/tokens';
 
 export default function HomeScreen({ navigation }) {
   const { allRides, loading, loadData } = useData();
   const [scanning, setScanning] = useState(false);
-  const [selectedMonth, setSelectedMonth] = useState(moment());
+  const [selectedMonth, setSelectedMonth] = useState(dayjs());
   const [stats, setStats] = useState({
     todayCount: 0,
     monthEarnings: 0,
@@ -54,7 +31,7 @@ export default function HomeScreen({ navigation }) {
   });
 
   const getGreeting = () => {
-    const h = moment().hour();
+    const h = dayjs().hour();
     if (h < 6) return 'Bonne nuit,';
     if (h < 12) return 'Bonjour,';
     if (h < 18) return 'Bon après-midi,';
@@ -65,17 +42,17 @@ export default function HomeScreen({ navigation }) {
 
   useEffect(() => {
     if (!allRides?.length) return;
-    const todayStr = moment().format('YYYY-MM-DD');
+    const todayStr = dayjs().format('YYYY-MM-DD');
     const monthStr = selectedMonth.format('MM-YYYY');
-    const now = moment();
+    const now = dayjs();
 
-    const todayRides = allRides.filter(r => moment(r.date).format('YYYY-MM-DD') === todayStr);
+    const todayRides = allRides.filter(r => dayjs(r.date).format('YYYY-MM-DD') === todayStr);
     const upcoming = todayRides
-      .filter(r => r.status !== 'Terminée' && r.status !== 'Annulée' && moment(r.date).isAfter(now))
+      .filter(r => r.status !== 'Terminée' && r.status !== 'Annulée' && dayjs(r.date).isAfter(now))
       .sort((a, b) => new Date(a.date) - new Date(b.date))[0];
 
     const monthDone = allRides.filter(r =>
-      r.status === 'Terminée' && moment(r.date).format('MM-YYYY') === monthStr
+      r.status === 'Terminée' && dayjs(r.date).format('MM-YYYY') === monthStr
     );
     const totalEarnings = monthDone.reduce((s, r) => s + parseFloat(calculatePrice(r)), 0);
     const billedEarnings = monthDone
@@ -130,8 +107,8 @@ export default function HomeScreen({ navigation }) {
     ]);
   };
 
-  const goToPreviousMonth = () => setSelectedMonth(m => moment(m).subtract(1, 'month'));
-  const goToNextMonth     = () => setSelectedMonth(m => moment(m).add(1, 'month'));
+  const goToPreviousMonth = () => setSelectedMonth(m => dayjs(m).subtract(1, 'month'));
+  const goToNextMonth     = () => setSelectedMonth(m => dayjs(m).add(1, 'month'));
 
   // ─── Pourcentage facturé ──────────────────────────────────────────────────
   const billedPct = stats.monthEarnings > 0
@@ -161,14 +138,11 @@ export default function HomeScreen({ navigation }) {
           end={{ x: 1, y: 1 }}
           style={styles.header}
         >
-          {/* Accent blob */}
-          <View style={styles.accentBlob} />
-
           {/* Top row */}
           <View style={styles.headerTop}>
             <View>
               <Text style={styles.greeting}>{getGreeting()}</Text>
-              <Text style={styles.dateText}>{moment().format('dddd D MMMM')}</Text>
+              <Text style={styles.dateText}>{dayjs().format('dddd D MMMM')}</Text>
             </View>
             <TouchableOpacity
               onPress={() => navigation.navigate('Settings')}
@@ -256,13 +230,13 @@ export default function HomeScreen({ navigation }) {
             >
               {/* Bande gauche orange */}
               <LinearGradient
-                colors={[C.brand, '#FF8C30']}
+                colors={[C.brand, C.brandGrad]}
                 style={styles.nextRideStripe}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 0, y: 1 }}
               >
                 <Text style={styles.nextRideTime}>
-                  {moment(stats.nextRide.date).format('HH:mm')}
+                  {dayjs(stats.nextRide.date).format('HH:mm')}
                 </Text>
                 <Text style={styles.nextRideTimeLabel}>DÉPART</Text>
               </LinearGradient>
@@ -280,7 +254,7 @@ export default function HomeScreen({ navigation }) {
 
                 {/* Timer */}
                 <Text style={styles.nextRideIn}>
-                  Dans {moment(stats.nextRide.date).fromNow(true)}
+                  Dans {dayjs(stats.nextRide.date).fromNow(true)}
                 </Text>
 
                 {/* Trajet */}
@@ -355,9 +329,9 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Agenda')}
             >
-              <LinearGradient colors={['#3B82F6', '#2563EB']} style={styles.gridIcon}>
-                <Ionicons name="calendar" size={22} color="#FFF" />
-              </LinearGradient>
+              <View style={[styles.gridIcon, { backgroundColor: C.blueDim }]}>
+                <Ionicons name="calendar" size={22} color={C.blue} />
+              </View>
               <Text style={styles.gridLabel}>Planning</Text>
               <Text style={styles.gridSub}>Agenda</Text>
             </TouchableOpacity>
@@ -367,9 +341,9 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.82}
               onPress={() => navigation.navigate('History')}
             >
-              <LinearGradient colors={[C.brand, '#E55A00']} style={styles.gridIcon}>
-                <Ionicons name="stats-chart" size={22} color="#FFF" />
-              </LinearGradient>
+              <View style={[styles.gridIcon, { backgroundColor: C.brandDim }]}>
+                <Ionicons name="stats-chart" size={22} color={C.brand} />
+              </View>
               <Text style={styles.gridLabel}>Activité</Text>
               <Text style={styles.gridSub}>Stats & CA</Text>
             </TouchableOpacity>
@@ -379,9 +353,9 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Patients')}
             >
-              <LinearGradient colors={[C.green, '#059669']} style={styles.gridIcon}>
-                <Ionicons name="people" size={22} color="#FFF" />
-              </LinearGradient>
+              <View style={[styles.gridIcon, { backgroundColor: C.greenDim }]}>
+                <Ionicons name="people" size={22} color={C.green} />
+              </View>
               <Text style={styles.gridLabel}>Patients</Text>
               <Text style={styles.gridSub}>Carnet</Text>
             </TouchableOpacity>
@@ -391,9 +365,9 @@ export default function HomeScreen({ navigation }) {
               activeOpacity={0.82}
               onPress={() => navigation.navigate('Facturation')}
             >
-              <LinearGradient colors={[C.purple, '#7C3AED']} style={styles.gridIcon}>
-                <Ionicons name="receipt-outline" size={22} color="#FFF" />
-              </LinearGradient>
+              <View style={[styles.gridIcon, { backgroundColor: C.purpleDim }]}>
+                <Ionicons name="receipt-outline" size={22} color={C.purple} />
+              </View>
               <Text style={styles.gridLabel}>Facturation</Text>
               <Text style={styles.gridSub}>CPAM</Text>
             </TouchableOpacity>
@@ -417,16 +391,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingBottom: 28,
     overflow: 'hidden',
-  },
-  accentBlob: {
-    position: 'absolute',
-    width: 220,
-    height: 220,
-    borderRadius: 110,
-    backgroundColor: C.brand,
-    opacity: 0.06,
-    top: -60,
-    right: -50,
   },
   headerTop: {
     flexDirection: 'row',

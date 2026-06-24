@@ -1,37 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import C from '../styles/tokens';
 import {
   View, Text, StyleSheet, FlatList, TouchableOpacity, Alert,
   ActivityIndicator, Image, Modal, SafeAreaView, StatusBar
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 // Composants & API
 import DocumentScannerButton from '../components/DocumentScannerButton';
 import api from '../services/api';
 
-const C = {
-  bg:      '#F0F3FA',
-  card:    '#FFFFFF',
-  card2:   '#F5F7FF',
-  border:  '#E4E8F0',
-  text:    '#0D1117',
-  text2:   '#64748B',
-  text3:   '#94A3B8',
-  brand:   '#FF6B00',
-  green:   '#10B981',
-  red:     '#EF4444',
-  blue:    '#3B82F6',
-  purple:  '#8B5CF6',
-  amber:   '#F59E0B',
-  hBg1:   '#0A0F1E',
-  hBg2:   '#111827',
-  hCard:  'rgba(255,255,255,0.07)',
-  hBorder:'rgba(255,255,255,0.10)',
-  hText:  '#F1F5F9',
-  hText2: '#94A3B8',
-};
 
 // Couleurs dégradées par type de document
 const DOC_GRADIENTS = {
@@ -83,7 +63,7 @@ export default function DocumentsScreen() {
     setUploading(true);
     try {
       const formData = new FormData();
-      const fileName = `admin_${docType}_${moment().format('YYYYMMDD')}.jpg`;
+      const fileName = `admin_${docType}_${dayjs().format('YYYYMMDD')}.jpg`;
       formData.append('photo', { uri: uri, name: fileName, type: 'image/jpeg' });
       formData.append('docType', docType);
       formData.append('patientName', "CHAUFFEUR");
@@ -208,7 +188,6 @@ export default function DocumentsScreen() {
       {/* HEADER DARK GRADIENT */}
       <LinearGradient colors={[C.hBg1, C.hBg2, '#1a2235']} style={styles.header}>
         {/* Accent blob */}
-        <View style={styles.headerBlob} />
 
         <View style={styles.headerTop}>
           <View>
@@ -269,11 +248,6 @@ const styles = StyleSheet.create({
 
   // HEADER
   header: { paddingTop: 8, paddingBottom: 22, paddingHorizontal: 20 },
-  headerBlob: {
-    position: 'absolute', top: -30, right: -30,
-    width: 140, height: 140, borderRadius: 70,
-    backgroundColor: C.brand, opacity: 0.06,
-  },
   headerTop: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 },
   headerTitle: { fontSize: 26, fontWeight: '800', color: C.hText, letterSpacing: -0.5 },
   headerSub: { fontSize: 13, color: C.hText2, marginTop: 2 },

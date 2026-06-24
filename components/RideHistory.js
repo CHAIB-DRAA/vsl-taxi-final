@@ -4,8 +4,9 @@ import {
 } from 'react-native';
 import { getRides, startRideById, finishRideById, updateRide } from '../services/api';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import moment from 'moment';
-import 'moment/locale/fr';
+import dayjs from 'dayjs';
+import 'dayjs/locale/fr';
+dayjs.locale('fr');
 
 moment.locale('fr');
 
@@ -71,7 +72,7 @@ const HistoryScreen = () => {
     return matchesPatient && matchesDate;
   });
 
-  const formatDateTime = date => date ? moment(date).format('DD/MM/YYYY HH:mm') : 'Non renseignée';
+  const formatDateTime = date => date ? dayjs(date).format('DD/MM/YYYY HH:mm') : 'Non renseignée';
 
   const renderRide = ({ item }) => (
     <View style={{

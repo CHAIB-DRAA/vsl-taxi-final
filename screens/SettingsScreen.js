@@ -5,6 +5,7 @@ import {
 } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons } from '@expo/vector-icons';
+import C from '../styles/tokens';
 import * as SecureStore from 'expo-secure-store';
 import * as Notifications from 'expo-notifications';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -19,6 +20,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
   const [showPatients, setShowPatients] = useState(false);
   const [showProfile, setShowProfile] = useState(false);
   const [testing, setTesting] = useState(false);
+  const [loggingOut, setLoggingOut] = useState(false);
 
   const handleTestProximity = async () => {
     setTesting(true);
@@ -72,11 +74,14 @@ export default function SettingsScreen({ navigation, onLogout }) {
         { text: 'Annuler', style: 'cancel' },
         {
           text: 'Déconnexion', style: 'destructive', onPress: async () => {
+            setLoggingOut(true);
             try {
               await SecureStore.deleteItemAsync('user_session');
               if (onLogout) onLogout();
             } catch (err) {
               console.error("Erreur", err);
+            } finally {
+              setLoggingOut(false);
             }
           }
         }
@@ -93,7 +98,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           label: 'Mon compte',
           subtitle: 'Profil et informations',
           icon: 'person',
-          gradientColors: ['#3B82F6', '#2563EB'],
+          iconBg: C.blue,
           onPress: () => setShowProfile(true),
         },
         {
@@ -101,7 +106,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           label: 'Mes contacts',
           subtitle: 'Gérer vos contacts',
           icon: 'people',
-          gradientColors: ['#F59E0B', '#D97706'],
+          iconBg: C.amber,
           onPress: () => setShowContacts(true),
         },
         {
@@ -109,7 +114,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           label: 'Mes patients',
           subtitle: 'Liste des patients',
           icon: 'medkit',
-          gradientColors: ['#10B981', '#059669'],
+          iconBg: C.green,
           onPress: () => setShowPatients(true),
         },
       ],
@@ -122,7 +127,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           label: "Paramètres app",
           subtitle: 'Notifications, langue…',
           icon: 'settings',
-          gradientColors: ['#8B5CF6', '#7C3AED'],
+          iconBg: C.purple,
           onPress: () => navigation.navigate('SettingApp'),
         },
         {
@@ -130,7 +135,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
           label: 'Tester alerte approche',
           subtitle: 'Simule une alerte départ',
           icon: 'navigate',
-          gradientColors: ['#FF6B00', '#FF8C00'],
+          iconBg: C.brand,
           onPress: handleTestProximity,
           isTest: true,
         },
@@ -146,15 +151,12 @@ export default function SettingsScreen({ navigation, onLogout }) {
       activeOpacity={0.7}
       disabled={item.isTest && testing}
     >
-      <LinearGradient
-        colors={item.gradientColors}
-        style={styles.menuIconBox}
-      >
+      <View style={[styles.menuIconBox, { backgroundColor: item.iconBg }]}>
         {item.isTest && testing
           ? <ActivityIndicator size="small" color="#FFF" />
           : <Ionicons name={item.icon} size={20} color="#FFF" />
         }
-      </LinearGradient>
+      </View>
 
       <View style={styles.menuTextBox}>
         <Text style={styles.menuLabel}>
@@ -166,7 +168,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
       </View>
 
       <View style={styles.chevronBox}>
-        <Ionicons name="chevron-forward" size={16} color="#94A3B8" />
+        <Ionicons name="chevron-forward" size={16} color={C.text3} />
       </View>
     </TouchableOpacity>
   );
@@ -176,12 +178,12 @@ export default function SettingsScreen({ navigation, onLogout }) {
 
       {/* HEADER SOMBRE GRADIENT */}
       <LinearGradient
-        colors={['#0A0F1E', '#111827']}
+        colors={[C.hBg1, C.hBg2]}
         style={styles.header}
       >
         {/* AVATAR INITIALES */}
         <LinearGradient
-          colors={['#FF6B00', '#FF8C00']}
+          colors={[C.brand, C.brandGrad]}
           style={styles.avatarCircle}
         >
           <Ionicons name="person" size={32} color="#FFF" />
@@ -213,18 +215,22 @@ export default function SettingsScreen({ navigation, onLogout }) {
 
         {/* BOUTON DÉCONNEXION */}
         <TouchableOpacity
-          style={styles.logoutWrapper}
+          style={[styles.logoutWrapper, loggingOut && { opacity: 0.5 }]}
           onPress={handleLogout}
           activeOpacity={0.85}
+          disabled={loggingOut}
         >
           <LinearGradient
-            colors={['#EF4444', '#DC2626']}
+            colors={[C.red, '#DC2626']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={styles.logoutBtn}
           >
-            <Ionicons name="log-out-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
-            <Text style={styles.logoutText}>Déconnexion</Text>
+            {loggingOut
+              ? <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 10 }} />
+              : <Ionicons name="log-out-outline" size={22} color="#FFF" style={{ marginRight: 10 }} />
+            }
+            <Text style={styles.logoutText}>{loggingOut ? 'Déconnexion…' : 'Déconnexion'}</Text>
           </LinearGradient>
         </TouchableOpacity>
       </ScrollView>
@@ -236,7 +242,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Mes Contacts</Text>
           <TouchableOpacity onPress={() => setShowContacts(false)} style={styles.closeButton}>
-            <Ionicons name="close" size={22} color="#0D1117" />
+            <Ionicons name="close" size={22} color={C.text} />
           </TouchableOpacity>
         </View>
         <ContactsScreen />
@@ -247,7 +253,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
         <View style={styles.modalHeader}>
           <Text style={styles.modalTitle}>Mes Patients</Text>
           <TouchableOpacity onPress={() => setShowPatients(false)} style={styles.closeButton}>
-            <Ionicons name="close" size={22} color="#0D1117" />
+            <Ionicons name="close" size={22} color={C.text} />
           </TouchableOpacity>
         </View>
         <PatientsScreen />
@@ -260,7 +266,7 @@ export default function SettingsScreen({ navigation, onLogout }) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#F0F3FA',
+    backgroundColor: C.bg,
   },
 
   // HEADER
@@ -277,7 +283,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     marginBottom: 14,
-    shadowColor: '#FF6B00',
+    shadowColor: C.brand,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.4,
     shadowRadius: 12,
@@ -286,12 +292,12 @@ const styles = StyleSheet.create({
   headerTitle: {
     fontSize: 24,
     fontWeight: '800',
-    color: '#F1F5F9',
+    color: C.hText,
     letterSpacing: -0.5,
   },
   headerSubtitle: {
     fontSize: 14,
-    color: '#94A3B8',
+    color: C.hText2,
     marginTop: 4,
     fontWeight: '500',
   },
@@ -310,13 +316,13 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontSize: 12,
     fontWeight: '700',
-    color: '#94A3B8',
+    color: C.text3,
     letterSpacing: 1,
     marginBottom: 10,
     marginLeft: 4,
   },
   sectionCard: {
-    backgroundColor: '#FFFFFF',
+    backgroundColor: C.card,
     borderRadius: 20,
     overflow: 'hidden',
     shadowColor: '#000',
@@ -325,7 +331,7 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 3,
     borderWidth: 1,
-    borderColor: '#E4E8F0',
+    borderColor: C.border,
   },
 
   // MENU ITEMS
@@ -349,22 +355,22 @@ const styles = StyleSheet.create({
   menuLabel: {
     fontSize: 16,
     fontWeight: '600',
-    color: '#0D1117',
+    color: C.text,
   },
   menuSubtitle: {
     fontSize: 12,
-    color: '#94A3B8',
+    color: C.text3,
     marginTop: 2,
     fontWeight: '400',
   },
   chevronBox: {
-    backgroundColor: '#F5F7FF',
+    backgroundColor: C.card2,
     borderRadius: 20,
     padding: 6,
   },
   separator: {
     height: 1,
-    backgroundColor: '#E4E8F0',
+    backgroundColor: C.border,
     marginLeft: 72,
   },
 
@@ -373,7 +379,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     borderRadius: 16,
     overflow: 'hidden',
-    shadowColor: '#EF4444',
+    shadowColor: C.red,
     shadowOffset: { width: 0, height: 6 },
     shadowOpacity: 0.35,
     shadowRadius: 12,
@@ -400,17 +406,17 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#E4E8F0',
-    backgroundColor: '#FFF',
+    borderBottomColor: C.border,
+    backgroundColor: C.card,
   },
   modalTitle: {
     fontSize: 20,
     fontWeight: '800',
-    color: '#0D1117',
+    color: C.text,
   },
   closeButton: {
     padding: 8,
-    backgroundColor: '#F0F3FA',
+    backgroundColor: C.bg,
     borderRadius: 20,
   },
 });

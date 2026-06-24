@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, FlatList, Alert } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 export default function OffersNotification() {
   const [offers, setOffers] = useState([]);
@@ -58,7 +58,7 @@ export default function OffersNotification() {
                     <View style={styles.offerCard}>
                         <Text style={styles.sender}>De : {item.senderId.fullName}</Text>
                         <Text style={styles.route}>{item.rideId.startLocation} ➔ {item.rideId.endLocation}</Text>
-                        <Text style={styles.time}>📅 {moment(item.rideId.date).format('DD/MM à HH:mm')}</Text>
+                        <Text style={styles.time}>📅 {dayjs(item.rideId.date).format('DD/MM à HH:mm')}</Text>
                         <TouchableOpacity style={styles.acceptBtn} onPress={() => acceptOffer(item._id)}>
                             <Text style={styles.acceptText}>ACCEPTER LA COURSE</Text>
                         </TouchableOpacity>

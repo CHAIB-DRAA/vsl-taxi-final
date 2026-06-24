@@ -4,7 +4,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import api from '../services/api';
-import moment from 'moment';
+import dayjs from 'dayjs';
 
 // 👇 1. IMPORT AUDIO
 import { Audio } from 'expo-av';
@@ -94,7 +94,7 @@ export default function IncomingOfferToast({ onRideAccepted }) {
       const response = await api.post(`/dispatch/accept/${offer._id}`);
       
       const rideDate = response.data.ride ? response.data.ride.date : offer.rideId.date;
-      const formattedDate = moment(rideDate).format('DD/MM');
+      const formattedDate = dayjs(rideDate).format('DD/MM');
 
       Alert.alert("✅ Course Acceptée !", `La course a été ajoutée à votre agenda pour le ${formattedDate}.`);
       
@@ -136,7 +136,7 @@ export default function IncomingOfferToast({ onRideAccepted }) {
         {isGroupOffer && <Text style={styles.senderSub}>De: {offer.senderId?.fullName}</Text>}
         <View style={styles.row}>
             <Ionicons name="calendar" size={16} color="#666" />
-            <Text style={styles.time}> {moment(offer.rideId.date).format('DD/MM')} à <Text style={{fontWeight:'bold', color:'#000'}}>{moment(offer.rideId.date).format('HH:mm')}</Text></Text>
+            <Text style={styles.time}> {dayjs(offer.rideId.date).format('DD/MM')} à <Text style={{fontWeight:'bold', color:'#000'}}>{dayjs(offer.rideId.date).format('HH:mm')}</Text></Text>
         </View>
         <View style={styles.routeContainer}>
             <Text style={styles.route} numberOfLines={1}>📍 {offer.rideId.startLocation}</Text>
