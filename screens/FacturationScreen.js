@@ -91,6 +91,8 @@ export default function FacturationScreen() {
     tolls:  Math.round(unbilled.reduce((s, r) => s + (r.tolls || 0), 0) * 100) / 100,
   }), [unbilled]);
 
+  const missingBT = useMemo(() => unbilled.filter(r => !r.bonTransport || r.bonTransport === '').length, [unbilled]);
+
   // ── Marquer une course comme facturée ──
   const markBilled = useCallback(async (rideId) => {
     setMarkingId(rideId);
@@ -296,6 +298,18 @@ export default function FacturationScreen() {
             )}
           </View>
 
+          {/* ── Alerte bon de transport manquant ── */}
+          {!r.bonTransport && (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginBottom: 6,
+              backgroundColor: 'rgba(255,51,85,0.10)', borderRadius: 8, padding: 6,
+              borderLeftWidth: 2, borderLeftColor: '#FF3355' }}>
+              <Ionicons name="warning-outline" size={13} color="#FF3355" />
+              <Text style={{ fontSize: 11, color: '#FF3355', fontWeight: '700' }}>
+                Bon de transport manquant — remboursement CPAM à risque
+              </Text>
+            </View>
+          )}
+
           {/* ── Adresses cliquables ── */}
           <View style={styles.addrBlock}>
             <TouchableOpacity
@@ -433,6 +447,13 @@ export default function FacturationScreen() {
 
         {totals.tolls > 0 && (
           <Text style={styles.headerTolls}>dont {totals.tolls.toFixed(2)} € de péages</Text>
+        )}
+
+        {missingBT > 0 && (
+          <View style={styles.missingBTBanner}>
+            <Ionicons name="warning-outline" size={14} color="#FF3355" />
+            <Text style={styles.missingBTText}>{missingBT} course{missingBT > 1 ? 's' : ''} sans bon de transport</Text>
+          </View>
         )}
 
         <TouchableOpacity
@@ -693,4 +714,13 @@ const styles = StyleSheet.create({
   empty: { alignItems: 'center', paddingTop: 60, paddingHorizontal: 32 },
   emptyText: { fontSize: 16, fontWeight: '700', color: C.text2, marginTop: 16, textAlign: 'center' },
   emptyHint: { fontSize: 13, color: C.text2, marginTop: 8, textAlign: 'center', lineHeight: 20 },
+
+  // ── MISSING BT BANNER ──
+  missingBTBanner: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: 'rgba(255,51,85,0.15)', borderRadius: 10,
+    paddingHorizontal: 12, paddingVertical: 8, marginBottom: 12,
+    borderWidth: 1, borderColor: 'rgba(255,51,85,0.35)',
+  },
+  missingBTText: { fontSize: 12, color: '#FF3355', fontWeight: '700', flex: 1 },
 });

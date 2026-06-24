@@ -121,10 +121,18 @@ export default function AgendaScreen({ navigation }) {
     );
   };
 
+  const getDefaultReturnDelay = (ride) => {
+    const motif = ride?.motif || '';
+    if (motif === 'HDJ') return 240;           // 4h
+    if (motif === 'Hospitalisation') return 0;  // pas de retour automatique
+    if (motif === 'Traitement') return 120;     // 2h
+    return 90; // 1h30 par défaut (Consultation)
+  };
+
   const handleCreateReturn = () => {
     if (!activeRide) return;
     closeOptions();
-    setReturnTimeStr(dayjs().add(10, 'minutes').format('HH:mm'));
+    setReturnTimeStr(dayjs().add(getDefaultReturnDelay(activeRide), 'minutes').format('HH:mm'));
     setModals(m => ({ ...m, returnTime: true }));
   };
 
@@ -228,10 +236,9 @@ export default function AgendaScreen({ navigation }) {
     }
   };
 
-  const submitFinish = async () => {
+  const doFinishRide = async () => {
     const km   = parseFloat(finishDistance?.trim());
     const tls  = parseFloat(finishTolls?.trim()) || 0;
-    if (!km || isNaN(km) || km <= 0) return Alert.alert('Erreur', 'Distance invalide.');
     try {
       const updated = await finishRideById(finishRide._id, km, tls, finishBonTransport.trim());
       updateLocalRide(updated);
@@ -240,6 +247,25 @@ export default function AgendaScreen({ navigation }) {
     } catch {
       Alert.alert('Erreur', 'Impossible de terminer la course.');
     }
+  };
+
+  const submitFinish = async () => {
+    const km   = parseFloat(finishDistance?.trim());
+    const tls  = parseFloat(finishTolls?.trim()) || 0;
+    if (!km || isNaN(km) || km <= 0) return Alert.alert('Erreur', 'Distance invalide.');
+
+    // Si le bon de transport n'est pas saisi, avertir (mais ne pas bloquer)
+    if (!finishBonTransport || finishBonTransport.trim() === '') {
+      return Alert.alert(
+        '⚠️ Bon de transport',
+        "Le numéro de bon de transport n'est pas renseigné. Sans ce numéro, le remboursement CPAM peut être refusé.\n\nContinuer sans bon de transport ?",
+        [
+          { text: 'Ajouter le numéro', style: 'cancel' },
+          { text: 'Continuer quand même', onPress: async () => { await doFinishRide(); } }
+        ]
+      );
+    }
+    await doFinishRide();
   };
 
   const handleRespond = useCallback(async (ride, action) => {

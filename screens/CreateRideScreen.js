@@ -53,9 +53,12 @@ export default function CreateRideScreen({ navigation, route }) {
   const [pickerMode, setPickerMode] = useState('date');
   const [showDatePicker, setShowDatePicker] = useState(false);
 
+  const [patientNIR, setPatientNIR] = useState('');
+
   const [type, setType] = useState('Aller');
   const [motif, setMotif] = useState('Consultation');
   const [isRoundTrip, setIsRoundTrip] = useState(false);
+  const [hasEmptyReturn, setHasEmptyReturn] = useState(true);
 
   const [loading, setLoading] = useState(false);
   const [patientsLoading, setPatientsLoading] = useState(false);
@@ -96,6 +99,7 @@ export default function CreateRideScreen({ navigation, route }) {
 
         if (data.patientName) setPatientName(data.patientName);
         if (data.patientPhone) setPatientPhone(data.patientPhone);
+        if (data.patientNIR) setPatientNIR(data.patientNIR);
         if (data.startLocation) setStartLocation(data.startLocation);
         if (data.endLocation) setEndLocation(data.endLocation);
         if (data.type) setType(data.type);
@@ -157,6 +161,7 @@ export default function CreateRideScreen({ navigation, route }) {
 
   const handleTypeChange = (newType) => {
     setType(newType);
+    setHasEmptyReturn(newType !== 'Retour'); // Retour = pas de supplément retour à vide
     if (startLocation && endLocation) {
         const temp = startLocation; setStartLocation(endLocation); setEndLocation(temp);
     } else if (patientAddressMem) {
@@ -232,9 +237,35 @@ export default function CreateRideScreen({ navigation, route }) {
   };
 
   const resetForm = () => {
-    setPatientName(''); setPatientPhone(''); setPatientAddressMem('');
+    setPatientName(''); setPatientPhone(''); setPatientNIR(''); setPatientAddressMem('');
     setStartLocation(''); setEndLocation(''); setIsRoundTrip(false); setNotes('');
     setEditingRideId(null); setIsRecurring(false); setRecurDays([]);
+    setHasEmptyReturn(true);
+  };
+
+  const submitRide = async () => {
+    try {
+      setLoading(true);
+      const rideData = {
+        patientName, patientPhone, patientNIR, startLocation, endLocation,
+        date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null,
+        type, motif, isRoundTrip, hasEmptyReturn, notes,
+      };
+      if (editingRideId) {
+        await updateRide(editingRideId, rideData);
+        Alert.alert('Succès', 'Course mise à jour avec succès.');
+      } else {
+        const created = await createRide(rideData);
+        scheduleRideReminder(created).catch(() => {});
+        Alert.alert('Succès', 'Course ajoutée au planning.');
+      }
+      resetForm();
+      navigation.goBack();
+    } catch {
+      Alert.alert('Erreur', "Échec de l'enregistrement.");
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleSave = async () => {
@@ -256,8 +287,8 @@ export default function CreateRideScreen({ navigation, route }) {
               setLoading(true);
               try {
                 const rides = dates.map(d => ({
-                  patientName, patientPhone, startLocation, endLocation,
-                  date: d.toISOString(), type, motif, isRoundTrip: false, notes,
+                  patientName, patientPhone, patientNIR, startLocation, endLocation,
+                  date: d.toISOString(), type, motif, isRoundTrip: false, hasEmptyReturn, notes,
                 }));
                 const res = await importMassRides(rides);
                 Alert.alert('Série créée ✓', `${res.addedRidesCount} course${res.addedRidesCount > 1 ? 's' : ''} ajoutée${res.addedRidesCount > 1 ? 's' : ''} au planning.`);
@@ -275,28 +306,28 @@ export default function CreateRideScreen({ navigation, route }) {
       return;
     }
 
-    try {
-      setLoading(true);
-      const rideData = {
-        patientName, patientPhone, startLocation, endLocation,
-        date: date.toISOString(), returnDate: isRoundTrip ? returnDate.toISOString() : null,
-        type, motif, isRoundTrip, notes,
-      };
-      if (editingRideId) {
-        await updateRide(editingRideId, rideData);
-        Alert.alert('Succès', 'Course mise à jour avec succès.');
-      } else {
-        const created = await createRide(rideData);
-        scheduleRideReminder(created).catch(() => {});
-        Alert.alert('Succès', 'Course ajoutée au planning.');
-      }
-      resetForm();
-      navigation.goBack();
-    } catch {
-      Alert.alert('Erreur', "Échec de l'enregistrement.");
-    } finally {
-      setLoading(false);
+    // Vérification conflit horaire
+    const newRideTime = date.getTime();
+    const conflicts = allRides.filter(r => {
+      if (r.status === 'Annulée') return false;
+      if (editingRideId && r._id === editingRideId) return false;
+      const diff = Math.abs(new Date(r.date).getTime() - newRideTime);
+      return diff < 20 * 60 * 1000; // moins de 20 minutes
+    });
+    if (conflicts.length > 0) {
+      const conflict = conflicts[0];
+      Alert.alert(
+        '⚠️ Conflit horaire',
+        `Vous avez déjà une course à ${dayjs(conflict.date).format('HH:mm')} (${conflict.patientName}). Confirmer quand même ?`,
+        [
+          { text: 'Annuler', style: 'cancel' },
+          { text: 'Confirmer quand même', onPress: () => submitRide() }
+        ]
+      );
+      return;
     }
+
+    await submitRide();
   };
 
   return (
@@ -380,6 +411,19 @@ export default function CreateRideScreen({ navigation, route }) {
                 <Text style={styles.phoneText}>{patientPhone}</Text>
               </View>
             ) : null}
+
+            <View style={[styles.inputBox, { marginTop: 10 }]}>
+              <Ionicons name="card-outline" size={18} color={C.text3} style={{ marginRight: 10 }} />
+              <TextInput
+                style={styles.inputField}
+                placeholder="NIR (N° Sécu — optionnel)"
+                placeholderTextColor={C.text3}
+                value={patientNIR}
+                onChangeText={setPatientNIR}
+                keyboardType="numeric"
+                maxLength={15}
+              />
+            </View>
 
             {showSuggestions && (
               <View style={styles.suggestionsDropdown}>
@@ -537,7 +581,7 @@ export default function CreateRideScreen({ navigation, route }) {
                 </View>
                 <Switch
                   value={isRoundTrip}
-                  onValueChange={setIsRoundTrip}
+                  onValueChange={(v) => { setIsRoundTrip(v); if (v) setHasEmptyReturn(false); }}
                   trackColor={{ false: C.border, true: C.brand }}
                   thumbColor="#FFF"
                   style={{ marginLeft: 12 }}
