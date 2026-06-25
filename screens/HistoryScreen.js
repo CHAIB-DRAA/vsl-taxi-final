@@ -319,55 +319,39 @@ export default function HistoryScreen() {
     <View style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor={C.card} />
 
-      {/* ── HEADER GRADIENT SOMBRE ── */}
-      <View style={[styles.header, {backgroundColor: C.card}]}
-      >
-        {/* Titre + actions */}
+      {/* ── HEADER ── */}
+      <View style={[styles.header, { backgroundColor: C.card }]}>
+
+        {/* Ligne 1 : Titre + boutons */}
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.headerTitle}>Historique</Text>
-            <Text style={styles.headerDate}>
-              {debouncedSearch.length > 0
-                ? 'Recherche globale'
-                : currentDate.format('dddd D MMMM').replace(/^./, s => s.toUpperCase())}
-            </Text>
-          </View>
+          <Text style={styles.headerTitle}>Historique</Text>
           <View style={styles.headerActions}>
             <TouchableOpacity style={styles.headerBtn} onPress={runSmartAudit}>
-              <Ionicons name="color-wand-outline" size={16} color={C.brand} />
+              <Ionicons name="color-wand-outline" size={14} color={C.brand} />
               <Text style={styles.headerBtnText}>Lissage</Text>
             </TouchableOpacity>
             <TouchableOpacity style={styles.headerBtn} onPress={generateCSV}>
-              <Ionicons name="download-outline" size={16} color={C.brand} />
+              <Ionicons name="download-outline" size={14} color={C.brand} />
               <Text style={styles.headerBtnText}>CSV</Text>
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* Sélecteur de jour */}
+        {/* Ligne 2 : Navigation jour */}
         <View style={styles.daySelector}>
-          <TouchableOpacity
-            onPress={() => setCurrentDate(currentDate.subtract(1, 'day'))}
-            style={styles.daySelectorArrow}
-          >
-            <Ionicons name="chevron-back" size={22} color={C.hText} />
+          <TouchableOpacity onPress={() => setCurrentDate(currentDate.subtract(1, 'day'))} style={styles.daySelectorArrow}>
+            <Ionicons name="chevron-back" size={20} color={C.hText} />
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setShowDatePicker(true)}
-            style={styles.daySelectorBtn}
-          >
-            <Ionicons name="calendar-outline" size={15} color={C.brand} style={{ marginRight: 8 }} />
+          <TouchableOpacity onPress={() => setShowDatePicker(true)} style={styles.daySelectorBtn}>
+            <Ionicons name="calendar-outline" size={13} color={C.brand} />
             <Text style={styles.daySelectorText}>
-              {currentDate.format('dddd DD MMMM').replace(/^./, s => s.toUpperCase())}
+              {debouncedSearch.length > 0
+                ? 'Recherche globale'
+                : currentDate.format('ddd DD MMM').replace(/^./, s => s.toUpperCase())}
             </Text>
           </TouchableOpacity>
-
-          <TouchableOpacity
-            onPress={() => setCurrentDate(currentDate.add(1, 'day'))}
-            style={styles.daySelectorArrow}
-          >
-            <Ionicons name="chevron-forward" size={22} color={C.hText} />
+          <TouchableOpacity onPress={() => setCurrentDate(currentDate.add(1, 'day'))} style={styles.daySelectorArrow}>
+            <Ionicons name="chevron-forward" size={20} color={C.hText} />
           </TouchableOpacity>
         </View>
 
@@ -383,79 +367,59 @@ export default function HistoryScreen() {
           />
         )}
 
-        {/* Stats du jour */}
+        {/* Ligne 3 : Stats compactes */}
         <View style={styles.statsRow}>
-          <View style={styles.statCard}>
-            <LinearGradient colors={[C.brand, C.brandGrad]} style={styles.statIcon}>
-              <Ionicons name="car-outline" size={14} color="#FFF" />
-            </LinearGradient>
-            <View>
-              <Text style={styles.statValue}>{stats.count}</Text>
-              <Text style={styles.statLabel}>COURSES</Text>
-            </View>
+          <View style={styles.statPill}>
+            <Ionicons name="car-outline" size={12} color={C.brand} />
+            <Text style={styles.statNum}>{stats.count}</Text>
+            <Text style={styles.statLbl}>courses</Text>
           </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statCard}>
-            <LinearGradient colors={[C.electric, C.electricGrad]} style={styles.statIcon}>
-              <Ionicons name="navigate-outline" size={14} color="#FFF" />
-            </LinearGradient>
-            <View>
-              <Text style={styles.statValue}>{stats.km}</Text>
-              <Text style={styles.statLabel}>KM</Text>
-            </View>
+          <View style={styles.statSep} />
+          <View style={styles.statPill}>
+            <Ionicons name="navigate-outline" size={12} color={C.hText2} />
+            <Text style={styles.statNum}>{stats.km}</Text>
+            <Text style={styles.statLbl}>km</Text>
           </View>
-
-          <View style={styles.statDivider} />
-
-          <View style={styles.statCard}>
-            <LinearGradient colors={[C.green, '#00B87A']} style={styles.statIcon}>
-              <Ionicons name="cash-outline" size={14} color="#FFF" />
-            </LinearGradient>
-            <View>
-              <Text style={[styles.statValue, { color: C.green }]}>{stats.ca.toFixed(0)} €</Text>
-              <Text style={styles.statLabel}>CA ESTIMÉ</Text>
-            </View>
+          <View style={styles.statSep} />
+          <View style={styles.statPill}>
+            <Ionicons name="cash-outline" size={12} color={C.green} />
+            <Text style={[styles.statNum, { color: C.green }]}>{stats.ca.toFixed(0)} €</Text>
+            <Text style={styles.statLbl}>CA</Text>
           </View>
+          {rides.length > 0 && (
+            <>
+              <View style={styles.statSep} />
+              <Text style={styles.statTotal}>{globalStats.total} tot.</Text>
+            </>
+          )}
         </View>
 
-        {/* Résumé global */}
-        {rides.length > 0 && (
-          <View style={styles.globalBanner}>
-            <Ionicons name="stats-chart-outline" size={13} color={C.hText2} />
-            <Text style={styles.globalBannerText}>
-              Total : {globalStats.total} courses · {globalStats.ca.toFixed(0)} € CA cumulé
-            </Text>
-          </View>
-        )}
+        {/* Barre de recherche intégrée */}
+        <View style={[styles.searchContainer, { borderColor: focusSearch ? C.brand : C.border }]}>
+          <Ionicons name="search" size={15} color={C.text3} />
+          <TextInput
+            style={styles.searchInput}
+            placeholder="Patient, ville..."
+            placeholderTextColor={C.text3}
+            value={searchText}
+            onChangeText={setSearchText}
+            onFocus={() => setFocusSearch(true)}
+            onBlur={() => setFocusSearch(false)}
+          />
+          {searchText.length > 0 && (
+            <TouchableOpacity onPress={() => setSearchText('')}>
+              <Ionicons name="close-circle" size={15} color={C.text3} />
+            </TouchableOpacity>
+          )}
+        </View>
       </View>
 
       {/* ── BANNIÈRE ERREUR ── */}
       {loadError && !loading && rides.length === 0 && (
         <View style={styles.errorBanner}>
-          <Text style={styles.errorBannerText}>Impossible de charger les données. Tirez pour réessayer.</Text>
+          <Text style={styles.errorBannerText}>Impossible de charger. Tirez pour réessayer.</Text>
         </View>
       )}
-
-      {/* ── BARRE DE RECHERCHE ── */}
-      <View style={[styles.searchContainer, { borderColor: focusSearch ? C.brand : C.border }]}>
-        <Ionicons name="search" size={18} color={C.text3} />
-        <TextInput
-          style={styles.searchInput}
-          placeholder="Rechercher patient, ville..."
-          placeholderTextColor={C.text3}
-          value={searchText}
-          onChangeText={setSearchText}
-          onFocus={() => setFocusSearch(true)}
-          onBlur={() => setFocusSearch(false)}
-        />
-        {searchText.length > 0 && (
-          <TouchableOpacity onPress={() => setSearchText('')}>
-            <Ionicons name="close-circle" size={18} color={C.text3} />
-          </TouchableOpacity>
-        )}
-      </View>
 
       {/* ── LISTE ── */}
       {loading && !refreshing ? (
@@ -597,156 +561,92 @@ const styles = StyleSheet.create({
 
   // ── Header ──
   header: {
-    paddingTop: Platform.OS === 'ios' ? 58 : 48,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    },
+    paddingTop: Platform.OS === 'ios' ? 54 : 44,
+    paddingBottom: 10,
+    paddingHorizontal: 16,
+    backgroundColor: C.card,
+    borderBottomWidth: 1,
+    borderBottomColor: C.hBorder,
+  },
   headerTop: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 18,
+    alignItems: 'center',
+    marginBottom: 10,
   },
   headerTitle: {
-    fontSize: 28,
+    fontSize: 22,
     fontWeight: '900',
     color: C.hText,
     letterSpacing: -0.5,
   },
-  headerDate: {
-    fontSize: 13,
-    color: C.brand,
-    fontWeight: '600',
-    marginTop: 2,
-    textTransform: 'capitalize',
-  },
-  headerActions: { flexDirection: 'row', gap: 8, marginTop: 4 },
+  headerActions: { flexDirection: 'row', gap: 6 },
   headerBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 4,
     backgroundColor: C.hCard,
-    paddingVertical: 7,
-    paddingHorizontal: 12,
-    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 8,
     borderWidth: 1,
     borderColor: C.hBorder,
   },
-  headerBtnText: { color: C.brand, fontWeight: '700', fontSize: 12 },
+  headerBtnText: { color: C.brand, fontWeight: '700', fontSize: 11 },
 
   // Sélecteur de jour
   daySelector: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
+    marginBottom: 8,
     backgroundColor: C.hCard,
-    borderRadius: 14,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: C.hBorder,
-    paddingVertical: 4,
-    paddingHorizontal: 4,
+    paddingVertical: 2,
+    paddingHorizontal: 2,
   },
-  daySelectorArrow: { padding: 8 },
+  daySelectorArrow: { padding: 6 },
   daySelectorBtn: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: 8,
+    flex: 1, flexDirection: 'row', alignItems: 'center',
+    justifyContent: 'center', gap: 6, paddingVertical: 6,
   },
-  daySelectorText: {
-    color: C.hText,
-    fontSize: 14,
-    fontWeight: '700',
-    textTransform: 'capitalize',
-  },
+  daySelectorText: { color: C.hText, fontSize: 13, fontWeight: '700', textTransform: 'capitalize' },
 
-  // Stats row
+  // Stats compactes (une ligne)
   statsRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: C.hCard,
-    borderRadius: 16,
+    borderRadius: 10,
     borderWidth: 1,
     borderColor: C.hBorder,
-    padding: 14,
-    alignItems: 'center',
-    marginBottom: 10,
-  },
-  statCard: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    justifyContent: 'center',
-  },
-  statIcon: {
-    width: 30,
-    height: 30,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: C.hText,
-    letterSpacing: -0.3,
-  },
-  statLabel: {
-    fontSize: 10,
-    fontWeight: '700',
-    color: C.hText2,
-    letterSpacing: 0.8,
-    marginTop: 1,
-  },
-  statDivider: {
-    width: 1,
-    height: 36,
-    backgroundColor: C.hBorder,
-  },
-
-  // Global banner
-  globalBanner: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    backgroundColor: C.hCard,
-    borderRadius: 10,
     paddingHorizontal: 12,
     paddingVertical: 7,
-    borderWidth: 1,
-    borderColor: C.hBorder,
+    marginBottom: 8,
   },
-  globalBannerText: {
-    fontSize: 12,
-    color: C.hText2,
-    fontWeight: '600',
-  },
+  statPill: { flexDirection: 'row', alignItems: 'center', gap: 4, flex: 1, justifyContent: 'center' },
+  statNum: { fontSize: 14, fontWeight: '800', color: C.hText },
+  statLbl: { fontSize: 10, color: C.hText2, fontWeight: '600' },
+  statSep: { width: 1, height: 16, backgroundColor: C.hBorder },
+  statTotal: { fontSize: 11, color: C.hText2, fontWeight: '600', paddingLeft: 8 },
 
-  // Recherche
+  // Recherche intégrée dans le header
   searchContainer: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
-    backgroundColor: C.card,
-    marginHorizontal: 16,
-    marginTop: 12,
-    marginBottom: 4,
-    borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    gap: 8,
+    backgroundColor: C.hCard,
+    borderRadius: 10,
+    paddingHorizontal: 10,
+    paddingVertical: 8,
     borderWidth: 1,
-    borderColor: C.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
+    borderColor: C.hBorder,
   },
-  searchInput: { flex: 1, fontSize: 15, color: C.text },
+  searchInput: { flex: 1, fontSize: 13, color: C.text },
 
-  listContent: { paddingHorizontal: 16, paddingTop: 12, paddingBottom: 120 },
+  listContent: { paddingHorizontal: 12, paddingTop: 8, paddingBottom: 120 },
 
   errorBanner: {
     backgroundColor: 'rgba(255,51,85,0.10)',

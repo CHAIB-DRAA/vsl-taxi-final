@@ -9,6 +9,7 @@ import { useFocusEffect } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useData } from '../contexts/DataContext';
 import api, { deleteRide, startRideById, finishRideById, shareRide, createRide } from '../services/api';
@@ -50,7 +51,8 @@ export default function AgendaScreen({ navigation }) {
   const [finishRide, setFinishRide]                 = useState(null);
 
   // Modal heure de retour
-  const [returnTimeStr, setReturnTimeStr]   = useState('');
+  const [returnTime, setReturnTime]         = useState(new Date());
+  const [showReturnPicker, setShowReturnPicker] = useState(false);
 
   // Focus states for finishModal inputs
   const [focusDistance, setFocusDistance] = useState(false);
@@ -132,21 +134,13 @@ export default function AgendaScreen({ navigation }) {
   const handleCreateReturn = () => {
     if (!activeRide) return;
     closeOptions();
-    setReturnTimeStr(dayjs().add(getDefaultReturnDelay(activeRide), 'minutes').format('HH:mm'));
+    setReturnTime(dayjs().add(getDefaultReturnDelay(activeRide), 'minutes').toDate());
+    setShowReturnPicker(false);
     setModals(m => ({ ...m, returnTime: true }));
   };
 
   const confirmReturn = async () => {
-    const parts = returnTimeStr.split(':');
-    if (parts.length !== 2 || isNaN(parts[0]) || isNaN(parts[1])) {
-      return Alert.alert('Erreur', 'Format invalide. Ex : 14:30');
-    }
-    const h = parseInt(parts[0], 10);
-    const min = parseInt(parts[1], 10);
-    if (h < 0 || h > 23 || min < 0 || min > 59) {
-      return Alert.alert('Erreur', 'Heure invalide.');
-    }
-    const d = dayjs().hours(h).minutes(min).seconds(0).toISOString();
+    const d = dayjs(returnTime).second(0).toISOString();
     setModals(m => ({ ...m, returnTime: false }));
     try {
       const newRide = await createRide({
@@ -462,17 +456,45 @@ export default function AgendaScreen({ navigation }) {
           <View style={styles.sheetCard}>
             <View style={styles.sheetHandle} />
             <Text style={styles.sheetTitle}>Heure du retour</Text>
-            <Text style={styles.inputLabel}>Heure de départ du retour :</Text>
-            <TextInput
-              style={styles.sheetInput}
-              value={returnTimeStr}
-              onChangeText={setReturnTimeStr}
-              placeholder="14:30"
-              placeholderTextColor={C.text3}
-              keyboardType="numbers-and-punctuation"
-              autoFocus
-              maxLength={5}
-            />
+            {activeRide && (
+              <View style={styles.returnAddrPreview}>
+                <View style={styles.returnAddrRow}>
+                  <View style={[styles.returnDot, { backgroundColor: C.green }]} />
+                  <Text style={styles.returnAddrText} numberOfLines={1}>
+                    {activeRide.endLocation}
+                  </Text>
+                </View>
+                <View style={styles.returnVLine} />
+                <View style={styles.returnAddrRow}>
+                  <View style={[styles.returnDot, { backgroundColor: C.brand, borderRadius: 2 }]} />
+                  <Text style={styles.returnAddrText} numberOfLines={1}>
+                    {activeRide.startLocation}
+                  </Text>
+                </View>
+              </View>
+            )}
+            <Text style={styles.inputLabel}>Heure de départ :</Text>
+            <TouchableOpacity
+              style={styles.timePickerBtn}
+              onPress={() => setShowReturnPicker(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="time-outline" size={20} color={C.brand} />
+              <Text style={styles.timePickerText}>{dayjs(returnTime).format('HH:mm')}</Text>
+              <Ionicons name="chevron-down" size={16} color={C.text3} />
+            </TouchableOpacity>
+            {showReturnPicker && (
+              <DateTimePicker
+                value={returnTime}
+                mode="time"
+                is24Hour
+                display="spinner"
+                onChange={(event, selectedTime) => {
+                  if (Platform.OS !== 'ios') setShowReturnPicker(false);
+                  if (selectedTime) setReturnTime(selectedTime);
+                }}
+              />
+            )}
             <View style={styles.sheetActions}>
               <TouchableOpacity
                 style={styles.cancelBtn}
@@ -482,7 +504,8 @@ export default function AgendaScreen({ navigation }) {
               </TouchableOpacity>
               <TouchableOpacity style={styles.confirmBtnWrapper} onPress={confirmReturn} activeOpacity={0.85}>
                 <LinearGradient colors={[C.brand, '#E55A00']} start={{ x: 0, y: 0 }} end={{ x: 1, y: 0 }} style={styles.confirmBtn}>
-                  <Text style={styles.confirmBtnText}>Confirmer</Text>
+                  <Ionicons name="repeat" size={16} color="#FFF" />
+                  <Text style={styles.confirmBtnText}>Créer le retour</Text>
                 </LinearGradient>
               </TouchableOpacity>
             </View>
@@ -873,9 +896,29 @@ const styles = StyleSheet.create({
   cancelBtnText: { color: C.text2, fontWeight: '700', fontSize: 15 },
   confirmBtnWrapper: { flex: 2 },
   confirmBtn: {
-    paddingVertical: 16,
-    borderRadius: 14,
-    alignItems: 'center',
+    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
+    gap: 8, paddingVertical: 16, borderRadius: 14,
   },
   confirmBtnText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+
+  // ── MODAL RETOUR ──
+  returnAddrPreview: {
+    backgroundColor: C.card2, borderRadius: 12, padding: 12,
+    borderWidth: 1, borderColor: C.border, marginBottom: 14,
+  },
+  returnAddrRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+  returnDot: { width: 8, height: 8, borderRadius: 4, flexShrink: 0 },
+  returnVLine: { height: 10, width: 1, backgroundColor: C.border, marginLeft: 3, marginVertical: 4 },
+  returnAddrText: { flex: 1, fontSize: 13, color: C.text, fontWeight: '500' },
+  timePickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card2, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 16, paddingVertical: 14,
+    marginBottom: 4,
+  },
+  timePickerText: {
+    flex: 1, fontSize: 28, fontWeight: '800',
+    color: C.text, textAlign: 'center', letterSpacing: 1,
+  },
 });

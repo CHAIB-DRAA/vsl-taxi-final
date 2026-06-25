@@ -4,6 +4,7 @@ import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
   Alert, FlatList, Platform, TextInput, Modal, RefreshControl, StatusBar
 } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import dayjs from 'dayjs';
@@ -30,6 +31,10 @@ export default function TodayRidesScreen({ navigation }) {
 
   const [cancelModal, setCancelModal] = useState({ visible: false, rideId: null, patientName: '' });
   const [cancelReason, setCancelReason] = useState('');
+
+  const [returnModal, setReturnModal] = useState({ visible: false, ride: null });
+  const [returnTime, setReturnTime] = useState(new Date());
+  const [showReturnPicker, setShowReturnPicker] = useState(false);
 
   // ─── Focus states inputs ────────────────────────────────────────────────
   const [focusDistance, setFocusDistance] = useState(false);
@@ -75,15 +80,7 @@ export default function TodayRidesScreen({ navigation }) {
       setTimeout(() => {
         Alert.alert('Terminée ✓', `${ride?.patientName || 'Patient'} — Créer le retour ?`, [
           { text: 'Non', style: 'cancel' },
-          { text: 'Retour →', onPress: () => navigation.navigate('Créer', {
-            importedData: {
-              patientName:   ride?.patientName   || '',
-              patientPhone:  ride?.patientPhone  || '',
-              startLocation: ride?.endLocation   || '',
-              endLocation:   ride?.startLocation || '',
-              type:          ride?.type          || 'VSL',
-            },
-          })},
+          { text: 'Retour →', onPress: () => openReturnModal(ride) },
         ]);
       }, 350);
     } catch {
@@ -124,6 +121,30 @@ export default function TodayRidesScreen({ navigation }) {
     } catch {
       Alert.alert('Erreur', "Impossible d'annuler la course.");
     }
+  };
+
+  const openReturnModal = (ride) => {
+    setReturnTime(new Date());
+    setShowReturnPicker(false);
+    setReturnModal({ visible: true, ride });
+  };
+
+  const confirmReturn = () => {
+    const { ride } = returnModal;
+    setReturnModal({ visible: false, ride: null });
+    navigation.navigate('Créer', {
+      importedData: {
+        patientName:   ride.patientName   || '',
+        patientPhone:  ride.patientPhone  || '',
+        patientNIR:    ride.patientNIR    || '',
+        startLocation: ride.endLocation   || '',
+        endLocation:   ride.startLocation || '',
+        type:          ride.type          || 'VSL',
+        motif:         ride.motif         || '',
+        notes:         ride.notes         || '',
+        date:          returnTime.toISOString(),
+      },
+    });
   };
 
   // ─── Stats header ────────────────────────────────────────────────────────
@@ -227,6 +248,18 @@ export default function TodayRidesScreen({ navigation }) {
                 {item.tolls > 0 ? ` · Péages ${item.tolls} €` : ''}
               </Text>
             </View>
+          )}
+
+          {/* Bouton créer retour */}
+          {isFinished && (
+            <TouchableOpacity
+              style={styles.btnRetour}
+              onPress={() => openReturnModal(item)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="repeat" size={14} color={C.brand} />
+              <Text style={styles.btnRetourText}>Créer le retour</Text>
+            </TouchableOpacity>
           )}
 
           {/* Raison annulation */}
@@ -485,6 +518,89 @@ export default function TodayRidesScreen({ navigation }) {
           </View>
         </View>
       </Modal>
+
+      {/* ═══ MODAL CRÉER LE RETOUR ═══ */}
+      <Modal
+        visible={returnModal.visible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setReturnModal({ visible: false, ride: null })}
+      >
+        <View style={styles.overlay}>
+          <View style={styles.sheet}>
+            <View style={styles.sheetHandle} />
+            <Text style={styles.sheetTitle}>Créer le retour</Text>
+            {returnModal.ride?.patientName && (
+              <Text style={styles.sheetSub}>{returnModal.ride.patientName}</Text>
+            )}
+
+            {/* Adresses inversées */}
+            {returnModal.ride && (
+              <View style={styles.returnAddresses}>
+                <View style={styles.returnAddrRow}>
+                  <View style={[styles.routeDot, { backgroundColor: C.green }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.returnAddrLabel}>Départ (retour)</Text>
+                    <Text style={styles.returnAddrText} numberOfLines={2}>
+                      {returnModal.ride.endLocation || '—'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={[styles.routeVLine, { marginLeft: 5 }]} />
+                <View style={styles.returnAddrRow}>
+                  <View style={[styles.routeDot, { backgroundColor: C.brand, borderRadius: 2 }]} />
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.returnAddrLabel}>Arrivée (retour)</Text>
+                    <Text style={styles.returnAddrText} numberOfLines={2}>
+                      {returnModal.ride.startLocation || '—'}
+                    </Text>
+                  </View>
+                </View>
+              </View>
+            )}
+
+            {/* Heure de départ */}
+            <Text style={styles.fieldLabel}>Heure de départ du retour</Text>
+            <TouchableOpacity
+              style={styles.timePickerBtn}
+              onPress={() => setShowReturnPicker(true)}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="time-outline" size={20} color={C.brand} />
+              <Text style={styles.timePickerText}>{dayjs(returnTime).format('HH:mm')}</Text>
+              <Ionicons name="chevron-down" size={16} color={C.text3} />
+            </TouchableOpacity>
+
+            {showReturnPicker && (
+              <DateTimePicker
+                value={returnTime}
+                mode="time"
+                is24Hour
+                display="spinner"
+                onChange={(event, selectedTime) => {
+                  if (Platform.OS !== 'ios') setShowReturnPicker(false);
+                  if (selectedTime) setReturnTime(selectedTime);
+                }}
+              />
+            )}
+
+            <View style={styles.sheetActions}>
+              <TouchableOpacity
+                style={styles.sheetBtnCancel}
+                onPress={() => setReturnModal({ visible: false, ride: null })}
+              >
+                <Text style={styles.sheetBtnCancelText}>Annuler</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.sheetBtnPrimary} onPress={confirmReturn} activeOpacity={0.85}>
+                <LinearGradient colors={[C.brand, '#2255DD']} style={styles.sheetBtnGrad}>
+                  <Ionicons name="repeat" size={16} color="#FFF" />
+                  <Text style={styles.sheetBtnPrimaryText}>Créer le retour</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -686,4 +802,38 @@ const styles = StyleSheet.create({
     paddingVertical: 15, gap: 8,
   },
   sheetBtnPrimaryText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+
+  // ── BOUTON CRÉER RETOUR (carte) ──
+  btnRetour: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', marginTop: 10,
+    paddingHorizontal: 12, paddingVertical: 7,
+    backgroundColor: C.brand + '12',
+    borderRadius: 20,
+    borderWidth: 1, borderColor: C.brand + '33',
+  },
+  btnRetourText: { color: C.brand, fontSize: 12, fontWeight: '700' },
+
+  // ── MODAL RETOUR ──
+  returnAddresses: {
+    backgroundColor: C.card2, borderRadius: 12, padding: 14,
+    borderWidth: 1, borderColor: C.border, marginTop: 4,
+  },
+  returnAddrRow: { flexDirection: 'row', alignItems: 'flex-start', gap: 10 },
+  returnAddrLabel: {
+    fontSize: 9, color: C.text3, fontWeight: '700',
+    textTransform: 'uppercase', letterSpacing: 0.5, marginBottom: 2,
+  },
+  returnAddrText: { fontSize: 13, color: C.text, fontWeight: '500', lineHeight: 18 },
+
+  timePickerBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: C.card2, borderRadius: 14,
+    borderWidth: 1, borderColor: C.border,
+    paddingHorizontal: 16, paddingVertical: 14,
+  },
+  timePickerText: {
+    flex: 1, fontSize: 28, fontWeight: '800',
+    color: C.text, textAlign: 'center', letterSpacing: 1,
+  },
 });
