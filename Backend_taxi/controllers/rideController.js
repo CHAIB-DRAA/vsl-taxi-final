@@ -168,10 +168,12 @@ exports.getRides = async (req, res) => {
   try {
     const myId = req.user.id;
 
-    // A. Récupérer MES courses — les demandes web 'En attente' sont exclues (gérées dans TodayRides)
+    // A. Récupérer MES courses + les demandes web 'En attente' (visibles par tous les chauffeurs)
     const myRides = await Ride.find({
-      chauffeurId: myId,
-      $nor: [{ source: 'Web', status: 'En attente' }]
+      $or: [
+        { chauffeurId: myId },
+        { source: 'Web', status: 'En attente' }
+      ]
     }).lean();
 
     // B. Récupérer les courses PARTAGÉES avec moi
