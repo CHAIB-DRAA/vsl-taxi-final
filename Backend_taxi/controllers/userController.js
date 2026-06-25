@@ -2,7 +2,7 @@ const User = require('../models/User');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 
-const TOKEN_EXPIRATION = '30d';
+const TOKEN_EXPIRATION = '8h';
 
 const PROFILE_WHITELIST = ['fullName', 'phone', 'pushToken'];
 
@@ -120,10 +120,17 @@ exports.getMyContacts = async (req, res) => {
 
 exports.getUsers = async (req, res) => {
   try {
-    const users = await User.find({}, 'fullName email');
-    res.json(users);
+    const query = req.query.q?.trim();
+    if (!query || query.length < 3) return res.json([]);
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(escaped, 'i');
+    const users = await User.find(
+      { $or: [{ fullName: regex }, { email: regex }] },
+      'fullName _id'
+    ).limit(20);
+    res.json(users.filter(u => String(u._id) !== req.user.id));
   } catch (err) {
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: 'Erreur serveur' });
   }
 };
 

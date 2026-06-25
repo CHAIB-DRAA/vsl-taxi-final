@@ -62,19 +62,16 @@ router.get('/driver/me', auth, async (req, res) => {
 
 // --- 3. RÉCUPÉRER PAR COURSE (Historique) ---
 router.get('/by-ride/:rideId', auth, async (req, res) => {
-    // ... (ton code existant)
     try {
         const { rideId } = req.params;
-        const ride = await Ride.findById(rideId);
-        if (!ride) return res.status(404).json({ message: "Course introuvable" });
-    
+        const ride = await Ride.findOne({ _id: rideId, chauffeurId: req.user.id });
+        if (!ride) return res.status(403).json({ message: "Accès refusé" });
+
         const docs = await Document.find({
+          userId: req.user.id,
           $or: [
             { rideId: rideId },
-            { 
-              patientName: ride.patientName, 
-              type: { $in: ['CarteVitale', 'Mutuelle'] }
-            }
+            { patientName: ride.patientName, type: { $in: ['CarteVitale', 'Mutuelle'] } }
           ]
         }).sort({ uploadDate: -1 });
         res.json(docs);
@@ -85,19 +82,19 @@ router.get('/by-ride/:rideId', auth, async (req, res) => {
 
 // --- 4. RÉCUPÉRER PAR PATIENT (Dossier Patient) ---
 router.get('/patient/:patientId', auth, async (req, res) => {
-    // ... (ton code existant)
     try {
         const { patientId } = req.params;
-        const rides = await Ride.find({ patientId: patientId }).select('_id');
+        const rides = await Ride.find({ patientId, chauffeurId: req.user.id }).select('_id');
         const rideIds = rides.map(r => r._id);
-    
+
         const docs = await Document.find({
+          userId: req.user.id,
           $or: [
-            { patientId: patientId }, 
+            { patientId },
             { rideId: { $in: rideIds } }
           ]
         }).sort({ uploadDate: -1 });
-    
+
         res.json(docs);
       } catch (err) {
         res.status(500).json({ error: "Erreur récupération documents" });

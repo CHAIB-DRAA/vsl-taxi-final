@@ -2,7 +2,7 @@
 import React, { useState } from 'react';
 import { View, TextInput, Button, Alert } from 'react-native';
 import { registerUser } from '../services/api';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as SecureStore from 'expo-secure-store';
 
 const RegisterScreen = ({ navigation }) => {
   const [name, setName] = useState('');
@@ -12,7 +12,7 @@ const RegisterScreen = ({ navigation }) => {
   const handleRegister = async () => {
     try {
       const data = await registerUser({ name, email, password });
-      await AsyncStorage.setItem('token', data.token);
+      await SecureStore.setItemAsync('token', data.token);
       navigation.replace('Home');
     } catch (err) {
       Alert.alert('Erreur', err.response?.data?.message || 'Impossible de créer le compte');

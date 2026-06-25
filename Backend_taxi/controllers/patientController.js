@@ -53,12 +53,14 @@ exports.createPatient = async (req, res) => {
   }
 };
 
-// Champs autorisés en mise à jour (whitelist anti-mass-assignment)
-const PATIENT_UPDATE_WHITELIST = [
+// Champs autorisés en mise à jour pour le propriétaire
+const OWNER_UPDATE_WHITELIST = [
   'fullName', 'address', 'phone', 'nir',
   'prescriberCode', 'prescriberName', 'mutuelle', 'tiersPayant',
   'notesMedicales', 'pmtActif',
 ];
+// Champs restreints au propriétaire uniquement (pas aux collaborateurs partagés)
+const OWNER_ONLY_FIELDS = ['nir', 'notesMedicales', 'prescriberCode'];
 
 // 3. Modifier un patient
 exports.updatePatient = async (req, res) => {
@@ -66,18 +68,21 @@ exports.updatePatient = async (req, res) => {
     const { id } = req.params;
     const userId = req.user.id;
 
-    // Whitelist : n'accepter que les champs autorisés (interdit chauffeurId, sharedWith, _id)
-    const updates = {};
-    PATIENT_UPDATE_WHITELIST.forEach(k => {
-      if (req.body[k] !== undefined) updates[k] = req.body[k];
-    });
-
     const patient = await Patient.findOne({
       _id: id,
       $or: [{ chauffeurId: userId }, { sharedWith: userId }]
     });
 
     if (!patient) return res.status(404).json({ message: "Patient introuvable ou accès refusé" });
+
+    const isOwner = String(patient.chauffeurId) === userId;
+
+    const updates = {};
+    OWNER_UPDATE_WHITELIST.forEach(k => {
+      if (req.body[k] === undefined) return;
+      if (OWNER_ONLY_FIELDS.includes(k) && !isOwner) return; // champs sensibles = propriétaire uniquement
+      updates[k] = req.body[k];
+    });
 
     Object.assign(patient, updates);
     await patient.save();

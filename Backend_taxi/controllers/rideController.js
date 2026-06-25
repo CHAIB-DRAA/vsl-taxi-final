@@ -195,7 +195,7 @@ exports.getRides = async (req, res) => {
           shareNote: share.sharedNote
         };
       }).filter(r => r !== null);
-    } catch (e) { console.log("Pas de partages ou erreur mineure"); }
+    } catch (e) { /* partages indisponibles — non bloquant */ }
 
     // C. Fusionner et Trier
     const allRides = [...myRides, ...formattedSharedRides];
@@ -209,9 +209,20 @@ exports.getRides = async (req, res) => {
 };
 
 // --- 3. MISE À JOUR (PATCH) ---
+const RIDE_UPDATE_WHITELIST = [
+  'patientName', 'patientPhone', 'patientNIR',
+  'startLocation', 'endLocation', 'date',
+  'type', 'motif', 'notes', 'bonTransport',
+  'realDistance', 'tolls', 'startTime', 'endTime',
+  'isRoundTrip', 'hasEmptyReturn', 'statuFacturation'
+];
+
 exports.updateRide = async (req, res) => {
   try {
-    const updates = req.body;
+    const updates = {};
+    for (const key of RIDE_UPDATE_WHITELIST) {
+      if (req.body[key] !== undefined) updates[key] = req.body[key];
+    }
     const ride = await Ride.findOneAndUpdate(
       { _id: req.params.id, chauffeurId: req.user.id },
       { $set: updates },
@@ -221,7 +232,7 @@ exports.updateRide = async (req, res) => {
     if (!ride) return res.status(404).json({ message: "Course introuvable" });
     res.json(ride);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 
@@ -351,7 +362,8 @@ exports.createWebBooking = async (req, res) => {
       if (isNaN(returnDateTime.getTime())) returnDateTime = null;
     }
 
-    const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID || '69557bbc48dc1447f5f5140e';
+    const chauffeurId = process.env.DEFAULT_CHAUFFEUR_ID;
+    if (!chauffeurId) return res.status(500).json({ error: 'Configuration serveur manquante (DEFAULT_CHAUFFEUR_ID)' });
 
     const notesText = [
       notes ? `[WEB] ${notes}` : '[WEB] Demande en ligne',

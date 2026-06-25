@@ -9,14 +9,16 @@ router.use(authMiddleware);
 
 // 1. ENVOYER UNE COURSE
 router.post('/send', async (req, res) => {
-  console.log("📩 Envoi Dispatch...");
   try {
     const { rideId, targetGroupId, targetUserId } = req.body;
-    const myUserId = req.user.id || req.user.userId;
+    const myUserId = req.user.id;
 
     if (!rideId) return res.status(400).json({ error: "ID course manquant" });
 
-    // On marque la course comme dispatchée
+    // Vérifier que la course appartient bien à ce chauffeur
+    const ride = await Ride.findOne({ _id: rideId, chauffeurId: myUserId });
+    if (!ride) return res.status(403).json({ error: "Accès refusé" });
+
     await Ride.findByIdAndUpdate(rideId, { status: 'Dispatchée' });
 
     const newDispatch = new Dispatch({
@@ -28,11 +30,9 @@ router.post('/send', async (req, res) => {
     });
     
     await newDispatch.save();
-    console.log("✅ Offre créée !");
     res.status(201).json({ message: "Offre envoyée !" });
   } catch (err) {
-    console.error("🔥 Erreur Send:", err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: "Erreur serveur" });
   }
 });
 
@@ -67,26 +67,30 @@ router.get('/my-offers', async (req, res) => {
   
       res.json(validOffers);
     } catch (err) {
-      console.error("🔥 Erreur My-Offers:", err);
-      res.status(500).json({ error: err.message });
+      res.status(500).json({ error: "Erreur serveur" });
     }
   });
-// 3. ACCEPTER UNE OFFRE (CORRECTION ICI 🛠️)
 // 3. ACCEPTER UNE OFFRE (TRANSFERT)
 router.post('/accept/:dispatchId', async (req, res) => {
-    console.log("🤝 Tentative de transfert...");
     try {
-        const myUserId = req.user.id || req.user.userId;
+        const myUserId = req.user.id;
         const { dispatchId } = req.params;
 
-        // 👇 CORRECTION ICI : On ajoute .populate('senderId') pour récupérer le NOM
-        const dispatch = await Dispatch.findById(dispatchId).populate('senderId', 'fullName');
+        const myGroups = await Group.find({ members: myUserId }).select('_id');
+        const myGroupIds = myGroups.map(g => String(g._id));
 
+        const dispatch = await Dispatch.findById(dispatchId).populate('senderId', 'fullName');
         if (!dispatch) return res.status(404).json({ error: "Offre introuvable" });
-        
-        // On vérifie le statut
-        if (dispatch.status !== 'pending' && dispatch.status !== 'accepted') {
-             return res.status(400).json({ error: "Offre déjà traitée" });
+
+        // Vérifier que cette offre cible bien cet utilisateur ou son groupe
+        const targetedUser  = dispatch.targetUserId && String(dispatch.targetUserId) === myUserId;
+        const targetedGroup = dispatch.targetGroupId && myGroupIds.includes(String(dispatch.targetGroupId));
+        if (!targetedUser && !targetedGroup) {
+          return res.status(403).json({ error: "Accès refusé" });
+        }
+
+        if (dispatch.status !== 'pending') {
+          return res.status(400).json({ error: "Offre déjà traitée" });
         }
 
         const rideId = dispatch.rideId;
@@ -115,13 +119,10 @@ router.post('/accept/:dispatchId', async (req, res) => {
         dispatch.status = 'accepted';
         await dispatch.save();
 
-        console.log(`✅ Course transférée de ${senderName} vers ${myUserId}`);
-
         res.json({ message: "Course transférée !", ride: updatedRide });
 
     } catch (err) {
-        console.error("🔥 Erreur Accept:", err);
-        res.status(500).json({ error: err.message });
+        res.status(500).json({ error: "Erreur serveur" });
     }
 });
 module.exports = router;

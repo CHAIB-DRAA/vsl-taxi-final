@@ -26,6 +26,9 @@ const app = express();
 // SÉCURITÉ & MIDDLEWARES
 // ==========================================
 
+// Faire confiance au proxy Render pour obtenir la vraie IP client
+app.set('trust proxy', 1);
+
 app.use(helmet({
   contentSecurityPolicy: {
     directives: {
@@ -43,10 +46,10 @@ app.use(helmet({
 
 const ALLOWED_ORIGINS = process.env.ALLOWED_ORIGINS
   ? process.env.ALLOWED_ORIGINS.split(',').map(o => o.trim())
-  : [];
+  : ['https://vsl-taxi.onrender.com', 'https://www.taxi-31-toulouse.fr'];
 
 app.use(cors({
-  origin: ALLOWED_ORIGINS.length > 0 ? ALLOWED_ORIGINS : '*',
+  origin: ALLOWED_ORIGINS,
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization'],
 }));

@@ -44,7 +44,10 @@ export default function TodayRidesScreen({ navigation }) {
   const todayStr = new Date().toDateString();
 
   const rides = useMemo(() => {
-    const today = allRides.filter(r => new Date(r.date).toDateString() === todayStr);
+    const today = allRides.filter(r =>
+      new Date(r.date).toDateString() === todayStr ||
+      (r.source === 'Web' && r.status === 'En attente')
+    );
     return [...today].sort((a, b) => {
       const d = (RIDE_ORDER[a.status] ?? 4) - (RIDE_ORDER[b.status] ?? 4);
       return d !== 0 ? d : new Date(a.date) - new Date(b.date);

@@ -22,14 +22,18 @@ exports.getStatus = async (req, res) => {
 // First-time admin password creation — only works if no admin is configured yet
 exports.setup = async (req, res) => {
   try {
+    // Bloquer si un mot de passe admin est déjà configuré (DB ou ENV)
+    if (process.env.ADMIN_PASSWORD) {
+      return res.status(403).json({ message: 'Setup désactivé — admin configuré via variable d\'environnement.' });
+    }
     const existing = await AdminConfig.findOne().lean();
     if (existing) {
       return res.status(403).json({ message: 'Un compte admin existe déjà en base.' });
     }
 
     const { password } = req.body;
-    if (!password || password.length < 6) {
-      return res.status(400).json({ message: 'Le mot de passe doit faire au moins 6 caractères.' });
+    if (!password || password.length < 12) {
+      return res.status(400).json({ message: 'Le mot de passe doit faire au moins 12 caractères.' });
     }
 
     const hash = await bcrypt.hash(password, 12);

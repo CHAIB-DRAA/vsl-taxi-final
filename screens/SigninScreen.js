@@ -92,6 +92,7 @@ export default function LoginScreen({ navigation, onSignIn }) {
 
   return (
     <LinearGradient
+      colors={['#0D0D0D', '#1A0800']}
       style={styles.gradient}
     >
       <KeyboardAvoidingView

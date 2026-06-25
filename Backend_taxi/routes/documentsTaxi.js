@@ -21,7 +21,7 @@ const auth = new google.auth.GoogleAuth({
 });
 const drive = google.drive({ version: 'v3', auth });
 
-const FOLDER_ID = 'https://drive.google.com/drive/u/0/folders/103faHxrnFczNiVZijaDWfJyLv5zF1xqg'; 
+const FOLDER_ID = process.env.GOOGLE_DRIVE_FOLDER_ID || '103faHxrnFczNiVZijaDWfJyLv5zF1xqg';
 
 // ROUTE POST : /api/documents/upload
 // UTILISATION CORRIGÉE : authMiddleware
@@ -50,7 +50,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
             name: req.file.originalname,
             category: req.body.category,
             description: req.body.description,
-            uploaderId: req.user._id, // Assure-toi que ton authMiddleware attache bien 'req.user'
+            uploaderId: req.user.id,
             driveFileId: driveRes.data.id,
             viewLink: driveRes.data.webViewLink,
             size: req.file.size,
@@ -70,8 +70,7 @@ router.post('/upload', authMiddleware, upload.single('file'), async (req, res) =
 // UTILISATION CORRIGÉE : authMiddleware
 router.get('/', authMiddleware, async (req, res) => {
     try {
-        const docs = await DocumentsTaxi.find()
-            .populate('uploaderId', 'name email') // Optionnel si tu veux le nom de l'expéditeur
+        const docs = await DocumentsTaxi.find({ uploaderId: req.user.id })
             .sort({ createdAt: -1 });
         res.json(docs);
     } catch (error) {

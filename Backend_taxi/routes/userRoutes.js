@@ -57,8 +57,9 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
       return res.json({ message: 'Si ce compte existe, un email a été envoyé.' });
     }
 
-    const resetToken = crypto.randomBytes(3).toString('hex').toUpperCase();
-    user.resetPasswordToken = resetToken;
+    const rawToken = crypto.randomBytes(32).toString('hex');
+    const tokenHash = crypto.createHash('sha256').update(rawToken).digest('hex');
+    user.resetPasswordToken = tokenHash;
     user.resetPasswordExpires = Date.now() + 3_600_000; // 1h
     await user.save();
 
@@ -67,7 +68,7 @@ router.post('/forgot-password', resetLimiter, async (req, res) => {
         email: user.email,
         subject: 'Code de réinitialisation – Taxi App',
         message: `Votre code de réinitialisation est :`,
-        token: resetToken
+        token: rawToken
       });
     } catch {
       user.resetPasswordToken = undefined;
@@ -96,8 +97,9 @@ router.post('/reset-password', resetLimiter, async (req, res) => {
   }
 
   try {
+    const tokenHash = crypto.createHash('sha256').update(resetToken).digest('hex');
     const user = await User.findOne({
-      resetPasswordToken: resetToken,
+      resetPasswordToken: tokenHash,
       resetPasswordExpires: { $gt: Date.now() }
     });
 

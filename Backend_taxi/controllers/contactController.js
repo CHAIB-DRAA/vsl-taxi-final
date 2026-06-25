@@ -7,13 +7,14 @@ exports.searchUsers = async (req, res) => {
     const query = req.query.q;
     if (!query || query.length < 2) return res.json([]);
 
+    const escaped = query.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const users = await User.find({
       $or: [
-        { email: { $regex: query, $options: 'i' } }, // Recherche Email (insensible casse)
-        { fullName: { $regex: query, $options: 'i' } } // Recherche Nom
+        { email: { $regex: escaped, $options: 'i' } },
+        { fullName: { $regex: escaped, $options: 'i' } }
       ]
     })
-    .select('fullName email _id') // On ne renvoie que l'essentiel
+    .select('fullName _id')
     .limit(10);
 
     // On retire l'utilisateur lui-même des résultats

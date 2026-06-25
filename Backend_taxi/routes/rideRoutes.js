@@ -8,7 +8,9 @@ router.get('/today',           authMiddleware, rideController.getTodayRides);
 router.get('/stats',           authMiddleware, rideController.getStats);
 router.get('/billing-summary', authMiddleware, rideController.getBillingSummary);
 router.post('/respond-share', authMiddleware, rideController.respondRideShare);
-router.post('/web-booking', rideController.createWebBooking);
+const { createLimiter } = require('../middleware/rateLimiter');
+const webBookingLimiter = createLimiter({ windowMs: 15 * 60 * 1000, max: 5, message: 'Trop de demandes. Réessayez dans 15 minutes.' });
+router.post('/web-booking', webBookingLimiter, rideController.createWebBooking);
 router.post('/mass-import', authMiddleware, rideController.importMassRides);
 
 // --- ROUTES PROTÉGÉES (Application Mobile) ---

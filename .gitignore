@@ -36,3 +36,7 @@ yarn-error.*
 
 # typescript
 *.tsbuildinfo
+
+# Google credentials (ne jamais committer)
+google-credentials.json
+Backend_taxi/google-credentials.json

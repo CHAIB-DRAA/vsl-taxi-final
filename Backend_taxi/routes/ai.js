@@ -10,6 +10,9 @@ const openai = new OpenAI({
 
 router.use(authMiddleware);
 
+const { createLimiter } = require('../middleware/rateLimiter');
+const aiLimiter = createLimiter({ windowMs: 60 * 1000, max: 20, message: 'Trop de requêtes IA.' });
+
 // --- 1. DICTIONNAIRE DES LIEUX (A compléter) ---
 const KNOWN_LOCATIONS = {
     "estela": "Clinique Estela, Route de Revel, Toulouse",
@@ -39,9 +42,10 @@ const findRealAddress = (input) => {
 };
 
 // --- 2. ROUTE PRINCIPALE ---
-router.post('/parse-ride', async (req, res) => {
+router.post('/parse-ride', aiLimiter, async (req, res) => {
   const { text } = req.body;
   if (!text) return res.status(400).json({ error: "Texte manquant" });
+  if (text.length > 2000) return res.status(400).json({ error: "Texte trop long (max 2000 caractères)" });
 
   try {
     // Calcul de la date de DEMAIN pour la référence
@@ -113,12 +117,13 @@ router.post('/parse-ride', async (req, res) => {
             // Nettoyage pour recherche (enlève Me, Mr, Mme)
             const cleanSearchName = finalName.replace(/mme|mr|m\.|me |monsieur|madame/gi, '').trim();
             
+            const escapedName = cleanSearchName.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
             const dbPatient = await Patient.findOne({
-                fullName: { $regex: new RegExp(cleanSearchName, 'i') }
+                chauffeurId: req.user.id,
+                fullName: { $regex: new RegExp(escapedName, 'i') }
             });
 
             if (dbPatient) {
-                console.log(`✅ Patient reconnu BDD : ${dbPatient.fullName}`);
                 finalName = dbPatient.fullName; 
                 if (!finalPhone) finalPhone = dbPatient.phone;
                 
