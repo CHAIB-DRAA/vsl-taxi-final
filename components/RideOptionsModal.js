@@ -13,7 +13,7 @@ const C = {
   brand:  '#FF5500',
 };
 
-const ACTIONS = [
+const ACTIONS_ACTIVE = [
   { key: 'edit',       label: 'Modifier',  icon: 'create-outline',             bg: '#F5F7FB', color: '#060E1E' },
   { key: 'return',     label: 'Retour',    icon: 'swap-horizontal-outline',     bg: '#F5F7FB', color: '#060E1E' },
   { key: 'sms',        label: 'SMS',       icon: 'chatbubble-ellipses-outline', bg: '#F5F7FB', color: '#060E1E' },
@@ -22,6 +22,12 @@ const ACTIONS = [
   { key: 'docs',       label: 'Dossier',   icon: 'folder-open-outline',         bg: '#F5F7FB', color: '#060E1E' },
   { key: 'share',      label: 'Partager',  icon: 'share-social-outline',        bg: '#F5F7FB', color: '#060E1E' },
   { key: 'delete',     label: 'Supprimer', icon: 'trash-outline',               bg: '#FFF1F2', color: '#EF4444' },
+];
+
+const ACTIONS_DONE = [
+  { key: 'edit',   label: 'Modifier',        icon: 'create-outline',         bg: '#F5F7FB', color: '#060E1E' },
+  { key: 'return', label: 'Créer le retour', icon: 'swap-horizontal-outline', bg: '#EFF6FF', color: '#3B82F6' },
+  { key: 'delete', label: 'Supprimer',       icon: 'trash-outline',           bg: '#FFF1F2', color: '#EF4444' },
 ];
 
 export default function RideOptionsModal({
@@ -83,24 +89,45 @@ export default function RideOptionsModal({
                 <Text style={styles.statusDate}>{dayjs(ride.date).format('dddd D MMMM')}</Text>
               </View>
 
-              {/* ── GRILLE ACTIONS ── */}
-              <View style={styles.grid}>
-                {ACTIONS.map((a) => (
-                  <TouchableOpacity
-                    key={a.key}
-                    style={[styles.actionItem, { backgroundColor: a.bg }]}
-                    onPress={() => { handlerMap[a.key]?.(); }}
-                    activeOpacity={0.7}
-                  >
-                    <View style={[styles.actionIconBox, { borderColor: a.color + '30' }]}>
-                      <Ionicons name={a.icon} size={22} color={a.color} />
-                    </View>
-                    <Text style={[styles.actionLabel, { color: a.color }]}>
-                      {a.label}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
+              {/* ── ACTIONS ── */}
+              {isFinished ? (
+                // Course terminée : 3 boutons larges empilés
+                <View style={styles.doneActions}>
+                  {ACTIONS_DONE.map((a) => (
+                    <TouchableOpacity
+                      key={a.key}
+                      style={[styles.doneBtn, { backgroundColor: a.bg, borderColor: a.color + '33' }]}
+                      onPress={() => { handlerMap[a.key]?.(); }}
+                      activeOpacity={0.75}
+                    >
+                      <View style={[styles.doneBtnIcon, { backgroundColor: a.color + '18' }]}>
+                        <Ionicons name={a.icon} size={20} color={a.color} />
+                      </View>
+                      <Text style={[styles.doneBtnLabel, { color: a.color }]}>{a.label}</Text>
+                      <Ionicons name="chevron-forward" size={16} color={a.color + '66'} />
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              ) : (
+                // Course non terminée : grille complète
+                <View style={styles.grid}>
+                  {ACTIONS_ACTIVE.map((a) => (
+                    <TouchableOpacity
+                      key={a.key}
+                      style={[styles.actionItem, { backgroundColor: a.bg }]}
+                      onPress={() => { handlerMap[a.key]?.(); }}
+                      activeOpacity={0.7}
+                    >
+                      <View style={[styles.actionIconBox, { borderColor: a.color + '30' }]}>
+                        <Ionicons name={a.icon} size={22} color={a.color} />
+                      </View>
+                      <Text style={[styles.actionLabel, { color: a.color }]}>
+                        {a.label}
+                      </Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              )}
 
               <View style={{ height: Platform.OS === 'ios' ? 20 : 8 }} />
             </>
@@ -230,4 +257,17 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     textAlign: 'center',
   },
+
+  // ── Boutons course terminée ──
+  doneActions: { gap: 10, marginBottom: 4 },
+  doneBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 14,
+    borderRadius: 14, borderWidth: 1,
+    paddingVertical: 14, paddingHorizontal: 16,
+  },
+  doneBtnIcon: {
+    width: 40, height: 40, borderRadius: 12,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  doneBtnLabel: { flex: 1, fontSize: 15, fontWeight: '700' },
 });

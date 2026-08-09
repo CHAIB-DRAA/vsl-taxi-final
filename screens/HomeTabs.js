@@ -17,7 +17,8 @@ import { useData } from '../contexts/DataContext';
 import C from '../styles/tokens';
 
 export default function HomeScreen({ navigation }) {
-  const { allRides, loading, loadData } = useData();
+  const { allRides, loading, loadData, pricesHidden, togglePricesHidden } = useData();
+  const P = (val) => pricesHidden ? '●●●●' : val;
   const [scanning, setScanning] = useState(false);
   const [selectedMonth, setSelectedMonth] = useState(dayjs());
   const [stats, setStats] = useState({
@@ -135,13 +136,23 @@ export default function HomeScreen({ navigation }) {
               <Text style={styles.greeting}>{getGreeting()}</Text>
               <Text style={styles.dateText}>{dayjs().format('dddd D MMMM')}</Text>
             </View>
-            <TouchableOpacity
-              onPress={() => navigation.navigate('Settings')}
-              style={styles.settingsBtn}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="settings-outline" size={20} color={C.text2} />
-            </TouchableOpacity>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <TouchableOpacity
+                onPress={togglePricesHidden}
+                style={[styles.settingsBtn, pricesHidden && { backgroundColor: C.brandDim, borderColor: C.brandBorder }]}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, right: 8, bottom: 8, left: 8 }}
+              >
+                <Ionicons name={pricesHidden ? 'eye-off-outline' : 'eye-outline'} size={20} color={pricesHidden ? C.brand : C.text2} />
+              </TouchableOpacity>
+              <TouchableOpacity
+                onPress={() => navigation.navigate('Settings')}
+                style={styles.settingsBtn}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="settings-outline" size={20} color={C.text2} />
+              </TouchableOpacity>
+            </View>
           </View>
 
           {/* ── BENTO STATS GRID ── */}
@@ -172,7 +183,7 @@ export default function HomeScreen({ navigation }) {
                   <Ionicons name="chevron-forward" size={16} color={C.text3} />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.statValueCA}>{stats.monthEarnings} €</Text>
+              <Text style={styles.statValueCA}>{P(`${stats.monthEarnings} €`)}</Text>
               <Text style={styles.statLabel}>CA ESTIMÉ</Text>
             </View>
 
@@ -184,7 +195,7 @@ export default function HomeScreen({ navigation }) {
               <Ionicons name="checkmark-done" size={16} color={C.green} />
             </View>
             <Text style={styles.billedLabel}>Déjà facturé ce mois</Text>
-            <Text style={styles.billedAmount}>{stats.monthBilledEarnings} €</Text>
+            <Text style={styles.billedAmount}>{P(`${stats.monthBilledEarnings} €`)}</Text>
           </View>
         </View>
 

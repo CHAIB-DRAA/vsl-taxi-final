@@ -12,7 +12,7 @@ import dayjs from 'dayjs';
 import DateTimePicker from '@react-native-community/datetimepicker';
 
 import { useData } from '../contexts/DataContext';
-import api, { deleteRide, startRideById, finishRideById, shareRide, createRide } from '../services/api';
+import api, { deleteRide, startRideById, finishRideById, shareRide, createRide, acceptWebBooking, rejectWebBooking } from '../services/api';
 import { addRideToCalendar, syncBatchRides } from '../services/calendarService';
 
 import { calculatePriceDetailed } from '../utils/pricing';
@@ -44,6 +44,12 @@ export default function AgendaScreen({ navigation }) {
   const [analyzing, setAnalyzing]           = useState(false);
   const [modals, setModals]                 = useState({ options: false, dispatch: false, finish: false, returnTime: false });
 
+  // ── Filtre statut ──
+  const [statusFilter, setStatusFilter]     = useState('all'); // 'all' | 'todo' | 'done'
+
+  // ── Km estimés par rideId ──
+  const [estimatedKm, setEstimatedKm]       = useState({});
+
   // Modal terminer la course depuis l'agenda
   const [finishDistance, setFinishDistance]         = useState('');
   const [finishTolls, setFinishTolls]               = useState('0');
@@ -61,6 +67,12 @@ export default function AgendaScreen({ navigation }) {
   useFocusEffect(
     useCallback(() => { loadData(false); }, [])
   );
+
+  // ── Reset filtre au changement de date ──
+  const handleDateSelect = (date) => {
+    setSelectedDate(date);
+    setStatusFilter('all');
+  };
 
   // ── MAGIC PASTE ──
   const handleMagicPaste = async () => {
@@ -218,16 +230,54 @@ export default function AgendaScreen({ navigation }) {
       try {
         const updated = await startRideById(ride._id);
         updateLocalRide(updated);
+        // Ouvrir Waze automatiquement
+        const addr = updated.startLocation || ride.startLocation;
+        if (addr) {
+          const encoded = encodeURIComponent(addr);
+          const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+          const wazeWeb    = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+          Linking.canOpenURL(wazeNative).then(can =>
+            Linking.openURL(can ? wazeNative : wazeWeb).catch(() => {})
+          );
+        }
       } catch {
         Alert.alert('Erreur', 'Impossible de démarrer la course.');
       }
     } else if (action === 'finish') {
       setFinishRide(ride);
-      setFinishDistance('');
       setFinishTolls('0');
       setFinishBonTransport('');
+      // Pré-remplir km depuis historique
+      const norm = a => (a || '').trim().toLowerCase();
+      const past = allRides.find(r =>
+        r._id !== ride._id && r.status === 'Terminée' && r.realDistance > 0 &&
+        norm(r.startLocation) === norm(ride.startLocation) &&
+        norm(r.endLocation) === norm(ride.endLocation)
+      );
+      setFinishDistance(past ? String(past.realDistance) : '');
       setModals(m => ({ ...m, finish: true }));
     }
+  };
+
+  // ── ACCEPTER / REFUSER les demandes web ──
+  const handleAcceptWeb = async (id) => {
+    Alert.alert('Accepter ?', 'La demande web sera ajoutée au planning.', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Accepter ✓', onPress: async () => {
+        try { const r = await acceptWebBooking(id); updateLocalRide(r.ride); }
+        catch { Alert.alert('Erreur', "Impossible d'accepter."); }
+      }},
+    ]);
+  };
+
+  const handleRejectWeb = async (id, name) => {
+    Alert.alert('Refuser ?', `La course de ${name} sera supprimée.`, [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Refuser', style: 'destructive', onPress: async () => {
+        try { await rejectWebBooking(id); removeLocalRide(id); }
+        catch { Alert.alert('Erreur', 'Impossible de refuser.'); }
+      }},
+    ]);
   };
 
   const doFinishRide = async () => {
@@ -279,6 +329,65 @@ export default function AgendaScreen({ navigation }) {
     [allRides, selectedDate]
   );
 
+  // ── Filtre statut ──
+  const filteredRides = useMemo(() => {
+    if (statusFilter === 'todo') return dailyRides.filter(r => r.status !== 'Terminée');
+    if (statusFilter === 'done') return dailyRides.filter(r => r.status === 'Terminée');
+    return dailyRides;
+  }, [dailyRides, statusFilter]);
+
+  const countTodo = useMemo(() => dailyRides.filter(r => r.status !== 'Terminée').length, [dailyRides]);
+  const countDone = useMemo(() => dailyRides.filter(r => r.status === 'Terminée').length, [dailyRides]);
+
+  // ── Conflits horaires ──
+  const conflictingRideIds = useMemo(() => {
+    const ids = new Set();
+    const sorted = [...dailyRides].sort((a, b) => new Date(a.date) - new Date(b.date));
+    for (let i = 0; i < sorted.length - 1; i++) {
+      const current = sorted[i];
+      const next    = sorted[i + 1];
+      const endCurrent = current.endTime
+        ? dayjs(current.endTime)
+        : dayjs(current.date).add(30, 'minutes');
+      const startNext = dayjs(next.date);
+      if (startNext.diff(endCurrent, 'minutes') < 10) {
+        ids.add(current._id);
+        ids.add(next._id);
+      }
+    }
+    return ids;
+  }, [dailyRides]);
+
+  // ── Course active toujours en premier ──
+  const sortedFilteredRides = useMemo(() => {
+    return [...filteredRides].sort((a, b) => {
+      const aActive = a.status === 'En cours' ? 0 : 1;
+      const bActive = b.status === 'En cours' ? 0 : 1;
+      if (aActive !== bActive) return aActive - bActive;
+      return new Date(a.date) - new Date(b.date);
+    });
+  }, [filteredRides]);
+
+  // ── Km estimés — uniquement depuis l'historique local (aucune API tierce, RGPD) ──
+  useEffect(() => {
+    const norm = a => (a || '').trim().toLowerCase();
+    const newKm = {};
+    dailyRides.forEach(ride => {
+      if (ride.realDistance > 0) {
+        newKm[ride._id] = ride.realDistance;
+        return;
+      }
+      // Chercher une course identique déjà terminée avec un km réel
+      const past = allRides.find(r =>
+        r._id !== ride._id && r.status === 'Terminée' && r.realDistance > 0 &&
+        norm(r.startLocation) === norm(ride.startLocation) &&
+        norm(r.endLocation) === norm(ride.endLocation)
+      );
+      if (past) newKm[ride._id] = past.realDistance;
+    });
+    setEstimatedKm(newKm);
+  }, [dailyRides, allRides]);
+
   const markedDates = useMemo(() => {
     const marks = {};
     allRides.forEach(r => {
@@ -298,7 +407,7 @@ export default function AgendaScreen({ navigation }) {
 
       <AgendaHeader
         selectedDate={selectedDate}
-        onDateSelect={setSelectedDate}
+        onDateSelect={handleDateSelect}
         showCalendar={showCalendar}
         toggleCalendar={() => setShowCalendar(v => !v)}
         markedDates={markedDates}
@@ -376,9 +485,42 @@ export default function AgendaScreen({ navigation }) {
         </View>
       )}
 
+      {/* ── BARRE FILTRE STATUT ── */}
+      {dailyRides.length > 0 && (
+        <View style={styles.filterBar}>
+          <TouchableOpacity
+            style={[styles.filterBtn, statusFilter === 'all' && styles.filterBtnActive]}
+            onPress={() => setStatusFilter('all')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterBtnText, statusFilter === 'all' && styles.filterBtnTextActive]}>
+              Toutes ({dailyRides.length})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterBtn, statusFilter === 'todo' && styles.filterBtnActiveBrand]}
+            onPress={() => setStatusFilter('todo')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterBtnText, statusFilter === 'todo' && styles.filterBtnTextActive]}>
+              À faire ({countTodo})
+            </Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.filterBtn, statusFilter === 'done' && styles.filterBtnActiveGreen]}
+            onPress={() => setStatusFilter('done')}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterBtnText, statusFilter === 'done' && styles.filterBtnTextActive]}>
+              Terminées ({countDone})
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
+
       {/* ── LISTE ── */}
       <AgendaList
-        rides={dailyRides}
+        rides={sortedFilteredRides}
         loading={loading}
         onRefresh={() => loadData(false)}
         onCardPress={(r) => { setActiveRide(r); setModals(m => ({ ...m, options: true })); }}
@@ -386,6 +528,8 @@ export default function AgendaScreen({ navigation }) {
         onRespond={handleRespond}
         onSync={() => syncBatchRides(dailyRides)}
         onImport={handleMagicPaste}
+        conflictingRideIds={conflictingRideIds}
+        estimatedKm={estimatedKm}
       />
 
       {/* ── MODAL OPTIONS ── */}
@@ -742,6 +886,38 @@ const styles = StyleSheet.create({
     height: 8,
     borderRadius: 4,
   },
+
+  // ── BARRE FILTRE ──
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    gap: 8,
+    backgroundColor: C.bg,
+  },
+  filterBtn: {
+    flex: 1,
+    paddingVertical: 7,
+    borderRadius: 10,
+    alignItems: 'center',
+    backgroundColor: C.card,
+    borderWidth: 1,
+    borderColor: C.border,
+  },
+  filterBtnActive: {
+    backgroundColor: C.text,
+    borderColor: C.text,
+  },
+  filterBtnActiveBrand: {
+    backgroundColor: C.brand,
+    borderColor: C.brand,
+  },
+  filterBtnActiveGreen: {
+    backgroundColor: C.green,
+    borderColor: C.green,
+  },
+  filterBtnText: { fontSize: 11, fontWeight: '700', color: C.text2 },
+  filterBtnTextActive: { color: '#FFF' },
 
   // ── Bottom Sheet ──
   sheetOverlay: {

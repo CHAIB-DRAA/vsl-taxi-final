@@ -29,7 +29,7 @@ const TYPE_COLOR = {
   Autre:        '#6B7280',
 };
 
-export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
+export default function RideCard({ ride, onPress, onRespond, onStatusChange, compact = false, estimatedKm }) {
   const isFinished  = ride.status === 'Terminée' || !!ride.endTime;
   const isCancelled = ride.status === 'Annulée';
   const isActive    = !!ride.startTime && !isFinished && !isCancelled;
@@ -87,6 +87,129 @@ export default function RideCard({ ride, onPress, onRespond, onStatusChange }) {
     : isActive    ? C.green
     : showResponseBtns ? C.brand
     : C.border;
+
+  // ── MODE COMPACT ──────────────────────────────────────────────────────────
+  if (compact) {
+    const compactBg = isFinished ? '#F8F9FB' : C.card;
+    const openWazeAddr = async (addr) => {
+      if (!addr) return;
+      const encoded = encodeURIComponent(addr);
+      const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+      const wazeWeb    = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+      try {
+        const canWaze = await Linking.canOpenURL(wazeNative);
+        await Linking.openURL(canWaze ? wazeNative : wazeWeb);
+      } catch {
+        Linking.openURL(`https://maps.google.com/?q=${encoded}`).catch(() => {});
+      }
+    };
+    return (
+      <View style={[styles.compactCard, { backgroundColor: compactBg }, isFinished && styles.compactCardDone]}>
+        {/* Colonne heure */}
+        <View style={styles.compactTimeCol}>
+          <Text style={[styles.compactTime, isFinished && styles.dimmed]}>
+            {dayjs(ride.date).format('HH:mm')}
+          </Text>
+          <View style={styles.compactTimeSep} />
+        </View>
+
+        {/* Contenu principal */}
+        <View style={styles.compactBody}>
+          {/* Patient + type + actions */}
+          <View style={styles.compactTopRow}>
+            <Text style={[styles.compactName, isFinished && styles.dimmed]} numberOfLines={1}>
+              {ride.patientName}
+            </Text>
+            <View style={[styles.compactTypeBadge, { backgroundColor: typeColor + '22', borderColor: typeColor + '44' }]}>
+              <Text style={[styles.compactTypeText, { color: typeColor }]}>{ride.type}</Text>
+            </View>
+            {ride.patientPhone ? (
+              <TouchableOpacity
+                style={styles.compactCallBtn}
+                onPress={() => Linking.openURL(`tel:${ride.patientPhone}`)}
+                disabled={isFinished}
+              >
+                <Ionicons name="call" size={13} color={isFinished ? C.text3 : '#FFF'} />
+              </TouchableOpacity>
+            ) : null}
+            <TouchableOpacity style={styles.compactCopyBtn} onPress={handleCopy}>
+              <Ionicons name="copy-outline" size={13} color={C.text3} />
+            </TouchableOpacity>
+          </View>
+
+          {/* Départ */}
+          <TouchableOpacity
+            style={[styles.compactAddrBlock, { backgroundColor: isFinished ? 'transparent' : '#F0FDF4', borderColor: isFinished ? C.border : '#86EFAC44' }]}
+            onPress={() => !isFinished && openWazeAddr(ride.startLocation)}
+            activeOpacity={isFinished ? 1 : 0.7}
+            disabled={isFinished}
+          >
+            <View style={[styles.compactAddrBar, { backgroundColor: C.green }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.compactAddrLabel}>DEP</Text>
+              <Text style={[styles.compactAddrText, isFinished && styles.dimmed]} numberOfLines={1}>
+                {ride.startLocation}
+              </Text>
+            </View>
+            {!isFinished && <Ionicons name="navigate-outline" size={12} color={C.green} />}
+          </TouchableOpacity>
+
+          {/* Arrivée */}
+          <TouchableOpacity
+            style={[styles.compactAddrBlock, { backgroundColor: isFinished ? 'transparent' : '#FFF7ED', borderColor: isFinished ? C.border : '#FED7AA44', marginTop: 4 }]}
+            onPress={() => !isFinished && openWazeAddr(ride.endLocation)}
+            activeOpacity={isFinished ? 1 : 0.7}
+            disabled={isFinished}
+          >
+            <View style={[styles.compactAddrBar, { backgroundColor: typeColor }]} />
+            <View style={{ flex: 1 }}>
+              <Text style={styles.compactAddrLabel}>ARR</Text>
+              <Text style={[styles.compactAddrText, isFinished && styles.dimmed]} numberOfLines={1}>
+                {ride.endLocation}
+              </Text>
+            </View>
+            {!isFinished && <Ionicons name="navigate-outline" size={12} color={typeColor} />}
+          </TouchableOpacity>
+
+          {/* Footer : km estimé + bouton démarrer ou checkmark */}
+          <View style={styles.compactFooter}>
+            {estimatedKm ? (
+              <View style={styles.compactKm}>
+                <Ionicons name="speedometer-outline" size={11} color={C.text3} />
+                <Text style={styles.compactKmText}>~{estimatedKm} km</Text>
+              </View>
+            ) : <View />}
+            {isFinished ? (
+              <View style={styles.compactDoneChip}>
+                <Ionicons name="checkmark-circle" size={13} color={C.green} />
+                <Text style={styles.compactDoneText}>Terminée</Text>
+              </View>
+            ) : onStatusChange ? (
+              !isActive ? (
+                <TouchableOpacity
+                  style={styles.compactStartBtn}
+                  onPress={() => onStatusChange(ride, 'start')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="play" size={12} color="#FFF" />
+                  <Text style={styles.compactStartText}>Démarrer</Text>
+                </TouchableOpacity>
+              ) : (
+                <TouchableOpacity
+                  style={[styles.compactStartBtn, { backgroundColor: C.brand }]}
+                  onPress={() => onStatusChange(ride, 'finish')}
+                  activeOpacity={0.85}
+                >
+                  <Ionicons name="flag" size={12} color="#FFF" />
+                  <Text style={styles.compactStartText}>Terminer</Text>
+                </TouchableOpacity>
+              )
+            ) : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   return (
     <TouchableOpacity
@@ -366,4 +489,65 @@ billedBadge: { flexDirection: 'row', alignItems: 'center', gap: 3, backgroundCol
   btnRefuseText: { color: C.red, fontWeight: '700', fontSize: 14 },
   btnAccept: { flex: 2, flexDirection: 'row', justifyContent: 'center', alignItems: 'center', backgroundColor: '#060E1E', paddingVertical: 12, borderRadius: 12, gap: 5 },
   btnAcceptText: { color: '#FFF', fontWeight: '800', fontSize: 14 },
+
+  // ── COMPACT MODE ──
+  compactCard: {
+    flexDirection: 'row',
+    backgroundColor: C.card,
+    borderRadius: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: C.border,
+    overflow: 'hidden',
+    shadowColor: '#1A2550',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.07,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  compactCardDone: { opacity: 0.75 },
+  compactTimeCol: {
+    width: 52,
+    alignItems: 'center',
+    paddingTop: 12,
+    paddingBottom: 8,
+    borderRightWidth: 1,
+    borderRightColor: C.border,
+    backgroundColor: C.card2,
+  },
+  compactTime: { fontSize: 13, fontWeight: '800', color: C.text, letterSpacing: -0.3 },
+  compactTimeSep: { flex: 1 },
+  compactBody: { flex: 1, padding: 10, gap: 4 },
+  compactTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 4 },
+  compactName: { flex: 1, fontSize: 13, fontWeight: '700', color: C.text },
+  compactTypeBadge: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 6, borderWidth: 1 },
+  compactTypeText: { fontSize: 10, fontWeight: '700' },
+  compactCallBtn: {
+    width: 26, height: 26, borderRadius: 8,
+    backgroundColor: C.green, justifyContent: 'center', alignItems: 'center',
+  },
+  compactCopyBtn: {
+    width: 26, height: 26, borderRadius: 8,
+    backgroundColor: C.card2, borderWidth: 1, borderColor: C.border,
+    justifyContent: 'center', alignItems: 'center',
+  },
+  compactAddrBlock: {
+    flexDirection: 'row', alignItems: 'center', gap: 8,
+    borderRadius: 8, paddingHorizontal: 8, paddingVertical: 5,
+    borderWidth: 1,
+  },
+  compactAddrBar: { width: 3, height: '100%', borderRadius: 2, minHeight: 28 },
+  compactAddrLabel: { fontSize: 9, fontWeight: '800', color: C.text3, letterSpacing: 0.5, textTransform: 'uppercase' },
+  compactAddrText: { fontSize: 12, fontWeight: '500', color: C.text, marginTop: 1 },
+  compactFooter: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 4 },
+  compactKm: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  compactKmText: { fontSize: 11, color: C.text3, fontWeight: '600' },
+  compactDoneChip: { flexDirection: 'row', alignItems: 'center', gap: 4 },
+  compactDoneText: { fontSize: 11, color: C.green, fontWeight: '700' },
+  compactStartBtn: {
+    flexDirection: 'row', alignItems: 'center', gap: 4,
+    backgroundColor: '#060E1E', paddingHorizontal: 10, paddingVertical: 5,
+    borderRadius: 8,
+  },
+  compactStartText: { color: '#FFF', fontSize: 11, fontWeight: '800' },
 });

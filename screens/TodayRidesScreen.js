@@ -2,7 +2,7 @@ import React, { useState, useCallback, useMemo } from 'react';
 import { useFocusEffect } from '@react-navigation/native';
 import {
   View, Text, StyleSheet, TouchableOpacity, ActivityIndicator,
-  Alert, FlatList, Platform, TextInput, Modal, RefreshControl, StatusBar
+  Alert, FlatList, Platform, TextInput, Modal, RefreshControl, StatusBar, Linking
 } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Ionicons } from '@expo/vector-icons';
@@ -11,6 +11,20 @@ import dayjs from 'dayjs';
 import { startRideById, finishRideById, cancelRideById, acceptWebBooking, rejectWebBooking } from '../services/api';
 import { useData } from '../contexts/DataContext';
 import C from '../styles/tokens';
+
+// ─── Waze helper (globale) ───────────────────────────────────────────────────
+const openWaze = async (addr) => {
+  if (!addr) return;
+  const encoded = encodeURIComponent(addr);
+  const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+  const wazeWeb    = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+  try {
+    const canWaze = await Linking.canOpenURL(wazeNative);
+    await Linking.openURL(canWaze ? wazeNative : wazeWeb);
+  } catch {
+    Linking.openURL(`https://maps.google.com/?q=${encoded}`).catch(() => {});
+  }
+};
 
 const STATUS_CONFIG = {
   'À venir':    { color: '#3D7FFF', bg: '#EBF0FF', icon: 'time-outline',              grad: ['#3D7FFF', '#2255DD'] },
@@ -54,13 +68,22 @@ export default function TodayRidesScreen({ navigation }) {
     });
   }, [allRides, todayStr]);
 
-  useFocusEffect(useCallback(() => { loadData(false); }, [loadData]));
+  useFocusEffect(useCallback(() => { loadData(true); }, [loadData]));
 
   // ─── Actions ────────────────────────────────────────────────────────────
   const handleStart = async (id) => {
     try {
       const updated = await startRideById(id);
       updateLocalRide(updated);
+      const addr = updated.startLocation;
+      if (addr) {
+        const encoded = encodeURIComponent(addr);
+        const wazeNative = `waze://?q=${encoded}&navigate=yes`;
+        const wazeWeb    = `https://waze.com/ul?q=${encoded}&navigate=yes`;
+        Linking.canOpenURL(wazeNative).then(can =>
+          Linking.openURL(can ? wazeNative : wazeWeb).catch(() => {})
+        );
+      }
     } catch {
       Alert.alert('Erreur', 'Impossible de démarrer la course.');
     }
@@ -68,8 +91,14 @@ export default function TodayRidesScreen({ navigation }) {
 
   const openFinishModal = (ride) => {
     setFinishModal({ visible: true, rideId: ride._id, ride });
-    setDistance('');
     setTolls('');
+    const norm = a => (a || '').trim().toLowerCase();
+    const past = allRides.find(r =>
+      r._id !== ride._id && r.status === 'Terminée' && r.realDistance > 0 &&
+      norm(r.startLocation) === norm(ride.startLocation) &&
+      norm(r.endLocation) === norm(ride.endLocation)
+    );
+    setDistance(past ? String(past.realDistance) : '');
   };
 
   const submitFinish = async () => {
@@ -170,6 +199,68 @@ export default function TodayRidesScreen({ navigation }) {
       ? dayjs(item.endTime).diff(dayjs(item.startTime), 'minutes')
       : null;
 
+    /* ── CARTE WEB ÉPURÉE ── */
+    if (isWebPending) {
+      return (
+        <View style={styles.webCard}>
+          <View style={styles.webCardStripe} />
+          <View style={styles.webCardInner}>
+
+            {/* Date + heure */}
+            <View style={styles.webCardTopRow}>
+              <Ionicons name="globe-outline" size={12} color="#92400E" />
+              <Text style={styles.webCardDate}>
+                {dayjs(item.date).format('ddd D MMM · HH:mm')}
+              </Text>
+              <View style={styles.webCardBadge}>
+                <Text style={styles.webCardBadgeTxt}>À traiter</Text>
+              </View>
+            </View>
+
+            {/* Nom patient */}
+            <Text style={styles.webCardName} numberOfLines={1}>{item.patientName}</Text>
+
+            {/* Note si présente */}
+            {item.notes ? (
+              <Text style={styles.webCardNote} numberOfLines={1}>{item.notes}</Text>
+            ) : null}
+
+            {/* Bouton itinéraire */}
+            <TouchableOpacity
+              style={styles.btnItinerary}
+              activeOpacity={0.85}
+              onPress={() => {
+                const from = encodeURIComponent(item.startLocation || '');
+                const to   = encodeURIComponent(item.endLocation   || '');
+                const wazeNative = `waze://?q=${to}&navigate=yes`;
+                const googleRoute = `https://www.google.com/maps/dir/?api=1&origin=${from}&destination=${to}&travelmode=driving`;
+                Linking.canOpenURL(wazeNative).then(can =>
+                  Linking.openURL(can ? wazeNative : googleRoute).catch(() => {})
+                );
+              }}
+            >
+              <Ionicons name="map-outline" size={14} color="#FFF" />
+              <Text style={styles.btnItineraryText}>Voir l'itinéraire</Text>
+            </TouchableOpacity>
+
+            {/* Accepter / Refuser */}
+            <View style={styles.webActions}>
+              <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)} activeOpacity={0.85}>
+                <LinearGradient colors={[C.green, '#00B87A']} style={styles.btnGrad}>
+                  <Ionicons name="checkmark" size={16} color="#FFF" />
+                  <Text style={styles.btnGradText}>Accepter</Text>
+                </LinearGradient>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.btnReject} onPress={() => handleRejectWeb(item._id, item.patientName)} activeOpacity={0.85}>
+                <Ionicons name="close" size={16} color={C.red} />
+                <Text style={styles.btnRejectText}>Refuser</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <View style={[styles.card, (isFinished || isCancelled) && styles.cardDim]}>
 
@@ -181,20 +272,12 @@ export default function TodayRidesScreen({ navigation }) {
           end={{ x: 0, y: 1 }}
         />
 
-        {/* Bandeau web */}
-        {isWebPending && (
-          <View style={styles.webBanner}>
-            <Ionicons name="globe-outline" size={12} color="#92400E" />
-            <Text style={styles.webBannerText}>DEMANDE WEB — À TRAITER</Text>
-          </View>
-        )}
-
         <View style={styles.cardInner}>
           {/* Heure + badge */}
           <View style={styles.cardHeader}>
             <View>
               <Text style={[styles.timeText, (isFinished || isCancelled) && styles.dimmed]}>
-                {dayjs(item.date).format(isWebPending ? 'ddd D · HH:mm' : 'HH:mm')}
+                {dayjs(item.date).format('HH:mm')}
               </Text>
               {isActive && (
                 <View style={styles.liveRow}>
@@ -203,12 +286,10 @@ export default function TodayRidesScreen({ navigation }) {
                 </View>
               )}
             </View>
-            {!isWebPending && (
-              <View style={[styles.statusPill, { backgroundColor: cfg.bg, borderColor: cfg.color + '33' }]}>
-                <Ionicons name={cfg.icon} size={11} color={cfg.color} />
-                <Text style={[styles.statusPillText, { color: cfg.color }]}>{item.status}</Text>
-              </View>
-            )}
+            <View style={[styles.statusPill, { backgroundColor: cfg.bg, borderColor: cfg.color + '33' }]}>
+              <Ionicons name={cfg.icon} size={11} color={cfg.color} />
+              <Text style={[styles.statusPillText, { color: cfg.color }]}>{item.status}</Text>
+            </View>
           </View>
 
           {/* Patient */}
@@ -219,7 +300,11 @@ export default function TodayRidesScreen({ navigation }) {
 
           {/* Trajet */}
           <View style={styles.routeBlock}>
-            <View style={styles.routeRow}>
+            <TouchableOpacity
+              style={styles.routeRow}
+              onPress={() => !isFinished && !isCancelled && openWaze(item.startLocation)}
+              activeOpacity={isFinished || isCancelled ? 1 : 0.7}
+            >
               <View style={[styles.routeDot, { backgroundColor: C.green }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.routeLabel}>Départ</Text>
@@ -227,9 +312,16 @@ export default function TodayRidesScreen({ navigation }) {
                   {item.startLocation}
                 </Text>
               </View>
-            </View>
+              {!isFinished && !isCancelled && (
+                <Ionicons name="navigate-outline" size={13} color={C.green + 'AA'} />
+              )}
+            </TouchableOpacity>
             <View style={styles.routeVLine} />
-            <View style={styles.routeRow}>
+            <TouchableOpacity
+              style={styles.routeRow}
+              onPress={() => !isFinished && !isCancelled && openWaze(item.endLocation)}
+              activeOpacity={isFinished || isCancelled ? 1 : 0.7}
+            >
               <View style={[styles.routeDot, { backgroundColor: C.brand, borderRadius: 2 }]} />
               <View style={{ flex: 1 }}>
                 <Text style={styles.routeLabel}>Arrivée</Text>
@@ -237,7 +329,10 @@ export default function TodayRidesScreen({ navigation }) {
                   {item.endLocation}
                 </Text>
               </View>
-            </View>
+              {!isFinished && !isCancelled && (
+                <Ionicons name="navigate-outline" size={13} color={C.brand + 'AA'} />
+              )}
+            </TouchableOpacity>
           </View>
 
           {/* Info terminée */}
@@ -282,22 +377,6 @@ export default function TodayRidesScreen({ navigation }) {
               <Text style={styles.noteText} numberOfLines={2}>{item.notes}</Text>
             </View>
           ) : null}
-
-          {/* Actions web */}
-          {isWebPending && (
-            <View style={styles.webActions}>
-              <TouchableOpacity style={styles.btnAccept} onPress={() => handleAcceptWeb(item._id)} activeOpacity={0.85}>
-                <LinearGradient colors={[C.green, '#00B87A']} style={styles.btnGrad}>
-                  <Ionicons name="checkmark" size={16} color="#FFF" />
-                  <Text style={styles.btnGradText}>Accepter</Text>
-                </LinearGradient>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.btnReject} onPress={() => handleRejectWeb(item._id, item.patientName)} activeOpacity={0.85}>
-                <Ionicons name="close" size={16} color={C.red} />
-                <Text style={styles.btnRejectText}>Refuser</Text>
-              </TouchableOpacity>
-            </View>
-          )}
 
           {/* Actions normales */}
           {!isFinished && !isCancelled && !isWebPending && (
@@ -735,6 +814,24 @@ const styles = StyleSheet.create({
     justifyContent: 'center', alignItems: 'center',
   },
 
+  // ── Carte web épurée ──
+  webCard: {
+    flexDirection: 'row', backgroundColor: '#FFFBEB',
+    borderRadius: 14, marginBottom: 10, overflow: 'hidden',
+    borderWidth: 1, borderColor: '#FDE68A',
+  },
+  webCardStripe: { width: 4, backgroundColor: '#F59E0B' },
+  webCardInner: { flex: 1, padding: 14 },
+  webCardTopRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 },
+  webCardDate: { flex: 1, fontSize: 13, fontWeight: '700', color: '#92400E', textTransform: 'capitalize' },
+  webCardBadge: {
+    backgroundColor: '#FEF3C7', paddingHorizontal: 7, paddingVertical: 2,
+    borderRadius: 6, borderWidth: 1, borderColor: '#FDE68A',
+  },
+  webCardBadgeTxt: { fontSize: 10, fontWeight: '800', color: '#92400E' },
+  webCardName: { fontSize: 16, fontWeight: '800', color: C.text, marginBottom: 4 },
+  webCardNote: { fontSize: 12, color: C.text2, fontStyle: 'italic', marginBottom: 10 },
+
   // Web actions
   webBanner: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
@@ -742,7 +839,7 @@ const styles = StyleSheet.create({
     marginBottom: 12, borderRadius: 8,
   },
   webBannerText: { fontSize: 10, fontWeight: '800', color: '#92400E', letterSpacing: 0.4 },
-  webActions: { flexDirection: 'row', gap: 10, marginTop: 14 },
+  webActions: { flexDirection: 'row', gap: 10, marginTop: 10 },
   btnAccept: { flex: 1, borderRadius: 14, overflow: 'hidden' },
   btnReject: {
     flex: 1, flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
@@ -805,6 +902,16 @@ const styles = StyleSheet.create({
     paddingVertical: 15, gap: 8,
   },
   sheetBtnPrimaryText: { color: '#FFF', fontWeight: '800', fontSize: 15 },
+
+  // ── BOUTON ITINÉRAIRE WEB ──
+  btnItinerary: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    alignSelf: 'flex-start', marginTop: 10, marginBottom: 2,
+    paddingHorizontal: 14, paddingVertical: 8,
+    backgroundColor: '#3D7FFF',
+    borderRadius: 20,
+  },
+  btnItineraryText: { color: '#FFF', fontSize: 12, fontWeight: '700' },
 
   // ── BOUTON CRÉER RETOUR (carte) ──
   btnRetour: {

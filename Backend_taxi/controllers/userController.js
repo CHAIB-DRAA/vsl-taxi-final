@@ -17,6 +17,10 @@ exports.signupUser = async (req, res) => {
     if (!email || !password || !fullName) {
       return res.status(400).json({ error: 'Email, nom et mot de passe requis' });
     }
+    // Protection injection NoSQL : refuser tout ce qui n'est pas une chaîne
+    if (typeof email !== 'string' || typeof password !== 'string' || typeof fullName !== 'string') {
+      return res.status(400).json({ error: 'Format invalide' });
+    }
 
     if (password.length < 8) {
       return res.status(400).json({ error: 'Le mot de passe doit contenir au moins 8 caractères' });
@@ -48,6 +52,10 @@ exports.loginUser = async (req, res) => {
 
     if (!email || !password) {
       return res.status(400).json({ error: 'Email et mot de passe requis' });
+    }
+    // Protection injection NoSQL : refuser tout ce qui n'est pas une chaîne
+    if (typeof email !== 'string' || typeof password !== 'string') {
+      return res.status(400).json({ error: 'Email ou mot de passe incorrect' });
     }
 
     const user = await User.findOne({ email: email.toLowerCase().trim() });

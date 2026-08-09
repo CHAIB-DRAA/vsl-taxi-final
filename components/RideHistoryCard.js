@@ -10,11 +10,12 @@ const C = {
   brand: '#FF5500', green: '#16A34A', red: '#EF4444',
 };
 
-const RideHistoryCard = ({ item, hasConflict, onPress }) => {
+const RideHistoryCard = ({ item, hasConflict, onPress, pricesHidden = false }) => {
   const isBilled    = item.statuFacturation === 'Facturé';
-  const price       = calculatePrice(item);
+  const price       = pricesHidden ? '●●●●' : calculatePrice(item);
   const startTime   = item.startTime ? dayjs(item.startTime).format('HH:mm') : dayjs(item.date).format('HH:mm');
   const endTime     = item.endTime   ? dayjs(item.endTime).format('HH:mm')   : '--:--';
+  const dateShort   = dayjs(item.date).format('DD/MM');
   const startShort  = (item.startLocation || '').split(',')[0];
   const endShort    = (item.endLocation   || '').split(',')[0];
   const stripeColor = hasConflict ? C.red : isBilled ? C.green : C.brand;
@@ -29,6 +30,7 @@ const RideHistoryCard = ({ item, hasConflict, onPress }) => {
 
       {/* Colonne heures */}
       <View style={styles.timeCol}>
+        <Text style={styles.timeDate}>{dateShort}</Text>
         <Text style={styles.timeStart}>{startTime}</Text>
         <View style={styles.timeLine} />
         <Text style={styles.timeEnd}>{endTime}</Text>
@@ -89,6 +91,7 @@ const styles = StyleSheet.create({
     width: 46,
     gap: 2,
   },
+  timeDate:  { fontSize: 9, fontWeight: '800', color: C.brand, marginBottom: 2, letterSpacing: 0.2 },
   timeStart: { fontSize: 12, fontWeight: '800', color: C.text },
   timeLine:  { width: 1, height: 8, backgroundColor: C.border },
   timeEnd:   { fontSize: 11, fontWeight: '600', color: C.text3 },

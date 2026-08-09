@@ -14,6 +14,9 @@ export const DataProvider = ({ children }) => {
   const [contacts, setContacts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [ridesError, setRidesError] = useState(null); // null | 'auth' | 'network'
+  const [pricesHidden, setPricesHidden] = useState(false);
+  const togglePricesHidden = useCallback(() => setPricesHidden(v => !v), []);
+
   const lastLoadRef = useRef(0);
   const isLoadingRef = useRef(false);
   const authAlertShownRef = useRef(false);
@@ -151,6 +154,8 @@ export const DataProvider = ({ children }) => {
       handleGlobalRespond,
       handleCancelRide,
       pendingInvitation,
+      pricesHidden,
+      togglePricesHidden,
     }}>
       {children}
     </DataContext.Provider>

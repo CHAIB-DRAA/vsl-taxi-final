@@ -168,13 +168,16 @@ exports.getRides = async (req, res) => {
   try {
     const myId = req.user.id;
 
-    // A. Récupérer MES courses + les demandes web 'En attente' (visibles par tous les chauffeurs)
-    const myRides = await Ride.find({
-      $or: [
-        { chauffeurId: myId },
-        { source: 'Web', status: 'En attente' }
-      ]
-    }).lean();
+    // A. MES courses (données complètes)
+    const ownRides = await Ride.find({ chauffeurId: myId }).lean();
+
+    // A-bis. Demandes web 'En attente' — champs limités (jamais NIR ni infos médicales)
+    const webRides = await Ride.find(
+      { source: 'Web', status: 'En attente' },
+      'patientName patientPhone startLocation endLocation date type source status notes'
+    ).lean();
+
+    const myRides = [...ownRides, ...webRides];
 
     // B. Récupérer les courses PARTAGÉES avec moi
     let formattedSharedRides = [];
@@ -511,16 +514,20 @@ exports.getTodayRides = async (req, res) => {
     const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0);
     const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59);
 
-    const rides = await Ride.find({
-      $or: [
-        { chauffeurId: myId, date: { $gte: startOfDay, $lte: endOfDay }, status: { $nin: ['Annulée'] } },
-        { source: 'Web', status: 'En attente' }
-      ]
-    }).sort({ date: 1 }).lean();
+    const ownRides = await Ride.find({
+      chauffeurId: myId, date: { $gte: startOfDay, $lte: endOfDay }, status: { $nin: ['Annulée'] }
+    }).lean();
 
+    // Demandes web — champs limités (jamais NIR ni infos médicales)
+    const webRides = await Ride.find(
+      { source: 'Web', status: 'En attente' },
+      'patientName patientPhone startLocation endLocation date type source status notes'
+    ).lean();
+
+    const rides = [...ownRides, ...webRides].sort((a, b) => new Date(a.date) - new Date(b.date));
     res.json(rides);
   } catch (err) {
-    res.status(500).json({ message: err.message });
+    res.status(500).json({ message: 'Erreur serveur' });
   }
 };
 

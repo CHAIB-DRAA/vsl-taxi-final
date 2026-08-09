@@ -10,6 +10,7 @@ import dayjs from 'dayjs';
 
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
+import { useData } from '../contexts/DataContext';
 
 import api, { getRides, updateRide } from '../services/api';
 import { calculatePrice } from '../utils/pricing';
@@ -21,6 +22,8 @@ import RideDetailsModal from '../components/RideDetailsModal';
 
 
 export default function HistoryScreen() {
+  const { pricesHidden, togglePricesHidden } = useData();
+  const P = (val) => pricesHidden ? '●●●●' : val;
   const [rides, setRides] = useState([]);
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
@@ -326,6 +329,9 @@ export default function HistoryScreen() {
         <View style={styles.headerTop}>
           <Text style={styles.headerTitle}>Historique</Text>
           <View style={styles.headerActions}>
+            <TouchableOpacity style={[styles.headerBtn, pricesHidden && { backgroundColor: C.brandDim, borderColor: C.brandBorder }]} onPress={togglePricesHidden}>
+              <Ionicons name={pricesHidden ? 'eye-off-outline' : 'eye-outline'} size={14} color={pricesHidden ? C.brand : C.text2} />
+            </TouchableOpacity>
             <TouchableOpacity style={styles.headerBtn} onPress={runSmartAudit}>
               <Ionicons name="color-wand-outline" size={14} color={C.brand} />
               <Text style={styles.headerBtnText}>Lissage</Text>
@@ -383,7 +389,7 @@ export default function HistoryScreen() {
           <View style={styles.statSep} />
           <View style={styles.statPill}>
             <Ionicons name="cash-outline" size={12} color={C.green} />
-            <Text style={[styles.statNum, { color: C.green }]}>{stats.ca.toFixed(0)} €</Text>
+            <Text style={[styles.statNum, { color: C.green }]}>{P(`${stats.ca.toFixed(0)} €`)}</Text>
             <Text style={styles.statLbl}>CA</Text>
           </View>
           {rides.length > 0 && (
@@ -436,6 +442,7 @@ export default function HistoryScreen() {
               item={item}
               hasConflict={conflictingRideIds.has(item._id)}
               onPress={setSelectedRide}
+              pricesHidden={pricesHidden}
             />
           )}
           contentContainerStyle={styles.listContent}
